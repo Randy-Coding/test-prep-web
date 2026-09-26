@@ -9,8 +9,6 @@ let mode = 'exam';
 let view = 'setup';
 let revealed = false;
 let flipped = false;
-let flipTimer;
-let flipFinishTimer;
 const STORAGE_KEY = 'test-prep-web-state-v1';
 
 function save() {
@@ -120,33 +118,18 @@ function begin(items) {
 function renderCard() {
   const card = session[position];
   $('card-progress').textContent = `Card ${position + 1} of ${session.length}`;
-  $('card-side').textContent = flipped ? 'ANSWER' : 'QUESTION';
-  $('card-content').textContent = flipped ? card.answer : card.question;
+  $('card-question').textContent = card.question;
+  $('card-answer').textContent = card.answer;
+  $('flash-card').classList.toggle('flipped', flipped);
+  $('flash-card').setAttribute('aria-label', flipped ? 'Show question' : 'Show answer');
   $('previous-card').disabled = position === 0;
   $('next-card').disabled = position === session.length - 1;
 }
 
-function cancelFlip() {
-  clearTimeout(flipTimer);
-  clearTimeout(flipFinishTimer);
-  $('flash-card').classList.remove('flipping');
-}
-
 function flipCard() {
-  if ($('flash-card').classList.contains('flipping')) return;
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    flipped = !flipped;
-    renderCard();
-    save();
-    return;
-  }
-  $('flash-card').classList.add('flipping');
-  flipTimer = setTimeout(() => {
-    flipped = !flipped;
-    renderCard();
-    save();
-  }, 150);
-  flipFinishTimer = setTimeout(() => $('flash-card').classList.remove('flipping'), 300);
+  flipped = !flipped;
+  renderCard();
+  save();
 }
 
 function beginCards(items) {
@@ -240,9 +223,9 @@ $('retry').addEventListener('click', () => begin(missed));
 $('restart').addEventListener('click', () => show('setup'));
 $('back-setup').addEventListener('click', () => show('setup'));
 $('flash-card').addEventListener('click', flipCard);
-$('previous-card').addEventListener('click', () => { if (position > 0) { cancelFlip(); position--; flipped = false; renderCard(); save(); } });
-$('next-card').addEventListener('click', () => { if (position < session.length - 1) { cancelFlip(); position++; flipped = false; renderCard(); save(); } });
-$('shuffle-cards').addEventListener('click', () => { cancelFlip(); session = shuffle(session); position = 0; flipped = false; renderCard(); save(); });
+$('previous-card').addEventListener('click', () => { if (position > 0) { position--; flipped = false; renderCard(); save(); } });
+$('next-card').addEventListener('click', () => { if (position < session.length - 1) { position++; flipped = false; renderCard(); save(); } });
+$('shuffle-cards').addEventListener('click', () => { session = shuffle(session); position = 0; flipped = false; renderCard(); save(); });
 
 fetch('/api/banks').then((response) => {
   if (!response.ok) throw new Error('Could not load question banks.');
