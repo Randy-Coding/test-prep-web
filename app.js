@@ -9,12 +9,19 @@ let mode = 'exam';
 let view = 'setup';
 let revealed = false;
 let flipped = false;
+let snapshots = { exam: null, flashcards: null };
 const STORAGE_KEY = 'test-prep-web-state-v1';
 
 function save() {
+  if ((view === 'exam' || view === 'results') && session.length) {
+    snapshots.exam = { view, session, missed, position, score, revealed };
+  } else if (view === 'flashcards' && session.length) {
+    snapshots.flashcards = { view, session, position, flipped };
+  }
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
       mode, view, session, missed, position, score, revealed, flipped,
+      snapshots,
       bank: $('bank').value, topics: checked('topics'),
       chunkSize: $('chunk-size').value, chunks: checked('chunks')
     }));
@@ -41,7 +48,9 @@ function checked(container) {
 
 function show(nextView) {
   view = nextView;
+  $('hero').hidden = view !== 'setup';
   for (const id of ['setup', 'exam', 'results', 'flashcards']) $(id).hidden = id !== view;
+  updateNav();
   save();
   window.scrollTo(0, 0);
 }
@@ -52,7 +61,40 @@ function setMode(next) {
   $('flash-mode').classList.toggle('active', mode === 'flashcards');
   $('chunk-options').hidden = mode === 'flashcards';
   $('start').textContent = mode === 'exam' ? 'Start exam →' : 'Start flashcards →';
+  updateNav();
   save();
+}
+
+function updateNav() {
+  const active = view === 'setup' ? 'home' : view === 'flashcards' ? 'flashcards' : 'exam';
+  for (const name of ['home', 'exam', 'flashcards']) {
+    const button = $(`nav-${name}`);
+    button.classList.toggle('active', name === active);
+    if (name === active) button.setAttribute('aria-current', 'page');
+    else button.removeAttribute('aria-current');
+  }
+}
+
+function navigate(target) {
+  save();
+  show('setup');
+  if (target === 'home') return;
+  setMode(target);
+  const state = snapshots[target];
+  if (!state || !Array.isArray(state.session) || !state.session.length) return;
+  session = state.session;
+  position = state.position;
+  if (target === 'flashcards' && position < session.length) {
+    flipped = Boolean(state.flipped);
+    show('flashcards');
+    renderCard();
+  } else if (target === 'exam') {
+    missed = state.missed || [];
+    score = state.score || 0;
+    revealed = Boolean(state.revealed);
+    if (state.view === 'results') finish();
+    else if (position < session.length) { show('exam'); renderQuestion(); }
+  }
 }
 
 function renderTopics() {
@@ -175,6 +217,9 @@ function grade(correct) {
 }
 
 $('bank').addEventListener('change', () => { renderTopics(); save(); });
+$('nav-home').addEventListener('click', () => navigate('home'));
+$('nav-exam').addEventListener('click', () => navigate('exam'));
+$('nav-flashcards').addEventListener('click', () => navigate('flashcards'));
 $('topics').addEventListener('change', () => { updatePool(); save(); });
 $('chunk-size').addEventListener('input', () => { updatePool(); save(); });
 $('chunks').addEventListener('change', save);
@@ -243,6 +288,11 @@ fetch('/api/banks').then((response) => {
   else if (banks.CSE416) $('bank').value = 'CSE416';
   renderTopics();
   if (state) {
+    snapshots = state.snapshots || { exam: null, flashcards: null };
+    if (!state.snapshots && Array.isArray(state.session) && state.session.length && state.view !== 'setup') {
+      const key = state.view === 'flashcards' ? 'flashcards' : 'exam';
+      snapshots[key] = state;
+    }
     setMode(state.mode === 'flashcards' ? 'flashcards' : 'exam');
     $('topics').querySelectorAll('input').forEach((input) => { input.checked = state.topics?.includes(input.value) ?? true; });
     $('chunk-size').value = state.chunkSize || '';
