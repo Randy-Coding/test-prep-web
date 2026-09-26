@@ -5,6 +5,26 @@ let session = [];
 let missed = [];
 let position = 0;
 let score = 0;
+let mode = 'exam';
+let view = 'setup';
+let revealed = false;
+let flipped = false;
+const STORAGE_KEY = 'test-prep-web-state-v1';
+
+function save() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      mode, view, session, missed, position, score, revealed, flipped,
+      bank: $('bank').value, topics: checked('topics'),
+      chunkSize: $('chunk-size').value, chunks: checked('chunks')
+    }));
+  } catch (_) { /* Browsers with storage disabled can still run the app. */ }
+}
+
+function savedState() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)); }
+  catch (_) { return null; }
+}
 
 function shuffle(items) {
   const copy = [...items];
@@ -19,9 +39,20 @@ function checked(container) {
   return [...$(container).querySelectorAll('input:checked')].map((input) => input.value);
 }
 
-function show(view) {
-  for (const id of ['setup', 'exam', 'results']) $(id).hidden = id !== view;
+function show(nextView) {
+  view = nextView;
+  for (const id of ['setup', 'exam', 'results', 'flashcards']) $(id).hidden = id !== view;
+  save();
   window.scrollTo(0, 0);
+}
+
+function setMode(next) {
+  mode = next;
+  $('exam-mode').classList.toggle('active', mode === 'exam');
+  $('flash-mode').classList.toggle('active', mode === 'flashcards');
+  $('chunk-options').hidden = mode === 'flashcards';
+  $('start').textContent = mode === 'exam' ? 'Start exam →' : 'Start flashcards →';
+  save();
 }
 
 function renderTopics() {
@@ -69,8 +100,8 @@ function renderQuestion() {
   $('progress-fill').style.width = `${position / session.length * 100}%`;
   $('question').textContent = session[position].question;
   $('answer').textContent = session[position].answer;
-  $('answer-panel').hidden = true;
-  $('reveal').hidden = false;
+  $('answer-panel').hidden = !revealed;
+  $('reveal').hidden = revealed;
 }
 
 function begin(items) {
@@ -78,8 +109,28 @@ function begin(items) {
   missed = [];
   position = 0;
   score = 0;
+  revealed = false;
   show('exam');
   renderQuestion();
+  save();
+}
+
+function renderCard() {
+  const card = session[position];
+  $('card-progress').textContent = `Card ${position + 1} of ${session.length}`;
+  $('card-side').textContent = flipped ? 'ANSWER' : 'QUESTION';
+  $('card-content').textContent = flipped ? card.answer : card.question;
+  $('previous-card').disabled = position === 0;
+  $('next-card').disabled = position === session.length - 1;
+}
+
+function beginCards(items) {
+  session = shuffle(items);
+  position = 0;
+  flipped = false;
+  show('flashcards');
+  renderCard();
+  save();
 }
 
 function finish() {
@@ -109,18 +160,24 @@ function grade(correct) {
   if (correct) score++;
   else missed.push(session[position]);
   position++;
+  revealed = false;
   if (position === session.length) finish();
   else renderQuestion();
+  save();
 }
 
-$('bank').addEventListener('change', renderTopics);
-$('topics').addEventListener('change', updatePool);
-$('chunk-size').addEventListener('input', updatePool);
+$('bank').addEventListener('change', () => { renderTopics(); save(); });
+$('topics').addEventListener('change', () => { updatePool(); save(); });
+$('chunk-size').addEventListener('input', () => { updatePool(); save(); });
+$('chunks').addEventListener('change', save);
+$('exam-mode').addEventListener('click', () => setMode('exam'));
+$('flash-mode').addEventListener('click', () => setMode('flashcards'));
 $('toggle-topics').addEventListener('click', () => {
   const inputs = [...$('topics').querySelectorAll('input')];
   const next = !inputs.every((input) => input.checked);
   inputs.forEach((input) => { input.checked = next; });
   updatePool();
+  save();
 });
 $('start').addEventListener('click', () => {
   $('setup-error').textContent = '';
@@ -130,7 +187,7 @@ $('start').addEventListener('click', () => {
   }
   const rawSize = $('chunk-size').value;
   let items = shuffle(pool);
-  if (rawSize !== '') {
+  if (mode === 'exam' && rawSize !== '') {
     const size = Number(rawSize);
     if (!Number.isInteger(size) || size < 1) {
       $('setup-error').textContent = 'Chunk size must be a positive whole number.';
@@ -143,16 +200,24 @@ $('start').addEventListener('click', () => {
       return;
     }
   }
-  begin(items);
+  if (mode === 'exam') begin(items);
+  else beginCards(items);
 });
 $('reveal').addEventListener('click', () => {
+  revealed = true;
   $('reveal').hidden = true;
   $('answer-panel').hidden = false;
+  save();
 });
 $('correct').addEventListener('click', () => grade(true));
 $('incorrect').addEventListener('click', () => grade(false));
 $('retry').addEventListener('click', () => begin(missed));
 $('restart').addEventListener('click', () => show('setup'));
+$('back-setup').addEventListener('click', () => show('setup'));
+$('flash-card').addEventListener('click', () => { flipped = !flipped; renderCard(); save(); });
+$('previous-card').addEventListener('click', () => { if (position > 0) { position--; flipped = false; renderCard(); save(); } });
+$('next-card').addEventListener('click', () => { if (position < session.length - 1) { position++; flipped = false; renderCard(); save(); } });
+$('shuffle-cards').addEventListener('click', () => { session = shuffle(session); position = 0; flipped = false; renderCard(); save(); });
 
 fetch('/api/banks').then((response) => {
   if (!response.ok) throw new Error('Could not load question banks.');
@@ -165,6 +230,27 @@ fetch('/api/banks').then((response) => {
     option.textContent = name;
     $('bank').append(option);
   });
-  if (banks.CSE416) $('bank').value = 'CSE416';
+  const state = savedState();
+  if (state?.bank && banks[state.bank]) $('bank').value = state.bank;
+  else if (banks.CSE416) $('bank').value = 'CSE416';
   renderTopics();
+  if (state) {
+    setMode(state.mode === 'flashcards' ? 'flashcards' : 'exam');
+    $('topics').querySelectorAll('input').forEach((input) => { input.checked = state.topics?.includes(input.value) ?? true; });
+    $('chunk-size').value = state.chunkSize || '';
+    updatePool();
+    $('chunks').querySelectorAll('input').forEach((input) => { input.checked = state.chunks?.includes(input.value) ?? true; });
+    if (Array.isArray(state.session) && state.session.length && Number.isInteger(state.position) && state.position >= 0 && state.position <= state.session.length) {
+      session = state.session;
+      missed = Array.isArray(state.missed) ? state.missed : [];
+      position = state.position;
+      score = Number.isInteger(state.score) ? state.score : 0;
+      revealed = Boolean(state.revealed);
+      flipped = Boolean(state.flipped);
+      if (state.view === 'exam' && position < session.length) { show('exam'); renderQuestion(); }
+      else if (state.view === 'flashcards' && position < session.length) { show('flashcards'); renderCard(); }
+      else if (state.view === 'results') finish();
+    }
+  }
+  save();
 }).catch((error) => { $('setup-error').textContent = error.message; });

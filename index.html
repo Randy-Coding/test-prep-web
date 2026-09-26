@@ -12,14 +12,15 @@
     <header><span class="eyebrow">STUDY SPACE</span><h1>Test Prep<span class="dot">.</span></h1><p>Pick what to study, then work through a fresh mix of questions.</p></header>
     <section id="setup" class="card">
       <div class="section-title"><span class="step">01</span><div><h2>Build your session</h2><p>Questions are shuffled each time.</p></div></div>
+      <label>Study method</label><div class="mode-picker"><button id="exam-mode" class="mode active" type="button">Exam <small>Reveal and self-grade</small></button><button id="flash-mode" class="mode" type="button">Flashcards <small>Flip and browse</small></button></div>
       <label for="bank">Question bank</label><select id="bank"></select>
-      <div class="topic-heading"><label>Topics</label><button id="toggle-topics" class="text-button" type="button">Select all</button></div>
+      <div class="topic-heading"><label>Chapters / topics</label><button id="toggle-topics" class="text-button" type="button">Select all</button></div>
       <div id="topics" class="topics"></div>
-      <label for="chunk-size">Questions per chunk <span class="hint">Optional</span></label>
+      <div id="chunk-options"><label for="chunk-size">Questions per chunk <span class="hint">Optional</span></label>
       <input id="chunk-size" type="number" min="1" placeholder="Leave blank to use every selected question">
-      <div id="chunks-wrap" hidden><label>Choose chunks</label><div id="chunks" class="topics"></div></div>
+      <div id="chunks-wrap" hidden><label>Choose chunks</label><div id="chunks" class="topics"></div></div></div>
       <p id="setup-error" class="error" role="alert"></p>
-      <div class="actions"><span id="question-count"></span><button id="start" class="primary" type="button">Start studying →</button></div>
+      <div class="actions"><span id="question-count"></span><button id="start" class="primary" type="button">Start exam →</button></div>
     </section>
     <section id="exam" class="card" hidden>
       <div class="exam-top"><span id="progress"></span><span id="score"></span></div>
@@ -29,6 +30,11 @@
       <div id="answer-panel" hidden><p class="eyebrow">ANSWER</p><div id="answer" class="answer"></div><p class="grade-label">Did you get it right?</p><div class="grade-actions"><button id="incorrect" class="secondary" type="button">Not yet</button><button id="correct" class="primary" type="button">Yes, I did</button></div></div>
     </section>
     <section id="results" class="card" hidden><span class="eyebrow">SESSION COMPLETE</span><h2 id="result-title"></h2><p id="result-score"></p><div id="missed"></div><div class="grade-actions"><button id="restart" class="secondary" type="button">New session</button><button id="retry" class="primary" type="button">Retry missed questions</button></div></section>
+    <section id="flashcards" class="card" hidden>
+      <div class="exam-top"><span id="card-progress"></span><button id="back-setup" class="text-button" type="button">Change chapters</button></div>
+      <button id="flash-card" class="flash-card" type="button" aria-label="Flip flashcard"><span id="card-side" class="eyebrow"></span><span id="card-content"></span><span class="flip-hint">Click to flip</span></button>
+      <div class="flash-actions"><button id="previous-card" class="secondary" type="button">← Previous</button><button id="shuffle-cards" class="secondary" type="button">Shuffle</button><button id="next-card" class="primary" type="button">Next →</button></div>
+    </section>
   </main>
 </body>
 </html>
