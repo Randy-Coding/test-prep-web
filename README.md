@@ -12,6 +12,12 @@ python server.py
 
 Open <http://localhost:8000>. Use `python server.py --port 8080` to choose another port.
 
+## Deploy to Vercel
+
+Push this repository to GitHub, then import it as a new Vercel project. The included `vercel.json` selects the **Other** framework, runs `python3 build_static.py`, and publishes `dist/`. No environment variables are needed. Each deployment rebuilds `banks.json` from the Python question banks.
+
+You can check the output locally with `python build_static.py`, then `python -m http.server 8000 --directory dist`.
+
 ## Question banks
 
 The Python files in `question_banks/` each define a `questions` dictionary. Values can be topic dictionaries of question/answer pairs, or direct question/answer pairs for a single-topic bank. Restart the server to pick up changes to the files.

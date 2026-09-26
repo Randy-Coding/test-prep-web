@@ -36,7 +36,7 @@ def load_banks():
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         path = urlparse(self.path).path
-        if path == "/api/banks":
+        if path in ("/api/banks", "/banks.json"):
             try:
                 body = json.dumps(load_banks(), ensure_ascii=False).encode("utf-8")
             except Exception as exc:

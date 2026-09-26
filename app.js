@@ -272,7 +272,7 @@ $('previous-card').addEventListener('click', () => { if (position > 0) { positio
 $('next-card').addEventListener('click', () => { if (position < session.length - 1) { position++; flipped = false; renderCard(); save(); } });
 $('shuffle-cards').addEventListener('click', () => { session = shuffle(session); position = 0; flipped = false; renderCard(); save(); });
 
-fetch('/api/banks').then((response) => {
+fetch('/banks.json').then((response) => {
   if (!response.ok) throw new Error('Could not load question banks.');
   return response.json();
 }).then((data) => {
