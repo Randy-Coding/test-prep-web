@@ -262,20 +262,20 @@ questions["Physical Memory"] = {
         "correct_answer": "C", "explanation": "The disk-operation slide says read/write heads move together between cylinders. A sector or track is a storage region, not a moving read/write component.",
         "source": "6. Physical Memory.pptx slide 13",
     },
-    "A CPU read misses in the pyramid level immediately below Registers, but the next level down holds the requested block. Which action can make a later read hit in the missed level?": {
-        "subcategory": "Memory hierarchy", "choices": {"A": "Copy the block from main memory into cache", "B": "Move the entire main memory into registers", "C": "Write the block to traditional disk before reading it", "D": "Bypass cache permanently after its first miss"},
-        "correct_answer": "A", "explanation": "An upper, faster level caches a subset of the level below it. On a miss, the block can be fetched from main memory into cache, so a later access may hit there.",
-        "source": "6. Physical Memory.pptx slides 3, 38–40 — Physical Memory Hierachy.png", "image": "cse320/Physical Memory Hierachy.png",
+    "In the unlabeled pyramid, a value begins at the tier marked about 10 million cycles. A program reads it and then reuses it in CPU arithmetic. Which path through faster levels and reason for faster later accesses are correct?": {
+        "subcategory": "Memory hierarchy", "choices": {"A": "Traditional Disk → Main Memory → Cache → Registers; upper levels can retain reused data", "B": "Flash Disk → Main Memory → Cache → Registers; the 10-million-cycle tier is flash", "C": "Traditional Disk → Cache → Main Memory → Registers; cache receives disk data before DRAM", "D": "Traditional Disk → Main Memory → Registers → Cache; registers retain the cache block"},
+        "correct_answer": "A", "explanation": "The 10-million-cycle tier is Traditional Disk. Data can move through Main Memory and Cache into Registers for arithmetic; caching and locality let later accesses use faster upper levels instead of returning to disk.",
+        "source": "6. Physical Memory.pptx slides 3, 38–40 — Physical Memory Hierachy_NO_LABELS.png", "image": "cse320/Physical Memory Hierachy_NO_LABELS.png",
     },
-    "A loop reuses an array that fits in the on-CPU level immediately below Registers in the pyramid. Why can later passes avoid fetching every element from Main Memory again?": {
-        "subcategory": "Memory hierarchy", "choices": {"A": "Temporal locality lets recently used blocks remain in Caches", "B": "Spatial locality guarantees a hit even after blocks leave Caches", "C": "Temporal locality makes Flash Disk part of the CPU", "D": "Main Memory becomes as fast as Registers after one pass"},
-        "correct_answer": "A", "explanation": "Repeated accesses exhibit temporal locality. Because the working blocks fit in cache, they can remain there and satisfy later reads without another main-memory fetch for each element.",
-        "source": "6. Physical Memory.pptx slides 3, 5–6, 38 — Physical Memory Hierachy.png", "image": "cse320/Physical Memory Hierachy.png",
+    "A loop reads the same word 100 times. Its block starts only in Main Memory; Cache is empty but can retain it. Using the pyramid's approximate time for the level supplying each read, and ignoring other overhead, about how many cycles do the reads take?": {
+        "subcategory": "Memory hierarchy", "choices": {"A": "1,090 cycles", "B": "10,000 cycles", "C": "100 cycles", "D": "1,000,000 cycles"},
+        "correct_answer": "A", "explanation": "The first read is served from Main Memory at about 100 cycles and brings the block into Cache. Temporal locality lets the next 99 reads hit in Cache at about 10 cycles each: 100 + 99 × 10 = 1,090 cycles.",
+        "source": "6. Physical Memory.pptx slides 3, 5, 38–40 — Physical Memory Hierachy.png", "image": "cse320/Physical Memory Hierachy.png",
     },
-    "A data set exceeds Main Memory but fits in the level directly below it in the pyramid. The program repeatedly revisits a small subset. Which arrangement uses that hierarchy effectively?": {
+    "A data set exceeds Main Memory but fits on Flash Disk. The program repeatedly revisits a small subset. Which arrangement uses the memory hierarchy effectively?": {
         "subcategory": "Memory hierarchy", "choices": {"A": "Keep the full set on flash disk and cache the hot subset in Main Memory and higher levels", "B": "Keep the full set only in Registers", "C": "Read every item from traditional disk on every revisit", "D": "Disable caching because the full set exceeds Main Memory"},
-        "correct_answer": "A", "explanation": "The level directly below Main Memory is flash disk. It can hold the full set while Main Memory and higher levels retain the frequently reused subset; locality makes these smaller levels effective.",
-        "source": "6. Physical Memory.pptx slides 2–3, 38–40, 43 — Physical Memory Hierachy.png", "image": "cse320/Physical Memory Hierachy.png",
+        "correct_answer": "A", "explanation": "Flash Disk can hold the full set while Main Memory and higher levels retain the frequently reused subset; locality makes these smaller levels effective.",
+        "source": "6. Physical Memory.pptx slides 2–3, 38–40, 43",
     },
     "A disk rotates at 6,000 RPM, has 100 sectors per track, and has a 5 ms average seek. Using the lecture's average-access formula, what is the average time to access one sector?": {
         "subcategory": "HDD access time", "choices": {"A": "5.1 ms", "B": "10.1 ms", "C": "15.1 ms", "D": "10.01 ms"},
@@ -290,15 +290,15 @@ questions["Physical Memory"] = {
 }
 
 questions["Physical Memory"].update({
-    "A program keeps one copy in the pyramid level immediately below Caches and successfully writes another to the level immediately below Main Memory. After power loss, which copy remains available and why?": {
-        "subcategory": "Memory hierarchy", "choices": {"A": "Only the DRAM copy, because primary storage is permanent", "B": "Only the flash-disk copy, because flash is nonvolatile while DRAM is volatile", "C": "Both copies, because all hierarchy levels retain data without power", "D": "Neither copy, because flash must rotate to preserve its bits"},
-        "correct_answer": "B", "explanation": "DRAM loses its contents without power. Flash storage is nonvolatile, so the successfully written copy survives; the hierarchy places flash below DRAM, but the persistence difference requires knowing their storage behavior.",
-        "source": "6. Physical Memory.pptx slides 3, 23, 27–28, 36–37 — Physical Memory Hierachy.png", "image": "cse320/Physical Memory Hierachy.png",
+    "In the diagram with storage-category names hidden, which level starts the lower bracket on the far right, and would data successfully written there survive a power loss?": {
+        "subcategory": "Memory hierarchy", "choices": {"A": "Flash Disk; yes, because flash is nonvolatile", "B": "Flash Disk; no, because flash is volatile", "C": "Main Memory; yes, because DRAM is nonvolatile", "D": "Traditional Disk; no, because magnetic storage needs power to retain data"},
+        "correct_answer": "A", "explanation": "The lower outer bracket starts at Flash Disk. Flash is nonvolatile, so successfully written data survives loss of power; DRAM in Main Memory is volatile.",
+        "source": "6. Physical Memory.pptx slides 3, 27–28, 36–37 — Physical Memory Hierachy_NO_CPU_AND_STORAGE_CATEGORIES.png", "image": "cse320/Physical Memory Hierachy_NO_CPU_AND_STORAGE_CATEGORIES.png",
     },
-    "A program reads the same small record thousands of times from the level two steps below Main Memory in the pyramid. Main Memory has room to retain it after the first read. Which change best reduces the repeated-access cost?": {
+    "A program reads the same small record thousands of times from Traditional Disk. Main Memory has room to retain it after the first read. Which change best reduces the repeated-access cost?": {
         "subcategory": "Memory hierarchy", "choices": {"A": "Retain the record in main memory so later reads avoid disk seek and rotation", "B": "Keep it on flash disk and issue a new flash read for every use", "C": "Increase the traditional disk's RPM but still read it every time", "D": "Make each traditional-disk request smaller while still requesting it each time"},
         "correct_answer": "A", "explanation": "Reusing the record shows temporal locality. Keeping it at a faster level avoids paying the traditional disk's mechanical seek and rotational latency on each repeated access.",
-        "source": "6. Physical Memory.pptx slides 3, 5, 17–18, 38–40 — Physical Memory Hierachy.png", "image": "cse320/Physical Memory Hierachy.png",
+        "source": "6. Physical Memory.pptx slides 3, 5, 17–18, 38–40",
     },
     "At 12,000 RPM, a disk track contains 100 sectors and average seek time is 3 ms. Under the lecture's one-sector model, what is average access time?": {
         "subcategory": "HDD access time", "choices": {"A": "3.05 ms", "B": "5.5 ms", "C": "5.55 ms", "D": "8.05 ms"},
