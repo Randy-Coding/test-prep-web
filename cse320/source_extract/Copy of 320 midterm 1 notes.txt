@@ -1,0 +1,335 @@
+P1: sys 3
+P2: Code Quality Principles
+P3: Four essential characteristics for maintainable code:
+P4: Correct - functions as intended
+P5: Readable and maintainable - can be modified by other engineers
+P6: Fast - good time complexity
+P7: Lean - minimal memory usage
+P8: AI currently good at correct/fast code, poor at readable/flexible code
+P9: Correctness most important, but readability/maintainability almost equally critical
+P10: Code will be replaced and modified - legacy support not guaranteed
+P11: Optimization Strategy Framework
+P12: Big O asymptotic complexity analysis - easiest to estimate, most significant impact
+P13: Always turn on compiler optimizations first (O2 minimum, O3 sometimes better)
+P14: Profile code to identify bottlenecks before optimizing
+P15: Only optimize after code works correctly
+P16: Premature optimization causes decreased portability, readability, and introduces bugs
+P17: Context matters - user signup page vs OS directory navigation have different performance requirements
+P18: Performance Monitoring Tools
+P19: time command provides three metrics:
+P20: Real: wall clock time elapsed
+P21: User: CPU time spent on your code
+P22: System: CPU time spent on OS functions
+P23: Large gap between real and CPU time indicates waiting (network, disk, user input)
+P24: top and iotop for monitoring running programs and I/O usage
+P25: Multi-threaded programs: time can sum across cores
+P26: Profiling with GNU Profiler
+P27: Compile with -pg flag to enable profiling
+P28: Run program normally (creates gmon.out file)
+P29: Use gprof to analyze results
+P30: Two profiler types:
+P31: Direct timing: modifies code, more accurate, slows execution
+P32: Sampling: OS periodically checks program, less overhead
+P33: Call graph shows function relationships and call frequencies
+P34: Focus on functions taking significant time or called frequently
+P35: Compiler Optimization Techniques
+P36: Code motion: move loop-invariant calculations outside loops
+P37: Reduction in strength: replace expensive operations (multiply by 4 → left shift by 2)
+P38: Common subexpression elimination: reuse calculated values
+P39: Function inlining: eliminates function call overhead for simple functions
+P40: Three inlining approaches:
+P41: Find/replace (bad for maintainability)
+P42: Macros (better but syntax error prone)
+P43: inline keyword (recommended)
+P44: Optimization Case Study Results
+P45: Linear to binary search change: 50x speedup on large inputs (1 minute → 2 seconds)
+P46: Compiler optimizations provided 20% improvement
+P47: Inlining simple getter functions eliminated 67M function calls
+P48: Hash table replacement provided marginal improvement
+P49: Lookup table optimization actually slower than comparisons
+P50: Key lesson: Algorithm/data structure changes > micro-optimizations
+P51: sys 4 (first half)
+P52: Runtime Measurement & Optimization Basics
+P53: Proper measurement technique: divide by number of elements, look at slope
+P54: Eliminates 400 clocks of setup overhead
+P55: Measures only the operation time (inner coordinate/function calls)
+P56: Initial performance: 20+ clocks per loop (very poor)
+P57: Adding: 1 clock, Multiplying: 3 clocks, Floating point: 3-5 clocks
+P58: Compiler optimization (O1) doubles performance to 10 clocks per element
+P59: Sometimes sufficient for basic needs
+P60: Still 3-10x slower than optimal for most operations
+P61: Code Optimization Techniques
+P62: Three key optimizations applied:
+P63: Move vector length calculation out of loop (good practice)
+P64: Remove bounds checking from getter function (risky practice)
+P65: Use local accumulator variable to avoid memory aliasing (good practice)
+P66: Warning: Bounds checking removal creates maintainability/safety risks
+P67: Can lead to production bugs when code is reused
+P68: Only acceptable when “cosplaying as CUDA driver writers” for peak performance
+P69: Combined optimizations achieve near-optimal performance:
+P70: Multiply: 3.01 clocks (vs 3 optimal)
+P71: FP Add: 3.01 clocks (vs 3 optimal)
+P72: FP Multiply: 5.01 clocks (vs 5 optimal)
+P73: Modern Processor Architecture
+P74: Real processors much more complex than MIPS (40+ years old)
+P75: Multiple functional units in execute block:
+P76: Load/store units (4 clocks)
+P77: Integer multiply (3 clocks)
+P78: Floating point multiply (5 clocks)
+P79: Floating point add (3 clocks)
+P80: Integer add (1 clock)
+P81: Division (variable clocks based on input)
+P82: Branch prediction unit for handling conditional jumps
+P83: Superscalar Processing & Pipelining
+P84: Superscalar processors execute multiple instructions per cycle
+P85: Can perform FP multiply + FP add + 4 integer operations simultaneously
+P86: Standard since ~1993, present in all modern computers
+P87: Pipelining within functional units:
+P88: Each unit has multiple stages (e.g., 3-stage integer multiplier)
+P89: Different operations can use different stages simultaneously
+P90: Still subject to data hazards (must wait for dependencies)
+P91: Example: A×B, A×C, P1×P2 sequence shows pipeline scheduling with hazards
+P92: sys 5
+P93: Memory Locality Principles
+P94: Two core principles for hardware optimization:
+P95: Temporal locality: recently used data likely to be used again
+P96: Spatial locality: accessing array[i] means likely to access array[i+1], array[i+2] soon
+P97: Code structure impacts hardware performance
+P98: Good: accessing array elements sequentially (spatial locality)
+P99: Bad: random memory access patterns
+P100: Loop optimization considerations:
+P101: Inlining functions improves spatial locality (avoids jumps)
+P102: Loops create temporal locality (same instructions repeated)
+P103: Excessive loop unrolling can hurt performance (O3 sometimes worse than O2)
+P104: Array Access Patterns & Performance
+P105: Matrix operations require careful loop ordering
+P106: Good: for(k) for(i) for(j) - stride-1 access pattern
+P107: Bad: for(i) for(j) for(k) - creates large memory jumps
+P108: Stride analysis for 3D arrays:
+P109: J increment: stride = 1 (best)
+P110: I increment: stride = N
+P111: K increment: stride = N×N (worst)
+P112: Real-world complexity: matrix multiply operations often can’t be easily reordered due to algorithmic constraints
+P113: RAM Types & Characteristics
+P114: SRAM (cache memory):
+P115: 4-6 transistors per bit
+P116: 100x more expensive than DRAM
+P117: Order of magnitude faster access
+P118: No refresh required
+P119: Used for CPU caches
+P120: DRAM (main memory):
+P121: 1 transistor per bit
+P122: Requires periodic refresh
+P123: Standard system RAM (DDR)
+P124: Volatile (data lost when power off)
+P125: Hard Disk Drive Mechanics
+P126: Physical components:
+P127: Platters: magnetic spinning disks storing data as north/south
+P128: Heads: read/write magnetic signals (one per surface)
+P129: Actuator: motor moving arm across tracks
+P130: Electronics: embedded controller handling operations
+P131: Data organization:
+P132: Surfaces: top/bottom of each platter
+P133: Tracks: concentric rings on each surface
+P134: Sectors: smallest readable unit within tracks
+P135: Cylinders: same track across all surfaces
+P136: Access process requires 3 steps:
+P137: Seek: move head to correct track
+P138: Rotational latency: wait for sector to rotate under head
+P139: Transfer: actually read the data
+P140: Performance Calculations & Comparisons
+P141: HDD access time breakdown (example):
+P142: Seek time: 9ms (given specification)
+P143: Rotational latency: 4ms (half rotation at 7200 RPM)
+P144: Transfer time: 20 microseconds (single sector)
+P145: Total: ~13ms for first bit, <1 microsecond for subsequent bits
+P146: Performance hierarchy:
+P147: SRAM: 4ns per word
+P148: DRAM: 60ns per word
+P149: HDD: 13,000,000ns (13ms) per access
+P150: Key insight: first bit from disk costs 40,000x more than cache access
+P151: Hardware interrupts vs polling: interrupts prevent CPU waste on continuous checking
+P152: DMA (Direct Memory Access): hardware copies large data blocks without CPU involvement
+P153: sys 6
+P154: Polling vs Interrupts & DMA
+P155: Two reasons to choose polling over interrupts:
+P156: Bad reason: Laziness/inexperience (polling easier to implement)
+P157: Good reason: Latency-sensitive applications (gaming, real-time systems)
+P158: Polling has lower latency but worse throughput
+P159: Gaming keyboards/mice market their polling rates
+P160: CPU constantly checks peripheral for input
+P161: DMA (Direct Memory Access) engines
+P162: Specialized hardware for large data transfers
+P163: Avoids CPU doing quarter-million word transfers for 1MB copy
+P164: Found in graphics cards, most CPUs
+P165: Sends interrupt when transfer complete
+P166: Storage Device Comparison
+P167: Solid State Drives (SSDs)
+P168: Much faster than hard drives but limited write cycles
+P169: 100,000 writes per block before failure
+P170: 1TB drive = 100 petabytes total write capacity over lifetime
+P171: No moving parts, better for laptops (mechanical failure vs wear failure)
+P172: SSD structure: blocks contain pages
+P173: Pages are write-only, blocks are erase-only
+P174: Must erase entire block to update single page
+P175: Erasing takes much longer than reading/writing
+P176: Wear leveling distributes writes across drive equally
+P177: RAID Systems & Error Correction
+P178: RAID 0: No backup (cry if drive fails)
+P179: RAID 1: Mirror everything to two drives
+P180: RAID 2-6: Use parity bits/Hammond codes for error correction
+P181: RAID 5-6: Distribute parity across all drives (avoid single parity drive bottleneck)
+P182: Error correction at all levels:
+P183: SRAM: 9 bits per byte (parity bit)
+P184: Interfaces: Checksums like CRCs
+P185: Aerospace: Radiation-resistant error correction
+P186: Cache Architecture Fundamentals
+P187: Cache sits between CPU registers and RAM
+P188: Three types of cache misses:
+P189: Cold/compulsory: First access after startup
+P190: Capacity: Data set larger than cache size
+P191: Conflict: Multiple addresses map to same cache location
+P192: Cache design spectrum:
+P193: Direct mapped: Each RAM address has one designated cache slot (simple hardware, more conflicts)
+P194: Fully associative: Any RAM block can go anywhere in cache (complex hardware, no conflicts)
+P195: Set associative: Middle ground with sets and lines
+P196: Cache Implementation Details
+P197: Cache block structure: Valid bit + Tag + Data bytes
+P198: Address breakdown: Tag bits + Set index + Block offset
+P199: Replacement policies determine which block to evict
+P200: Dirty blocks must be written back to memory before eviction
+P201: Spatial/temporal locality critical for performance
+P202: 99% hit rate makes 1% miss overhead acceptable
+P203: sys 7
+P204: Cache Memory Fundamentals
+P205: Cache definition: smaller, faster data store as shortcut to larger storage
+P206: Memory hierarchy: ranges from slow/large (hard drives) to fast/small (registers, cache)
+P207: Data shuffles between hierarchy levels from larger/slower to smaller/faster devices
+P208: Cache design trade-off: direct mapped (fast hardware, more misses) vs fully associative (slower hardware, fewer misses)
+P209: Set associative cache: tunable parameter balancing both approaches
+P210: Most common solution across industry
+P211: Cache Architecture & Address Mapping
+P212: Cache structure: grid of blocks storing multiple bytes each
+P213: Block size rationale: accessing consecutive memory costs same as single byte
+P214: Address breakdown into three parts:
+P215: Tag bits: identify which memory block is stored
+P216: Set bits: determine which cache set (row) to use
+P217: Block offset bits: specify byte within block
+P218: Calculation method: log base 2 of memory size gives total address bits
+P219: Example walkthrough with 16-byte memory, 2-byte blocks, 4 sets
+P220: 4 address bits total (log₂ 16)
+P221: 1 block offset bit (log₂ 2)
+P222: 2 set bits (log₂ 4)
+P223: 1 tag bit (remaining)
+P224: Cache Performance & Replacement
+P225: Set associative cache allows multiple lines per set
+P226: Cache replacement algorithms:
+P227: Optimal (theoretical): replace least-used-in-future block
+P228: LRU (Least Recently Used): most common, uses past to predict future
+P229: FIFO (First In, First Out): simpler but worse performance
+P230: Real-world cache hierarchy example:
+P231: L1: 32KB, 8-way, 4 cycles, split I-cache/D-cache
+P232: L2: 256KB, 8-way, 10 cycles per core
+P233: L3: 8MB, 16-way, 50-75 cycles shared
+P234: All use 64-byte blocks (6 bits block offset)
+P235: Write Policies & Performance Impact
+P236: Write-through: immediate write to both cache and memory
+P237: Good for data consistency, bad for memory bus usage
+P238: Write-back: delayed write using dirty bit until eviction
+P239: Good for memory bus, requires careful consistency management
+P240: Write allocation policies:
+P241: Write allocate: load from RAM to cache on write miss (most common)
+P242: No-write allocate: write directly to RAM (rare, used for I/O devices)
+P243: Miss rate more important than hit rate for performance analysis
+P244: 97% hit rate = 4 cycle average (3% × 100 cycle penalty)
+P245: 99% hit rate = 2 cycle average (1% × 100 cycle penalty)
+P246: Matrix Multiplication Optimization Setup
+P247: Problem: N×N matrix multiply with 8-byte doubles, N³ operations
+P248: Cache assumptions for analysis:
+P249: Block size: 32 bytes (4 elements)
+P250: Matrix too large to fit in cache
+P251: Cannot store full row in cache
+P252: Access patterns impact:
+P253: Stride-1 access (consecutive): miss rate = 1/block_size = 25%
+P254: Large stride access: 100% miss rate (no spatial locality)
+P255: Next class: compare three matrix multiplication implementations for cache efficiency
+P256: sys 8
+P257: Cache Optimization & Matrix Multiplication
+P258: Loop ordering significantly impacts cache performance
+P259: Three main loop arrangements (ijk, ikj, jik, jki, kij, kji)
+P260: Performance analysis with 32-byte cache blocks, 8-byte doubles:
+P261: K innermost: A=25% miss rate, B=100% miss rate, C=0% miss rate
+P262: J innermost: A=0% miss rate, B=25% miss rate, C=25% miss rate
+P263: I innermost: A=100% miss rate, B=0% miss rate, C=100% miss rate
+P264: J as innermost loop provides best performance (50% average miss rate vs 125% for basic approach)
+P265: Advanced Optimization: Blocking/Tiling
+P266: Temporal locality exploitation through matrix blocking
+P267: Divides matrices into smaller blocks that fit in cache
+P268: Example: 8x8 blocks with 24 cache blocks total storage
+P269: Performance improvement: 4x faster minimum, up to 32x with larger block sizes
+P270: Key constraint: 3 × (block_size)² must be less than cache size
+P271: Code complexity increases (6 nested loops vs 3) but dramatic performance gains
+P272: Temporal locality generally stronger than spatial locality
+P273: Linker Fundamentals
+P274: Four-stage compilation process: Preprocessor → Compiler → Assembler → Linker
+P275: Linker performs two main operations:
+P276: Symbol resolution: Connect symbol references to definitions across files
+P277: Relocation: Reassign memory addresses when merging object files
+P278: Three object file types: Relocatable (.o), Executable, Shared object (.so)
+P279: All use ELF (Executable and Linkable Format) standard
+P280: ELF File Structure & Symbol Types
+P281: ELF sections: Header, text, rodata, data, BSS, symbol table, debug info
+P282: Three symbol categories:
+P283: Global: Defined symbols other modules can reference
+P284: External: Declared but not defined, linker must find definition
+P285: Local: Internal to module, may need relocation
+P286: Local variables (stack/register) don’t appear in symbol tables
+P287: Static variables stored in data/BSS sections, get symbol table entries
+P288: Strong vs weak symbols: Strong symbols take priority during linking
+P289: sys 9
+P290: C Compilation Process Overview
+P291: Four-Stage Process
+P292: Preprocessor (cpp): C/H files → I files (intermediate)
+P293: Compiler (GCC): I files → S files (assembly)
+P294: Assembler: S files → Object files (.o)
+P295: Linker: Object files → Executable (a.out)
+P296: Linker Purpose
+P297: Modularity: Combine multiple C files into one program
+P298: Efficiency: Only recompile changed files, not entire codebase
+P299: Space optimization: Avoid including unused library code
+P300: Symbol Resolution & Management
+P301: Symbol Types
+P302: Global: Defined in object file for use by others (functions, initialized globals)
+P303: External: Referenced but not defined (extern declarations)
+P304: Local: Defined and used only within same object file
+P305: Symbol Strength Rules
+P306: Strong: Functions, initialized global variables
+P307: Weak: Uninitialized variables, functions with weak attribute
+P308: Resolution: Two strong symbols = error, strong beats weak, random weak selection
+P309: Critical Warning
+P310: Same variable names across files can cause memory corruption
+P311: Type mismatches (int vs double) lead to memory overwrites
+P312: Recommendation: Avoid global variables entirely
+P313: ELF File Structure & Linking Process
+P314: ELF Sections
+P315: Text: Executable code
+P316: Data: Initialized global/static variables
+P317: BSS: Uninitialized global/static variables
+P318: Read-only data: String literals, constants
+P319: Symbol table: Variable/function names and locations
+P320: Relocation Process
+P321: Combine text, data, BSS sections from all object files
+P322: Update symbol addresses to new locations
+P323: Loader handles final memory allocation (stack, heap, virtual memory)
+P324: Library Linking Strategies
+P325: Static Linking
+P326: Archive (.a) files contain multiple object files
+P327: Linker includes only referenced functions
+P328: Code embedded in final executable
+P329: Dynamic Linking
+P330: Load time: Loader handles shared library (.so) inclusion
+P331: Runtime: Program requests library functions via dlopen/dlsym
+P332: Benefits: Smaller executables, shared memory usage, latest library versions
+P333: Position Independent Code (PIC)
+P334: Flag: -fPIC for embedded systems without virtual memory
+P335: Slower execution but enables flexible loading

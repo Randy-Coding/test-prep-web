@@ -1,0 +1,201 @@
+P1: Day 1
+P2: Learn: Git, C programming, debugging using gdb debugger, performance optimization, memory hierarchy, caches, virtual memory, operating system processes and POSIX abstractions, operating system scheduling and I/O a little bit of networking and socket programming, multithreading and parallel programming. 
+P4: Grading breakdown:
+P5: Exams (all MCQ): 50%
+P6: Noncumulative midterms (2): 15% each
+P7: Cumulative final: 20%
+P8: Homeworks: 50%
+P9: Labs (3): 2% each
+P10: Homeworks (3): 4% each
+P11: Projects (4): 8% each
+P13: Labs are just one sitting hw assignments, done on your own, very simple one sitting.
+P14: HWs are targeted at specific targets and are just shorter projects. A few sittings
+P15: Projects most similar to what was talked about last semester, will take a LOT of time. The first project is already in brightspace. 
+P17: There will probably be a curve, median is usually B- to C+. C and up means would hire and C- means would hire in a real work environment.
+P19: Programming assignments are in C, ABSOLUTELY NO EXTENSIONS and START THE PROJECTS NOW.
+P21: No cheating at all. He may not figure out AI if its not egregious but it wont help in job market AND YOU ARE ALREADY STRUGGLING WITH THAT, SO USE YOUR HEAD AND NOT A AI. 
+P24: Day 2
+P25: Systems Dev Tools
+P27: Git is a free and open source distributed version control system meaning it can support projects on multiple machines and that changes in software are tracked.
+P29: Git is written in C and was designed to assist in the Linux kernel dev project
+P31: Git works by saving data as a stream of snapshots, making it especially efficient since it only tracks differences in the code instead of whole files, and supports multiple working or independent versions of code (branches).
+P34: Git init=new repository
+P35: Git clone= create local copy of existing repo
+P36: Git add = add file to current unstaged changes
+P37: Git reset = remove a file from the git push stuff
+P38: Git status = review current status of changes
+P39: Git diff/show = view changes that have been made for a specific commit and/or file.
+P42: Git Rebase applies dev changes to another branch, which applies the patch but keeps it up to date
+P44: Merge will combine the changes from two branches (or two codebases of the same branch). 
+P46: Have Claude guide you on using GDB since you have not used it before.
+P48: Use valgrind and Adddresssantizer before submitting
+P50: Go through the lecture slides to learn the commands.
+P51: Set up the remote visual studio code-server using a cloudflare tunnel. 
+P56: Chapter 5: Code Optimization
+P57: Good code is correct (no bugs and correctly implements its features), is readable & flexible (if it can’t be maintained it will be replaced), fast (run time of a program matters), and lean (excess memory usage is bad)
+P59: Not all optimization is created equal
+P60: Big-O (asymptotic complexity) is easy to estimate with significant effects. (you should be considering algorithms and data structures while writing programs)
+P61: The optimization we discuss in this class is different: (Premature optimization is the root of all evil- Donald E. KnuthThese techniques may decrease code portability and readabilityThese may introduce bugsThey are difficult for potentially very little benefit.
+P62: What should you do?Enable compiler optimization (lots of benefit no real drawback)Run/Profile your code to determine if its performance is sufficientRewrite the parts that need it (first algorithm and data structures, this stuff as a last resort)
+P66: Day 3
+P67: Lecture 5 slides started today at slide 20 :https://docs.google.com/presentation/d/15SB0OvFkbH8YWw0iJZ8UeZvZ0Gd3sfOzyfMUNfrNngM/edit?slide=id.g3b411fd3a32_0_12#slide=id.g3b411fd3a32_0_12 
+P68: Types of optimizations:
+P69: Code Motion
+P70: Dead Code Elimination
+P71: Reduction in Strength
+P72: Sharing Common Subexpressions
+P73: (removing) Memory Aliasing
+P74: Loop Unrolling
+P75: Function Inlining/Reducing Procedure Calls
+P76: The compiler will do most of these but you might need to help it and you should learn what they are.
+P78: Asymptotic Complexity is not the only thing to performance
+P80: Constant factors matter too!
+P86: Optimizing Compilers 
+P87: Provide efficient mapping of program to machine- register allocation- code selection and ordering (scheduling)- dead code elimination- eliminating minor inefficiencies
+P88: Don’t usually improve asymptotic efficiency - up to programmer to select best overall algorithm- big-O savings are (often) more important than constant factors but constants do matter.
+P89: Have difficulty overcoming “Optimization Blockers”- potential memory aliasing- potential procedure side-effects
+P92: Code Motion:
+P93: Reduce frequency with which computation performed
+P95: Optimization Blocker:Procedure Calls-
+P96: The problem with procedure calls is that the global state can be altered each time called(like cleaning whitespace), thus making the compiler not optimize the code. 
+P98: Memory Aliasing- be careful that on every iteration, the memory DID NOT CHANGE during the change.(basically two different memory references specify single location and is easier in C since address arithmetic and direct access to storage, the way to deal with it is to use local variables when possible). 
+P99: Day 4
+P100: Chapter 6 Memory
+P101: (6. Physical Memory Presentation)
+P103: One of each calculation type will be on the midterm (disk questions check the slides), memorize every formula
+P106: Day 5
+P107: Last Class locality and memory addresses and disks and Memory hierarchy
+P109: Memory hierarchy and what locality means is very important long term.
+P113: We are learning Caches today
+P115: Cache: a smaller faster storage device that acts as a staging area for parts of data in a slower larger device.
+P116: Cache is smaller faster and more expensive than memory
+P117: Direct Mapped is too constrictive and fully associative is not nice because it is hard to make it large so set associate is the best cache architecture
+P120: 29 blocks = 512 blocks cache ,  4 sets=22 sets = 128 lines =27 lines
+P122: Cache miss: when data is not in the cache
+P123: Cache hit:when data is in the cache.
+P124: Day 6
+P125: Piazza has lists of due dates for assignments
+P127: DO THE HW FOLKS
+P129: More lines, the slower the hit time (and the slower the miss rate) so there is a tradeoff. Prof recommends more sets than lines.
+P130: Day 7-lots of midterm data
+P131: Still chapter 6 Caches
+P132: 9/27 the lab 2 is due
+P133: 10/4 the hw2 is due (cache)
+P136: MIDTERM 1 STUFF:
+P137: Profiling questions might be asked.
+P139: All types of optimization terms MUST be known and why they help, Memory Aliasing based on the actual program is a possible question
+P141: Not going to ask to optimize a program, but might ask the benefits of loop unrolling
+P143: Calculate Disk Space formulas must be known. Locality is most important in hard drives. Computing disk capacity is (#bytes/sector)*(avg # sectors / track) *(#tracks/surface) *(#surfaces/platter)*(#platters/disk)
+P144: Look at the units, capacity is given in bytes/disk so make sure to cancel out. Might get fancy with sectors/track and do sectors/cylinder instead. Bytes/sector, tracks/surface, surfaces/platter, platters/disk are given. No calculators but it should be able to be calculated in head. 
+P146: Label Disk diagrams are must be needed (wont be on there but knowing what the parts of the disk are is important). 
+P148: Data Transfer, seek, rotational latency are the big time chunks. Data transfer is the smallest time consuming, the others are larger. 
+P150: Disk access time
+P151: Seek time will probably be given
+P152: Rotational latency remember half the disk must spin and the formula from rpms in seconds
+P153: Transfer time formula also needed. Youll know how big a sector is in a track (although that prob wont affect the number in a MCQ).
+P155: No practice exams but a TA is intending to do a review session
+P157: We talked about how caches work how everything works as a cache for the next level, know the difference of the 3 architectures (the pros and the cons), 
+P159: 4 lines are more associative (what does this mean?)Lots of questions where address is given and a cache diagram, where stuff goes where hit and misses happen and where to check, when doing a replacement what the options are
+P161: 1-2 weeks before the exam topics will be given on the test, the diagrams will be posted before the test but with different numbers so we can see the diagrams.
+P162: Know how many hex digits in per address and whatnot.
+P163: Day 8-mentions some exam 1 questions
+P164: Three things primarily today:4 way cache exercise thing (i need to learn this)Example blocking (spatial and locality)
+P165: Getting started on linkers and compilers
+P168: Odd number hw are projects, even numbered are hws
+P170: Has no idea how to put linkers on test questions so prob wont be many 
+P172: Declaration vs definition
+P174: Declaration:Int sum(int *a, int n);
+P175: Int main(){
+P176: Int val = sum(array,2);
+P177: Return val;
+P178: }
+P179: Definition:
+P180: Int sum(int *a, int n){
+P181: Int i,s=0;
+P182: for(i=0;i<n;i++){
+P183: s+=a[i];
+P184: }
+P185: Return s;
+P186: }
+P190: Declaration means compiler does not trust you, definition means compiler does trust you
+P193: Locall symbols vs local variables. (if int g(){Static int x=1;x++;
+P194: Return x;}
+P195: What happens to x if called twice? It becomes x=3;
+P197: Exam Questions:
+P198: “Most of the caching questions will look like the previous lecture”
+P199: Address space, picture of a cache, describe a cache to us
+P200: Figuring out how many bits are in the different parts of the cache
+P202: What happens if you try to access some address in a cache?
+P204: Also some questions on finding misses and locality based off a chunk of code.
+P206: Won’t ask things like “what was bit 7 of the IPV3 header”
+P207: May ask “What did this function in the mp3 or cache hw do, and how does it work?”
+P209: Day 9
+P210: Linkers Slideshow Chapter 7
+P212: Why Linkers?
+P213: Portability
+P214: Efficiency
+P215: Linkers must do symbol resolution and relocation of symbols to memory addresses.
+P218: Definitions: To define something you have to know what it is. Basically filling out the function content.
+P220: Declaration: Referencing is reading or writing the function
+P223: Relocation:
+P224: Merge separate code and data sections into single sections
+P225: Relocates symbols from .o file to proper spot (look at the slides its too fast for me to type properly)
+P228: Outside function always unlimited lifetime and global scope
+P230: Inside function it can have limited lifetime and both local or global scope
+P233: Rule 1: Multiple strong symbols not allowed
+P234: Rule 2: Wheneer possible choose strong symbol
+P235: Rule 3:
+P238: Avoid global variables if you can.
+P239: If you must use them use static if possible
+P240: Initizalise if you define a global arable
+P241: Use extern
+P242: Use the header files for the global variables
+P243: day 10-some midterm prep
+P244: 9/24/2026
+P245: Processes Chapter 8
+P248: Midterm will only cover 5,6,7
+P250: Review stuff:Loop unrolling was for optimizations-chapter 5
+P251: Locality in chapter 6
+P252: No questions on memory interfaces most likely, maybe recognizing ddr in a high interface Know alot about cache and interface
+P253: Interrupts and DMAs will be there
+P254: There will be some diagrams, for example on the cache that will def be there.
+P255: MIDTERM 1 REVIEW NEW CS 220 Friday October 2nd 3pm. Will be also on Google meetings but just go there since you have to be there for work. May or may not be recorded.
+P258: SSDs don’t like defragment because it wastes lifetime and it doesn’t have moving parts. Random access on disks is expensive which is why we defragment. 
+P260: Modern CPUs should never be slowed by latency bound, should aim for throughput bound
+P262: Not asking NAND vs NOR flash-yay
+P265: What it means when cache parameter changes
+P267: Should know what goes on the stack, the heap, and the text segment, know why global variables are the worst, will be trick questions with global variables that are illegal (they are the worst which you can see if you go through the linker puzzles). 
+P273: Reminder chapter 8 is not on the midterm
+P274: This is where the class gets interesting or more interesting 
+P276: MIDTERM 1 SUMMARY
+P277: Optimization
+P278: Know all optimization techniques/terms and why they help.
+P279: Understand memory aliasing in actual code.
+P280: Understand benefits of loop unrolling.
+P281: Profiling may be asked.
+P282: You will not be asked to optimize a program yourself.
+P283: Physical Memory
+P284: Know the disk formulas/calculations: capacity, seek time, rotational latency, transfer time.
+P285: Know locality.
+P286: Understand the important parts of a disk, though apparently no labeling question.
+P287: Know interrupts and DMA.
+P288: Memory interfaces are low priority.
+P289: Caches
+P290: Know the three cache architectures and their pros/cons.
+P291: Given an address space + cache description/diagram, determine tag, set-index, and block-offset bits.
+P292: Given an address, determine where it goes and whether it hits/misses.
+P293: Understand replacement.
+P294: A few harder questions may involve determining misses/locality from C code.
+P295: Linkers / Compiler Toolchains
+P296: Declaration vs. definition.
+P297: Symbol resolution and relocation.
+P298: Strong/weak symbol rules.
+P299: Local/global/static/extern symbol concepts.
+P300: Likely few linker questions.
+P302: MT1 Topics/Questions List:PHYSICAL MEMORY:2 questions on HDD component names (by description)1 question about memory hierarchy ordering1 question about calculating HDD access time1 question about SSDs vs HDDs
+P303: CACHE:5 questions about mapping addresses to a cache (see attached diagram)2 questions about interpreting the address bits given cache parameters1 question about calculating average access time given hit rate and hit time for a few level of cache/memory1 question about cache design tradeoffs (how cache parameters influence performance)
+P304: GENERAL CONCEPTS:4 concept questions about: pointers, memory aliasing, locality, and compiler optimizations/toolchain.11 questions on "definitions" (I will describe something from the following list of terms:)Memory Aliasing, Read Only Memory, Interrupt, Eviction, Volatile Memory, IO Bus, Memory Bus,DMA, Assertion, Loop Unrolling, Branch Prediction, Inlining, Code Motion, Reduction in Strength,Super scalar, Latency, Throughput, Spacial Locality, Temporal Locality, Write-Back, Write-ThroughSymbol Resolution, Relocation, Position Independent Code, Profiler, Debugger, Compiler, Linker, Assembler (and their tool names)
+P305: HW QUESTIONS:6 questions on the behavior and purpose of functions from my implementation of HW1
+P306: 2 questions on HW2 part B approach
+P307: 1 question on basic CLI tools from GREP lab
+P308: BASIC CODE QUESTIONS:2 questions on cache hit/miss rate based on a program.7 questions on code with questions about: pointers, memory aliasing, locality, and compiler optimizations.1 questions about global variables

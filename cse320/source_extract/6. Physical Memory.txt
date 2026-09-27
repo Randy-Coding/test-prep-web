@@ -1,0 +1,404 @@
+=== SLIDE 1 ===
+CSE 320: Memory
+Chapter 6
+Professor Dan Benz
+=== SLIDE 2 ===
+Memory Hierarchies
+Some fundamental and enduring properties of hardware and software:
+Fast storage technologies cost more per byte, have less capacity, and require more power (heat!). 
+The gap between CPU and main memory speed is widening.
+Well-written programs tend to exhibit good locality.
+These fundamental properties complement each other beautifully.
+They suggest an approach for organizing memory and storage systems known as a memory hierarchy.
+=== SLIDE 3 ===
+The Memory Hierarchy:
+=== SLIDE 4 ===
+The CPU-Memory Gap
+The gap widens between DRAM, disk, and CPU speeds. 
+DRAM
+CPU
+SSD
+Disk
+=== SLIDE 5 ===
+Locality
+Principle of Locality: Programs tend to use data and instructions with addresses near or equal to those they have used recently
+Temporal locality:  
+Recently referenced items are likely to be referenced again in the near future
+Spatial locality:  
+Items with nearby addresses tend to be referenced close together in time
+=== SLIDE 6 ===
+Locality Example (1D):
+Data references
+Reference array elements in succession (stride-1 reference pattern).
+Reference variable sum each iteration.
+Instruction references
+Reference instructions in sequence.
+Cycle through loop repeatedly. 
+sum = 0;
+for (i = 0; i < n; i++)
+	sum += a[i];
+return sum;
+Spatial locality
+Temporal locality
+Spatial locality
+Temporal locality
+=== SLIDE 7 ===
+Qualitative Estimates of Locality
+Claim: Being able to look at code and get a qualitative sense of its locality is a key skill for a professional programmer.
+Question: Does this function have good locality with respect to array a?
+int sum_array_rows(int a[M][N])
+{
+    int i, j, sum = 0;
+    for (i = 0; i < M; i++)
+        for (j = 0; j < N; j++)
+            sum += a[i][j];
+    return sum;
+}
+=== SLIDE 8 ===
+Locality Example (3D):
+Question: Can you permute the loops so that the function scans the 3-d array a with a stride-1 reference pattern (and thus has good spatial locality)?
+int sum_array_3d(int a[M][N][N])
+{
+    int i, j, k, sum = 0;
+    for (i = 0; i < N; i++)
+        for (j = 0; j < N; j++)
+            for (k = 0; k < M; k++)
+                sum += a[k][i][j];
+    return sum;
+}
+=== SLIDE 9 ===
+Hardware:
+How does memory actually work
+RAM (Random Access Memory, “main memory”)
+SSDs (solid state drives, a middle ground between disk and RAM)
+HDDs (Hard disk drives, “Disk”)
+Other memory devices
+We can then use this knowledge to write better code
+Or at least understand OS design decisions
+=== SLIDE 10 ===
+What’s Inside A Disk Drive?
+=== SLIDE 11 ===
+Disk Geometry
+Disks consist of platters, each with two surfaces.
+Each surface consists of concentric rings called tracks.
+Each track consists of sectors separated by gaps.
+=== SLIDE 12 ===
+Disk Geometry (Muliple-Platter View)
+ Aligned tracks form a cylinder.
+=== SLIDE 13 ===
+Disk Operation (Multi-Platter View)
+Read/write heads 
+move in unison
+from cylinder to cylinder
+=== SLIDE 14 ===
+ Computing Disk Capacity
+Capacity: maximum number of bits that can be stored
+Vendors express capacity in units of gigabytes (GB),  where 1 GB = 109 Bytes. 
+Capacity =  (# bytes/sector) x (avg. # sectors/track) x (#tracks/surface) x (# surfaces/platter) x  (# platters/disk)
+Example:
+512 bytes/sector
+300 sectors/track (on average)
+20,000 tracks/surface
+2 surfaces/platter
+5 platters/disk
+Capacity = 512 x 300 x 20000 x 2 x 5 = 30,720,000,000 = 30.72 GB 
+=== SLIDE 15 ===
+Disk Structure - top view of single platter
+=== SLIDE 16 ===
+Disk Access
+=== SLIDE 17 ===
+Disk Access Time
+Average time to access some target sector approximated by :
+Taccess  =  Tavg seek +  Tavg rotation + Tavg transfer 
+Seek time (Tavg seek)
+Time to position heads over cylinder containing target sector.
+Typical  Tavg seek is 3—9 ms
+Rotational latency (Tavg rotation)
+Time waiting for first bit of target sector to pass under r/w head.
+Tavg rotation = 1/2 x 1/RPMs x 60 sec/1 min
+Typical Tavg rotation = 7200 RPMs
+Transfer time (Tavg transfer)	
+Time to read the bits in the target sector.
+Tavg transfer = 1/RPM x 1/(avg # sectors/track) x 60 secs/1 min.
+=== SLIDE 18 ===
+Disk Access Time Example
+Given:
+Rotational rate = 7,200 RPM
+Average seek time = 9 ms.
+Avg # sectors/track = 400.
+Derived:
+Tavg rotation = 1/2 x (60 secs/7200 RPM) x 1000 ms/sec = 4 ms.
+Tavg transfer = 60/7200 RPM x 1/400 secs/track x 1000 ms/sec = 0.02 ms
+Taccess  = 9 ms + 4 ms + 0.02 ms
+Important points:
+Access time dominated by seek time and rotational latency.
+First bit in a sector is the most expensive, the rest are free.
+SRAM access time is about  4 ns/doubleword, DRAM about  60 ns
+Disk is about 40,000 times slower than SRAM, 
+2,500 times slower then DRAM.
+=== SLIDE 19 ===
+Logical Disk Blocks
+Modern disks present a simpler abstract view of the complex sector geometry:
+The set of available sectors is modeled as a sequence of b-sized logical blocks (0, 1, 2, ...)
+Mapping between logical blocks and actual (physical) sectors
+Maintained by hardware/firmware device called disk controller.
+Converts requests for logical blocks into (surface,track,sector) triples.
+Allows controller to set aside spare cylinders for each zone.
+Accounts for the difference in “formatted capacity” and “maximum capacity”. 
+=== SLIDE 20 ===
+I/O Bus
+=== SLIDE 21 ===
+DMAs:
+To move large amounts of data from Memory to Disk (or vice versa)
+Don’t want to make CPU “babysit” the transfer.
+=== SLIDE 22 ===
+Interrupts:
+In general the CPU is the bus “controller”
+Every bus transaction is initiated by the CPU
+What about when we want to tell the CPU something has happened?
+Could make the CPU check a mailbox periodically (polling)
+What if we add a way to tell the CPU that “You’ve got Mail”?
+This is what an Interrupt controller does 
+CPU still needs to read the message and decide next steps
+=== SLIDE 23 ===
+Solid State Disks (SSDs)
+Pages: 512KB to 4KB, Blocks: 32 to 128 pages
+Data read/written in units of pages. 
+Page can be written only after its block has been erased
+A block wears out after about 100,000 repeated writes.
+=== SLIDE 24 ===
+SSD Performance Characteristics	
+Sequential access faster than random access
+Common theme in the memory hierarchy
+Random writes are somewhat slower
+Erasing a block takes a long time (~1 ms)
+Modifying a block page requires all other pages to be copied to new block
+In earlier SSDs, the read/write gap was much larger.
+Sequential read tput	550 MB/s	Sequential write tput	470 MB/s
+Random read tput	365 MB/s	Random write tput	303 MB/s
+Avg seq read time	50 us		Avg seq write time	60 us
+Source: Intel SSD 730 product specification.
+=== SLIDE 25 ===
+SSD Tradeoffs	vs Rotating Disks
+Advantages 
+No moving parts 🡪 faster, less power, more rugged
+Disadvantages
+Have the potential to wear out 
+Mitigated by “wear leveling logic” in flash translation layer
+E.g. Intel SSD 730 guarantees 128 petabyte (128 x 1015 bytes) of writes before they wear out
+In 2015, about 30 times more expensive per byte
+Applications
+MP3 players, smart phones, laptops
+Middle ground between RAM and HDDs in desktops and servers
+=== SLIDE 26 ===
+‹#›
+RAID:
+=== SLIDE 27 ===
+Volatile Memory mediums:
+The most common types of volatile memory are the Flip-Flop, the Static RAM, and the Dynamic RAM. These three types of memory are used to construct registers, caches, and DDR chips respectively.
+‹#›
+=== SLIDE 28 ===
+Non-volatile Memory mediums:
+Hard Disks have a thin film of magnetic material on each side to store data. 
+Optical disks (CDs) instead use the ability of the medium to reflect light (normally a laser) to encode data.
+Flash memory uses (floating gate) MOSFETs to store state electrically. They are either structured as NOR or NAND.
+‹#›
+=== SLIDE 29 ===
+Flash memory:
+Flash memory stores electrical charge in the Floating Gate of a MOSFET transistor. This means that storage can be embedded directly into the die of a semiconductor. 
+Flash memory is characterized either as NAND or NOR. Flash memory only has a limited number of erase and program cycles before the transformers begin to degrade after ~100k writes (denser flash chips may only support up to ~1k writes).
+‹#›
+=== SLIDE 30 ===
+NOR Flash:
+NOR flash has a lower read latency since each word line can be accessed independently but it has much lower memory density.
+‹#›
+=== SLIDE 31 ===
+NAND:
+NAND flash is significantly more dense than NOR flash and can be written faster but it takes longer to read NAND flash. SSDs are normally built using NAND flash.
+‹#›
+=== SLIDE 32 ===
+Common Memory Interfaces:
+(These are all generalities, there might be one-off chips that use a different memory type)
+DDR (RAM) : DRAM
+Cache & registers : SRAM
+I2C/SPI (EEPROM) & QSPIs : NOR
+SATA/NVMe (SSD) & USB/SD/eMMC : NAND
+‹#›
+=== SLIDE 33 ===
+Memory Interfaces explained (1):
+DDR: Large parallel system. One data pin for each bit and up to 11 address pins that are each used to specify a Row and Columns of memory. The name comes from the fact that the bus drives on both rising and falling edges of clocks.
+‹#›
+=== SLIDE 34 ===
+Memory Interfaces explained (2):
+I2C: 2 wire (clock & data) open drain bidirectional interface with 9 cycle frames including an acknowledge as the 9th cycle. (100-400kHz)
+SPI: 4 wire (clock, chip select, 2x data [MISO and MOSI]) interface. (25MHz - 108MHz)
+QSPI: SPI but with 4 bidirectional data lines instead of MISO/MOSI.
+SD/eMMC use an interface similar to SPI.
+‹#›
+=== SLIDE 35 ===
+Memory Interfaces explained (3):
+SATA: four wire (1 differential pair in each direction) interface designed to access SSDs. (1.5+GHz)
+NVMe: extension of PCIe (4 diff pairs in each direction) to access SSDs (2.5+GHz)
+USB: 4 (2.0) or 8 (3.0) wire interface (usb 2.0 has a data diff pair, 5V, and GND, USB 3.0 adds two PCIe speed diff pairs [Tx & Rx]) (480MHz - 5 GHz)
+‹#›
+=== SLIDE 36 ===
+Random-Access Memory (RAM)
+RAM comes in two varieties:
+SRAM (Static RAM)
+DRAM (Dynamic RAM)
+DRAM and SRAM are volatile memories
+Lose information if powered off.
+=== SLIDE 37 ===
+Static and Dynamic RAM:
+DRAM (below) is constructed out of 1 FET and 1 Cap. This makes it very dense but the values must be constantly refreshed. This density is why it is used in DDR.
+‹#›
+SRAM (below) is constructed out of 6 FETs. This makes it larger than DRAM but it retains value for as long as VDD is applied. This is what the caches and many registers of a CPU are made of.
+=== SLIDE 38 ===
+Caches
+Cache: A smaller, faster storage device that acts as a staging area for a subset of the data in a larger, slower device.
+Fundamental idea of a memory hierarchy:
+For each k, the faster, smaller device at level k serves as a cache for the larger, slower device at level k+1.
+Why do memory hierarchies work?
+Because of locality, programs tend to access the data at level k more often than they access the data at level k+1. 
+Thus, the storage at level k+1 can be slower, and thus larger and cheaper per bit.
+Big Idea:  The memory hierarchy creates a large pool of storage that costs as much as the cheap storage near the bottom, but that serves data to programs at the rate of the fast storage near the top.
+=== SLIDE 39 ===
+General Cache Concepts
+0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+8
+9
+14
+3
+Cache
+Memory
+Larger, slower, cheaper memory
+viewed as partitioned into “blocks”
+Data is copied in block-sized transfer units
+Smaller, faster, more expensive
+memory caches a  subset of
+the blocks
+4
+4
+4
+10
+10
+10
+=== SLIDE 40 ===
+General Cache Concepts:
+0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+8
+9
+14
+3
+Cache
+Memory
+14
+Hits
+Misses
+Placement policy:
+determines where new block goes
+Replacement policy:
+determines which block gets evicted (victim)
+=== SLIDE 41 ===
+General Caching Concepts: Types of Cache Misses
+Cold (compulsory) miss
+Cold misses occur because the cache is empty.
+Conflict miss
+Most caches limit blocks at level k+1 to a small subset (sometimes a singleton) of the block positions at level k.
+E.g. Block i at level k+1 must be placed in block (i mod 4) at level k.
+Conflict misses occur when the level k cache is large enough, but multiple data objects all map to the same level k block.
+E.g. Referencing blocks 0, 8, 0, 8, 0, 8, ... would miss every time.
+Capacity miss
+Occurs when the set of active cache blocks (working set) is larger than the cache.
+=== SLIDE 42 ===
+Examples of Caching in the Mem. Hierarchy
+Hardware MMU
+0
+On-Chip TLB
+Address translations
+TLB
+Web browser
+10,000,000
+Local disk
+Web pages
+Browser cache
+Web cache
+Network buffer cache
+Buffer cache
+Virtual Memory
+L2 cache
+L1 cache
+Registers
+Cache Type
+Web pages
+Parts of files
+Parts of files
+4-KB pages
+64-byte blocks
+64-byte blocks
+4-8 bytes words
+What is Cached?
+Web proxy server
+1,000,000,000
+Remote server disks
+OS
+100
+Main memory
+Hardware
+4
+On-Chip L1
+Hardware
+10
+On-Chip L2
+NFS client
+10,000,000
+Local disk
+Hardware + OS
+100
+Main memory
+Compiler
+0
+ CPU core
+Managed By
+Latency (cycles)
+Where is it Cached?
+Disk cache	
+Disk sectors
+Disk controller
+100,000
+Disk firmware
+=== SLIDE 43 ===
+Summary
+The speed gap between CPU, memory and mass storage continues to widen.
+Well-written programs exhibit a property called locality.
+Memory hierarchies based on caching close the gap by exploiting locality.

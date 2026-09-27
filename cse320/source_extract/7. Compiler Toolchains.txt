@@ -1,0 +1,670 @@
+=== SLIDE 1 ===
+CSE 320: Linkers
+Chapter 7
+Professor Dan Benz
+=== SLIDE 2 ===
+Compiler systems:
+The compiler system provides a “compiler driver” which includes a pre-processor (cpp), a compiler (cc), an assembler (as), and a linker (ld).
+The preprocessor translates the source code into an ASCII intermediate form (*.i)
+Then the compiler translates the ASCII intermediate form into an ASCII assembly-language file (*.s)
+The assembler then translates the assembly file into a relocatable object file (*.o)
+Finally the linker combines all necessary object files into an executable
+=== SLIDE 3 ===
+Pre-Processors, Compilers, Assemblers, and Linkers
+Pre-Processors: CSE220 slides 20 
+Makes code more easily modifiable/packageable for developers
+Compilers: CSE 320 Chapter 5 slides
+Optimizes software and removes abstractions (memory, types, code structure)
+Assemblers: CSE 220 slides ISAs
+Converts assembly to machine code (removes labels)
+Linkers: Today
+Combines your code with libraries and packages it for system execution
+=== SLIDE 4 ===
+Why Linkers?
+Reason 1: Modularity
+Program can be written as a collection of smaller source files, rather than one monolithic mass.
+Can build libraries of common functions (more on this later)
+e.g., Math library, standard C library
+=== SLIDE 5 ===
+Why Linkers? (cont)
+Reason 2: Efficiency
+Time: Separate compilation
+Change one source file, compile, and then relink.
+No need to recompile other source files.
+Space: Libraries 
+Common functions can be aggregated into a single file...
+Yet executable files and running memory images contain only code for the functions they actually use.
+=== SLIDE 6 ===
+Linker Main Tasks:
+The Linker must perform two main tasks:
+Symbol resolution: This is where the symbol table from the object files are used to resolve references
+Relocation: By default the compiler and assembler will assume that memory starts at address 0. The linker relocates symbols to the actual location in memory that the instructions and data will be located at.
+=== SLIDE 7 ===
+Symbol resolution
+Step 1: Symbol resolution
+Programs define and reference symbols (global variables and functions):
+void swap() {…}   /* define symbol swap */
+swap();           /* reference symbol swap */
+int *xp = &x;  /* define symbol xp, reference x */
+Symbol definitions are stored in object file (by assembler) in symbol table.
+Symbol table is an array of structs
+Each entry includes name, size, and location of symbol.
+During symbol resolution step:
+the linker associates each symbol reference with exactly one symbol definition.
+=== SLIDE 8 ===
+Relocation
+Step 2: Relocation
+Merges separate code and data sections into single sections
+Relocates symbols from their relative locations in the .o files to their final absolute memory locations in the executable.
+Updates all references to these symbols to reflect their new positions.
+Let’s look at these two steps in more detail….
+=== SLIDE 9 ===
+Three Kinds of Object Files (Modules)
+Relocatable object file (.o file)
+Contains code and data in a form that can be combined with other relocatable object files to form executable object file.
+Each .o file is produced from exactly one source (.c) file
+Executable object file (a.out file)
+Contains code and data in a form that can be copied directly into memory and then executed.
+Shared object file (.so file)
+Special type of relocatable object file that can be loaded into memory and linked dynamically, at either load time or run-time.
+Called Dynamic Link Libraries (DLLs) by Windows
+=== SLIDE 10 ===
+Executable and Linkable Format (ELF)
+Standard binary format for object files
+One unified format for 
+Relocatable object files (.o), 
+Executable object files (a.out)
+Shared object files (.so)
+Generic name: ELF binaries
+=== SLIDE 11 ===
+ELF Object File Format
+Elf header
+Word size, byte ordering, file type (.o, exec, .so), machine type, etc.
+Segment header table
+Page size, virtual addresses memory segments (sections), segment sizes.
+.text section
+Code
+.rodata section
+Read only data: jump tables, ...
+.data section
+Initialized global variables
+.bss section
+Uninitialized global variables
+“Block Started by Symbol”
+“Better Save Space”
+Has section header but occupies no space
+ELF header
+Segment header table
+(required for executables)
+.text section
+.rodata section
+.bss section
+.symtab section
+.rel.txt section
+.rel.data section
+.debug section
+Section header table
+0
+.data section
+=== SLIDE 12 ===
+ELF Object File Format (cont.)
+.symtab section
+Symbol table
+Procedure and static variable names
+Section names and locations
+.rel.text section
+Relocation info for .text section
+Addresses of instructions that will need to be modified in the executable
+Instructions for modifying.
+.rel.data section
+Relocation info for .data section
+Addresses of pointer data that will need to be modified in the merged executable
+.debug section
+Info for symbolic debugging (gcc -g)
+Section header table
+Offsets and sizes of each section
+ELF header
+Segment header table
+(required for executables)
+.text section
+.rodata section
+.bss section
+.symtab section
+.rel.txt section
+.rel.data section
+.debug section
+Section header table
+0
+.data section
+=== SLIDE 13 ===
+Linker Symbols	
+Global symbols
+Symbols defined by module m that can be referenced by other modules.
+E.g.: non-static C functions and non-static global variables.
+External symbols
+Global symbols that are referenced by module m but defined by some other module.
+Local symbols
+Symbols that are defined and referenced exclusively by module m.
+E.g.: C functions and global variables defined with the static attribute.
+Local linker symbols are not local program variables
+=== SLIDE 14 ===
+Step 1: Symbol Resolution
+int sum(int *a, int n);
+int array[2] = {1, 2};
+int main()
+{
+    int val = sum(array, 2);
+    return val;
+}
+int sum(int *a, int n)
+{
+    int i, s = 0;
+    for (i = 0; i < n; i++) {
+        s += a[i];
+    }
+    return s;
+}
+=== SLIDE 15 ===
+Local Symbols
+Local non-static C variables vs. local static C variables
+local non-static C variables: stored on the stack 
+local static C variables: stored in either .bss, or .data
+int f() { 
+    static int x = 0; return x; 
+}
+int g() {
+    static int x = 1; x++; 
+    return x;
+}
+Compiler allocates space in .data for each definition of x
+Creates local symbols in the symbol table with unique names, e.g., x.1 and x.2.
+=== SLIDE 16 ===
+How Linker Resolves Duplicate Symbol Definitions
+Program symbols are either strong or weak
+Strong: procedures and initialized globals
+Weak: uninitialized globals
+int foo=5;	
+p1() {}
+short foo;	
+p2() {}
+strong
+weak
+strong
+strong
+=== SLIDE 17 ===
+Linker’s Symbol Rules
+Rule 1: Multiple strong symbols are not allowed
+Each item can be defined only once
+Otherwise: Linker error
+Rule 2: Whenever possible: choose the strong symbol
+References to the weak symbol resolve to the strong symbol
+Rule 3: If there are multiple weak symbols, pick an arbitrary one
+Can override this with gcc –fno-common
+=== SLIDE 18 ===
+Linker Puzzles
+int x;
+p1() {}
+int x;
+p2() {}
+int x, y;
+p1() {}
+double x;
+p2() {}
+int x=7,y=5;
+p1() {}
+double x;
+p2() {}
+int x=7;
+p1() {}
+int x;
+p2() {}
+int x;
+p1() {}
+p1() {}
+Link time error: two strong symbols (p1)
+References to  x will refer to the same 
+uninitialized int. Is this what you really want?
+Writes to x in p2 might overwrite y!
+Evil!
+Writes to x in p2 will overwrite y!
+Nasty! 
+Nightmare scenario: two identical weak structs, compiled by different compilers
+with different alignment rules. 
+References to x will refer to the same initialized
+variable.
+=== SLIDE 19 ===
+Global Variables
+Avoid if you can
+Otherwise
+Use static if you can
+Initialize if you define a global variable
+Use extern if you reference an external global variable
+Use a header file to handle global declarations to avoid type mismatches
+=== SLIDE 20 ===
+Linker Relocation:
+Once the linker has resolved all the symbols it must relocate the object files into one ELF file. This is done in two steps:
+1) Relocating Sections: All .data, .txt, .bss, etc. sections need to be aggregated and references to the sections need to be updated
+2) Relocating symbol references within sections: The references to specific symbols within the sections need to be updated
+=== SLIDE 21 ===
+Step 2: Relocation
+=== SLIDE 22 ===
+Relocation Entries
+Source: objdump –r –d main.o
+0000000000000000 <main>:
+   0:   48 83 ec 08             sub    $0x8,%rsp
+   4:   be 02 00 00 00          mov    $0x2,%esi
+   9:   bf 00 00 00 00          mov    $0x0,%edi      # %edi = &array
+                        a: R_X86_64_32 array          # Relocation entry
+   e:   e8 00 00 00 00          callq  13 <main+0x13> # sum()
+                        f: R_X86_64_PC32 sum-0x4      # Relocation entry
+  13:   48 83 c4 08             add    $0x8,%rsp
+  17:   c3                      retq
+int array[2] = {1, 2};
+int main()
+{
+    int val = sum(array, 2);
+    return val;
+}
+=== SLIDE 23 ===
+Relocated .text section
+00000000004004d0 <main>:
+  4004d0:       48 83 ec 08       sub    $0x8,%rsp
+  4004d4:       be 02 00 00 00    mov    $0x2,%esi
+  4004d9:       bf 18 10 60 00    mov    $0x601018,%edi  # %edi = &array
+  4004de:       e8 05 00 00 00    callq  4004e8 <sum>    # sum()
+  4004e3:       48 83 c4 08       add    $0x8,%rsp
+  4004e7:       c3                retq
+00000000004004e8 <sum>:
+  4004e8:       b8 00 00 00 00          mov    $0x0,%eax
+  4004ed:       ba 00 00 00 00          mov    $0x0,%edx
+  4004f2:       eb 09                   jmp    4004fd <sum+0x15>
+  4004f4:       48 63 ca                movslq %edx,%rcx
+  4004f7:       03 04 8f                add    (%rdi,%rcx,4),%eax
+  4004fa:       83 c2 01                add    $0x1,%edx
+  4004fd:       39 f2                   cmp    %esi,%edx
+  4004ff:       7c f3                   jl     4004f4 <sum+0xc>
+  400501:       f3 c3                   repz retq
+Using PC-relative addressing for sum():  0x4004e8 = 0x4004e3 + 0x5
+Source: objdump -dx prog
+=== SLIDE 24 ===
+Loading Executable Object Files
+=== SLIDE 25 ===
+How to run an ELF?
+Executable Object Files also contain an .init segment that tells you where (and how) to begin execution of the .text segment.
+Notice that not all of the ELF is writable and not all of the ELF is loaded into memory to begin execution.
+=== SLIDE 26 ===
+Packaging Commonly Used Functions
+How to package functions commonly used by programmers?
+Math, I/O, memory management, string manipulation, etc.
+Awkward, given the linker framework so far:
+Option 1: Put all functions into a single source file
+Programmers link big object file into their programs
+Space and time inefficient
+Option 2: Put each function in a separate source file
+Programmers explicitly link appropriate binaries into their programs
+More efficient, but burdensome on the programmer
+=== SLIDE 27 ===
+Linking C lib:
+How can the linker add calls to system library functions without including the whole library in every elf?
+C libraries are often stored in the archive (*.a) format.
+When the linker encounters a reference to a symbol that it doesn’t have, it checks the static libraries installed in the system and copies over only the object files from the needed symbols.
+=== SLIDE 28 ===
+Old-fashioned Solution: Static Libraries
+Static libraries (.a archive files)
+Concatenate related relocatable object files into a single file with an index (called an archive).
+Enhance linker so that it tries to resolve unresolved external references by looking for the symbols in one or more archives.
+If an archive member file resolves reference, link it  into the executable.
+=== SLIDE 29 ===
+Creating Static Libraries
+Translator
+atoi.c
+atoi.o
+Translator
+printf.c
+printf.o
+libc.a
+Archiver (ar)
+...
+Translator
+random.c
+random.o
+unix> ar rs libc.a \
+  atoi.o printf.o … random.o
+C standard library
+Archiver allows incremental updates
+Recompile function that changes and replace .o file in archive.
+=== SLIDE 30 ===
+Commonly Used Libraries
+libc.a (the C standard library)
+4.6 MB archive of 1496 object files.
+I/O, memory allocation, signal handling, string handling, data and time, random numbers, integer math
+libm.a (the C math library)
+2 MB archive of 444 object files. 
+floating point math (sin, cos, tan, log, exp, sqrt, …) 	
+% ar –t libc.a | sort 
+…
+fork.o 
+… 
+fprintf.o 
+fpu_control.o 
+fputc.o 
+freopen.o 
+fscanf.o 
+fseek.o 
+fstab.o 
+…
+% ar –t libm.a | sort 
+…
+e_acos.o 
+e_acosf.o 
+e_acosh.o 
+e_acoshf.o 
+e_acoshl.o 
+e_acosl.o 
+e_asin.o 
+e_asinf.o 
+e_asinl.o 
+…
+=== SLIDE 31 ===
+Linking with Static Libraries
+#include <stdio.h>
+#include "vector.h"
+int x[2] = {1, 2};
+int y[2] = {3, 4};
+int z[2];
+int main()
+{
+    addvec(x, y, z, 2);
+    printf("z = [%d %d]\n”,
+           z[0], z[1]);
+    return 0;
+}
+void addvec(int *x, int *y, int *z, int n) {
+    int i;
+    for (i = 0; i < n; i++)
+        z[i] = x[i] + y[i];
+}
+void multvec(int *x, int *y, int *z, int n)
+{
+    int i;
+    for (i = 0; i < n; i++)
+        z[i] = x[i] * y[i];
+}
+libvector.a
+=== SLIDE 32 ===
+Linking with Static Libraries (visual)
+Translators
+(cpp, cc1, as)
+main2.c
+main2.o
+libc.a
+Linker (ld)
+prog2c
+printf.o and any other 
+modules called by printf.o 
+libvector.a
+addvec.o
+Static libraries
+Relocatable
+object files
+Fully linked 
+executable object file
+vector.h
+Archiver
+(ar)
+addvec.o
+multvec.o
+“c” for “compile-time”
+=== SLIDE 33 ===
+Using Static Libraries
+Linker’s algorithm for resolving external references:
+Scan .o files and .a files in the command line order.
+During the scan, keep a list of the current unresolved references.
+As each new .o or .a file, obj, is encountered
+try to resolve each unresolved reference in the list against the symbols defined in obj. 
+If any entries in the unresolved list at end of scan, then error.
+Problem:
+Command line order matters!
+Moral: put libraries at the end of the command line. 
+unix> gcc -L. libtest.o -lmine 
+unix> gcc -L. -lmine libtest.o 
+libtest.o: In function `main': 
+libtest.o(.text+0x4): undefined reference to `libfun' 
+=== SLIDE 34 ===
+Dynamic Linking:
+Since almost every program uses printf, isn’t it wasteful to include that object file in every ELF?
+Yes, “Shared Libraries” allow for a process called “Dynamic linking”. 
+This process uses a different kind of object called a shared object (*.so) 
+Windows uses this feature a lot with their Dynamically Linked Libraries (DLLs)
+=== SLIDE 35 ===
+Modern Solution: Shared Libraries
+Static libraries have the following disadvantages:
+Duplication in the stored executables (every function needs libc)
+Duplication in the running executables
+Minor bug fixes of system libraries require each application to explicitly relink
+Modern solution: Shared Libraries 
+Object files that contain code and data are
+loaded and linked into an application dynamically, at either load-time or run-time
+Also called: dynamic link libraries, DLLs, .so files
+=== SLIDE 36 ===
+Shared Libraries (cont.)
+Dynamic linking can occur when executable is loaded and run 
+load-time linking
+Common case for Linux, handled automatically by the dynamic linker (ld-linux.so).
+Standard C library (libc.so) usually dynamically linked. 
+Dynamic linking can occur after program has begun (run-time linking).
+In Linux, this is done by calls to the dlopen() interface.
+Distributing software.
+High-performance web servers. 
+Runtime library interpositioning.
+Shared library routines can be shared by multiple processes.
+More on this when we learn about virtual memory
+=== SLIDE 37 ===
+Dynamic Linking at Load-time
+Translators 
+(cpp, cc1, as)
+main2.c
+main2.o
+libc.so
+libvector.so
+Linker (ld)
+prog2l
+Dynamic linker (ld-linux.so)
+Relocation and symbol  table info
+libc.so
+libvector.so
+Code and data
+Partially linked 
+executable object file
+Relocatable
+object file
+Fully linked 
+executable
+in memory
+vector.h
+Loader (execve)
+unix> gcc -shared -o libvector.so \
+     addvec.c multvec.c
+=== SLIDE 38 ===
+Dynamic Linking at Run-time
+#include <stdio.h>
+#include <stdlib.h>
+#include <dlfcn.h>
+int x[2] = {1, 2}; int y[2] = {3, 4}; int z[2];
+int main()
+{
+    void *handle;    void (*addvec)(int *, int *, int *, int);    char *error;
+    /* Dynamically load the shared library that contains addvec() */
+    handle = dlopen("./libvector.so", RTLD_LAZY);
+    if (!handle) {        fprintf(stderr, "%s\n", dlerror());        exit(1);    }
+    /* Get a pointer to the addvec() function we just loaded */
+    addvec = dlsym(handle, "addvec");
+    if ((error = dlerror()) != NULL) {       fprintf(stderr, "%s\n", error);       exit(1);   }
+    /* Now we can call addvec() just like any other function */
+    addvec(x, y, z, 2);   printf("z = [%d %d]\n", z[0], z[1]);
+    /* Unload the shared library */
+    if (dlclose(handle) < 0) {   fprintf(stderr, "%s\n", dlerror());  exit(1);   }
+    return 0;
+}
+=== SLIDE 39 ===
+Linking Summary	
+Linking is a technique that allows programs to be constructed from multiple object files. 
+Linking can happen at different times in a program’s lifetime:
+Compile time (when a program is compiled)
+Load time (when a program is loaded into memory)
+Run time (while a program is executing)
+Understanding linking can help you avoid nasty errors and make you a better programmer. 
+=== SLIDE 40 ===
+Position Independent Code:
+The compiler flag “fpic” can be used to specify that you want your code to be compiled and linked without relying on the ELF starting at address 0x0.
+This makes your code larger and potentially slower but it means that you can create a system object that can be dynamic linked outside of your program’s ELF file.
+This has the advantage of being able to skip the “relocation” passes and allows programs to be loaded at arbitrary memory locations.
+Modern operating systems have a mechanism that allows all programs to think they are at address 0x0, so this is unnecessary.
+=== SLIDE 41 ===
+Case Study: Library Interpositioning
+Library interpositioning : powerful linking technique that allows programmers to intercept calls to arbitrary functions
+Interpositioning can occur at:
+Compile time: When the source code is compiled	
+Link time: When the relocatable object files are statically linked to form an executable object file
+Load/run time: When an executable object file is loaded into memory, dynamically linked, and then executed.
+=== SLIDE 42 ===
+Some Interpositioning Applications
+Security
+Confinement (sandboxing)
+Behind the scenes encryption
+Debugging
+In 2014, Facebook engineers found a 1-year old bug in their iPhone app using interpositioning
+Code in the SPDY networking stack was writing to the wrong location
+Solved by intercepting calls to Posix write functions (write, writev, pwrite)
+Source:  Facebook engineering blog post at
+https://code.facebook.com/posts/313033472212144/debugging-file-corruption-on-ios/
+=== SLIDE 43 ===
+More Interpositioning Applications
+Monitoring and Profiling
+Count number of calls to functions
+Characterize call sites and arguments to functions
+Malloc tracing
+Detecting memory leaks
+Generating address traces
+=== SLIDE 44 ===
+Example program		
+Goal: trace the addresses and sizes of the allocated and freed blocks, without breaking the program, and without modifying the source code. 
+Three solutions: interpose on the lib malloc and free functions at compile time, link time, and load/run time. 
+#include <stdio.h>
+#include <malloc.h>
+int main()
+{
+    int *p = malloc(32);
+    free(p);
+    return(0);
+}
+=== SLIDE 45 ===
+Compile-time Interpositioning (code)
+#ifdef COMPILETIME
+#include <stdio.h>
+#include <malloc.h>
+/* malloc wrapper function */
+void *mymalloc(size_t size)
+{
+    void *ptr = malloc(size); printf("malloc(%d)=%p\n", (int)size, ptr);
+    return ptr;
+}
+/* free wrapper function */
+void myfree(void *ptr)
+{   free(ptr);  printf("free(%p)\n", ptr); }
+#endif
+=== SLIDE 46 ===
+Compile-time Interpositioning
+#define malloc(size) mymalloc(size)
+#define free(ptr) myfree(ptr)
+void *mymalloc(size_t size);
+void myfree(void *ptr);
+linux> make intc
+gcc -Wall -DCOMPILETIME -c mymalloc.c
+gcc -Wall -I. -o intc int.c mymalloc.o
+linux> make runc
+./intc
+malloc(32)=0x1edc010
+free(0x1edc010)
+linux>
+=== SLIDE 47 ===
+Link-time Interpositioning (code)
+#ifdef LINKTIME
+#include <stdio.h>
+void *__real_malloc(size_t size);
+void __real_free(void *ptr);
+/* malloc wrapper function */
+void *__wrap_malloc(size_t size)
+{
+    void *ptr = __real_malloc(size); /* Call libc malloc */
+    printf("malloc(%d) = %p\n", (int)size, ptr);    return ptr;
+}
+/* free wrapper function */
+void __wrap_free(void *ptr)
+{    __real_free(ptr); /* Call libc free */    printf("free(%p)\n", ptr);}
+#endif
+=== SLIDE 48 ===
+Link-time Interpositioning
+The “-Wl” flag passes argument to linker, replacing each comma with a space. 
+The  “--wrap,malloc ” arg instructs linker to resolve references in a special way:
+Refs to malloc should be resolved as __wrap_malloc
+Refs to   __real_malloc should be resolved as malloc
+linux> make intl
+gcc -Wall -DLINKTIME -c mymalloc.c
+gcc -Wall -c int.c
+gcc -Wall -Wl,--wrap,malloc -Wl,--wrap,free -o intl int.o mymalloc.o
+linux> make runl
+./intl
+malloc(32) = 0x1aa0010
+free(0x1aa0010)
+=== SLIDE 49 ===
+#ifdef RUNTIME
+#define _GNU_SOURCE
+#include <stdio.h>
+#include <stdlib.h>
+#include <dlfcn.h>
+/* malloc wrapper function */
+void *malloc(size_t size)
+{
+    void *(*mallocp)(size_t size);    char *error;
+    mallocp = dlsym(RTLD_NEXT, "malloc"); /* Get addr of libc malloc */
+    if ((error = dlerror()) != NULL) {        fputs(error, stderr);        exit(1);    }
+    char *ptr = mallocp(size); /* Call libc malloc */
+    printf("malloc(%d) = %p\n", (int)size, ptr);
+    return ptr;
+}
+Load/Run-time Interpositioning (code)
+=== SLIDE 50 ===
+Load/Run-time Interpositioning (free code)
+/* free wrapper function */
+void free(void *ptr)
+{
+    void (*freep)(void *) = NULL;
+    char *error;
+    if (!ptr)    return;
+    freep = dlsym(RTLD_NEXT, "free"); /* Get address of libc free */
+    if ((error = dlerror()) != NULL) {     fputs(error, stderr);     exit(1);   }
+    freep(ptr); /* Call libc free */
+    printf("free(%p)\n", ptr);
+}
+#endif
+=== SLIDE 51 ===
+Load/Run-time Interpositioning
+linux> make intr
+gcc -Wall -DRUNTIME -shared -fpic -o mymalloc.so mymalloc.c -ldl
+gcc -Wall -o intr int.c
+linux> make runr
+(LD_PRELOAD="./mymalloc.so" ./intr)
+malloc(32) = 0xe60010
+free(0xe60010)
+linux>
+=== SLIDE 52 ===
+Interpositioning Recap
+Compile Time
+Apparent calls to malloc/free get macro-expanded into calls to mymalloc/myfree
+Link Time
+Use linker trick to have special name resolutions
+malloc 🡪 __wrap_malloc
+__real_malloc 🡪 malloc
+Load/Run Time
+Implement custom version of malloc/free that use dynamic linking to load library malloc/free under different names

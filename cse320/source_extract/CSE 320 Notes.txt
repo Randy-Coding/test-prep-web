@@ -1,0 +1,31 @@
+P1: Optimization
+P2: Know all optimization techniques/terms and why they help.
+P3: Understand memory aliasing in actual code.
+P4: Understand benefits of loop unrolling.
+P5: Profiling may be asked.
+P6: You will not be asked to optimize a program yourself.
+P7: Physical Memory
+P8: Know the disk formulas/calculations: capacity, seek time, rotational latency, transfer time.
+P9: Know locality.
+P10: Understand the important parts of a disk, though apparently no labeling question.
+P11: Know interrupts and DMA.
+P12: Memory interfaces are low priority.
+P13: Caches
+P14: Know the three cache architectures and their pros/cons.
+P15: Given an address space + cache description/diagram, determine tag, set-index, and block-offset bits.
+P16: Given an address, determine where it goes and whether it hits/misses.
+P17: Understand replacement.
+P18: A few harder questions may involve determining misses/locality from C code.
+P19: Linkers / Compiler Toolchains
+P20: Declaration vs. definition.
+P21: Symbol resolution and relocation.
+P22: Strong/weak symbol rules.
+P23: Local/global/static/extern symbol concepts.
+P24: Likely few linker questions.
+P26: MT1 Topics/Questions List:PHYSICAL MEMORY:2 questions on HDD component names (by description)1 question about memory hierarchy ordering1 question about calculating HDD access time1 question about SSDs vs HDDs
+P27: CACHE:5 questions about mapping addresses to a cache (see attached diagram)2 questions about interpreting the address bits given cache parameters1 question about calculating average access time given hit rate and hit time for a few level of cache/memory1 question about cache design tradeoffs (how cache parameters influence performance)
+P28: GENERAL CONCEPTS:4 concept questions about: pointers, memory aliasing, locality, and compiler optimizations/toolchain.11 questions on "definitions" (I will describe something from the following list of terms:)Memory Aliasing, Read Only Memory, Interrupt, Eviction, Volatile Memory, IO Bus, Memory Bus,DMA, Assertion, Loop Unrolling, Branch Prediction, Inlining, Code Motion, Reduction in Strength,Super scalar, Latency, Throughput, Spacial Locality, Temporal Locality, Write-Back, Write-ThroughSymbol Resolution, Relocation, Position Independent Code, Profiler, Debugger, Compiler, Linker, Assembler (and their tool names)
+P29: HW QUESTIONS:6 questions on the behavior and purpose of functions from my implementation of HW1
+P30: 2 questions on HW2 part B approach
+P31: 1 question on basic CLI tools from GREP lab
+P32: BASIC CODE QUESTIONS:2 questions on cache hit/miss rate based on a program.7 questions on code with questions about: pointers, memory aliasing, locality, and compiler optimizations.1 questions about global variables

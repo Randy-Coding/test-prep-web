@@ -136,12 +136,43 @@ function updatePool() {
   }
 }
 
+function renderImage(item, image) {
+  image.hidden = !item.image;
+  if (item.image) image.src = item.image;
+  else image.removeAttribute('src');
+}
+
+function renderImageLink(item, link) {
+  link.hidden = !item.image;
+  if (item.image) link.href = item.image;
+  else link.removeAttribute('href');
+}
+
+function renderChoices(item, container, showCorrect = false) {
+  container.replaceChildren();
+  container.hidden = !item.choices;
+  if (!item.choices) return;
+  for (const letter of ['A', 'B', 'C', 'D']) {
+    const choice = document.createElement('span');
+    choice.className = 'choice';
+    if (showCorrect && letter === item.correct_answer) choice.classList.add('correct-choice');
+    const label = document.createElement('strong');
+    label.textContent = `${letter}.`;
+    choice.append(label, document.createTextNode(item.choices[letter]));
+    container.append(choice);
+  }
+}
+
 function renderQuestion() {
+  const item = session[position];
   $('progress').textContent = `Question ${position + 1} of ${session.length}`;
   $('score').textContent = `Score ${score}/${position}`;
   $('progress-fill').style.width = `${position / session.length * 100}%`;
-  $('question').textContent = session[position].question;
-  $('answer').textContent = session[position].answer;
+  $('question').textContent = item.question;
+  renderImage(item, $('question-image'));
+  renderImageLink(item, $('question-image-link'));
+  renderChoices(item, $('choices'), revealed);
+  $('answer').textContent = item.answer;
   $('answer-panel').hidden = !revealed;
   $('reveal').hidden = revealed;
 }
@@ -161,7 +192,11 @@ function renderCard() {
   const card = session[position];
   $('card-progress').textContent = `Card ${position + 1} of ${session.length}`;
   $('card-question').textContent = card.question;
+  renderImage(card, $('card-image'));
+  renderImageLink(card, $('card-image-link'));
+  renderChoices(card, $('card-choices'));
   $('card-answer').textContent = card.answer;
+  renderImage(card, $('card-answer-image'));
   $('flash-card').classList.toggle('flipped', flipped);
   $('flash-card').setAttribute('aria-label', flipped ? 'Show question' : 'Show answer');
   $('previous-card').disabled = position === 0;
@@ -200,7 +235,27 @@ function finish() {
       q.textContent = item.question;
       const a = document.createElement('span');
       a.textContent = item.answer;
-      row.append(q, a);
+      row.append(q);
+      if (item.image) {
+        const link = document.createElement('a');
+        link.className = 'diagram-link';
+        link.target = '_blank';
+        link.rel = 'noopener';
+        renderImageLink(item, link);
+        const image = document.createElement('img');
+        image.className = 'question-image';
+        image.alt = 'Diagram for this question';
+        renderImage(item, image);
+        link.append(image, document.createTextNode('Open diagram full size'));
+        row.append(link);
+      }
+      if (item.choices) {
+        const choices = document.createElement('div');
+        choices.className = 'choices';
+        renderChoices(item, choices, true);
+        row.append(choices);
+      }
+      row.append(a);
       $('missed').append(row);
     });
   }
@@ -258,8 +313,7 @@ $('start').addEventListener('click', () => {
 });
 $('reveal').addEventListener('click', () => {
   revealed = true;
-  $('reveal').hidden = true;
-  $('answer-panel').hidden = false;
+  renderQuestion();
   save();
 });
 $('correct').addEventListener('click', () => grade(true));

@@ -1,0 +1,239 @@
+P1: Code Optimization
+P3: Good code:
+P4: Correct (most important)
+P5: Readable and flexible code
+P6: Fast
+P7: Doesn’t take up too much memory (least important)
+P9: Optimization strategy:
+P10: Enable compiler optimization flags. -O2 is best
+P11: Run/profile code (time different segments) to determine if its performance is sufficient
+P12: Improve algorithms (learned from CSE 214/260)
+P13: Do hardware optimization
+P15: Optimization Tools
+P17: time a.out
+P18: Real (wall time): How much real-world time passed
+P19: User: How much time your program spent running (excluding OS)
+P20: System: How much time the OS spent running
+P21: If wall time > CPU time, then it might be an I/O problem
+P23: Profiling: Helps you understand program performance
+P24: Execution profile: How much time spent in each function. Stack trace to identify hot spots
+P25: Heap allocation profile
+P26: How it works: Direct timing (accurate but slows down code), and OS sampling
+P28: gprof (GNU Profiler): https://sourceware.org/binutils/docs/gprof
+P29: gcc -pg main.c
+P30: Run program normally (generates gmon.out)
+P31: Use gprof to produce a report
+P36: The lecture slides contain more tools
+P44: Hardware Optimizations
+P46: Hardware optimizations:
+P47: Dead code elimination
+P48: Code motion
+P49: Reduction in strength
+P50: Sharing common subexpressions
+P51: (Removing) memory aliasing
+P52: Loop unrolling
+P53: Function inlining / Reducing procedure calls
+P55: Code motion: Move repeatedly calculated variables that don’t change value outside of loops:
+P58: Reduction in strength: Here, uses addition (faster) instead of multiplication (slower)
+P61: Sharing common subexpressions: Calculating commonly used variables once
+P64: Optimization blockers: Things the compiler cannot optimize
+P66: Left: strlen() is a blackbox; compiler cannot replace it with something else
+P67: Right: The compiler cannot assume that a[] and b[] do not overlap addresses
+P68: Now there are actual hardware level optimizations (hardware knowledge required). See the slides here for loop unrolling
+P69: Latency bound (sec): Time for operation X to execute. e.g. integer multiplication takes 3 clock cycles. Lower is better
+P70: Throughput bound (ops/sec): Maximum possible number of operations X per second. Uses all hardware available. For instance, all 4 multiplication units are working. Higher is better
+P77: Principle of Locality
+P79: Principle of Locality: Programs like to use data and instructions with addresses near or equal to those used recently
+P80: Temporal locality: Recently referenced things are likely to be referenced again in the near future
+P81: Spatial locality: Items with nearby addresses tend to be referenced close together in time
+P82: These are true because of a cache (we will learn about this soon)
+P86: In this example, doing a[i][j] is better than a[j][i] because if you do a[j][i], then you jump around a lot because a[i] moves by N ints after each iteration (not spatially local)
+P98: Types of Memories
+P102: Dimensions: Speed, size, cost ($), power consumption
+P103: In CSE 220, our load/store instructions actually access the cache, not main memory
+P104: We will not cover remote secondary storage in this course
+P106: Memories:
+P107: RAM (“main memory”)
+P108: Static RAM: Used for the cache. Power-efficient and fast, but small and expensive ($)
+P109: Dynamic RAM: Used for main memory. Slow and has high power consumption, but is larger and cheaper ($)
+P110: Both SRAM and DRAM are volatile and are lost when you turn off your machine
+P111: SSDs (solid state drives, a middle ground between disk and RAM)
+P112: HDDs (Hard disk drives, “Disk”)
+P113: Other (nonvolatile): Read-only, programmable ROM, erasable PROM, electrically erasable PROM, flash memory: EEPROM
+P116: Key idea: Good programmers keep commonly used memory near the CPU and less commonly used memory below
+P117: Following the principles of locality makes it more likely to keep commonly used memory in/near the registers and caches
+P121: Disk (HDD)
+P122: The disk:
+P125: Disks consist of platters. They have 2 surfaces: Top and bottom
+P126: The arm has heads that reach every single surface
+P127: Damaged platters are managed accordingly by other hardwares
+P128: Each surface has tracks (like track and field lanes)
+P129: Each track is divided into sectors (there are gaps between sectors)
+P130: Outer tracks have more sectors than inner tracks
+P131: Aligned tracks form a cylinder (not useful for upcoming calculations)
+P133: Capacity: Number of bytes that can be stored. Determined by:
+P134: Recording density (bits/in): # of bits squeezed into a 1 inch segment of a track
+P135: Track density (tracks/in): # of tracks that can be squeezed into a 1 inch radial segment
+P136: Areal density (bits/in2): Product of recording and track densities
+P137: (# bytes/sector) * (avg # sectors/track) * (# tracks/surface) * (# surfaces/platter) * (# platters/disk)
+P139: Read from disk:
+P140: Seek: Move the arm to the correct track
+P141: Rotation: Let the platter spin to the correct sector (very slow)
+P142: Transfer: Let the platter spin while the arm reads
+P143: Access time = Seek + Rotation + Transfer
+P147: Average rotation time = ½  * (1/RPM) * (60 sec/ 1 min)
+P148: Average transfer time = (1/RPM) * 1/(avg # sectors/track) * (60 secs/1 min)
+P150: There’s a mapping between logical blocks and physical sectors. CPU looks at logical blocks and then the disk moves to the corresponding sector. CPU does not control the disk
+P159: I/O Bus
+P162: DMA bulk copies data to/from main memory to the disk. Like memcpy
+P163: The CPU does not have to do any of this
+P164: IRQ: Works like an alarm. Basically the CPU is minding its own business when an I/O event (like mouse click) occurs and sends the interrupt signal to the CPU. Then the CPU will figure out what it’s retrieving from the I/O bus and act accordingly
+P165: Polling: CPU consciously and consistently checks for interrupt. Useful for GeoDash
+P167: Solid State Disk (SSD)
+P171: Blocks wear out after ~100,000 writes. Afterwards, they can only be read, not written to
+P172: Data is read/written in whole pages
+P173: Pages can only be written to once its block is erased
+P174: Sequential access is faster than random access
+P175: Random writes are somewhat slower
+P176: Erasing a block takes a long time (~1 ms)
+P177: Modifying a block page requires all other pages to be copied to new block
+P179: SSDs have no moving parts. Faster than HDDs and actually consume less power (because no moving parts). However, they wear out and are more costly ($).
+P180: Caches
+P183: Caches exist between the CPU and RAM
+P184: Hits (cache has it)
+P185: Misses (cache doesn’t have it. Then...)
+P186: Placement policy (where does new block go)
+P187: Replacement policy (which block gets evicted)
+P190: Types of cache misses:
+P191: Cold miss: Cache block is empty (valid = 0)
+P192: Conflict miss: In the above diagram, 10 and 14 can only be stored in that same block. Calling 10, 11 is fine, but 10, 14, 10, 14 is bad (engineer’s duty)
+P193: Capacity miss: There are more active cache blocks than the cache (programmer’s duty)
+P195: Mapping RAM to cache:
+P196: Extreme 1: Directly mapped (the 10 14 example). Lines = 1
+P197: Extreme 2: Fully Associative: RAM blocks can go anywhere in cache. Sets = 1
+P198: Middle ground: Set-associative: Every address in RAM has 1 cache set that it can use. However, it can use any line within said set
+P203: Cache layout (regardless of mapping):
+P204: There are S sets
+P205: Each set contains E lines
+P206: Each line contains a valid bit, a tag, and a block B that holds the actual data
+P207: S, E, and the number of bytes within B are all powers of 2
+P209: When an instruction accesses data from main memory, it first checks if it exists in the cache. The address of said data is split into: Tag, index, offset
+P210: Use index to locate the corresponding set
+P211: Go through all lines in said set
+P212: If a line’s tag matches the address’ tag AND the valid bit = 1, then cache hit. We take the data from the line’s block (0 + offset)
+P213: The valid bit is 0 upon machine startup and is permanently 1 once the line gets placed
+P217: Upon a cache miss, data is read from RAM as follows: [tag | set | # of bytes]
+P218: The # of bytes asked is the same as the size of the cache blocks
+P219: Reading a single byte from RAM is a waste of time. Why not read to the whole block?
+P221: Example using matrix multiplication: SLIDES
+P222: By rearranging the i, j and k loops and traversing the matrices differently, we can use more spatial locality
+P223: But the “standard” matrix multiplication requires traversing each element n times
+P224: So we divide the matrices into submatrices so they fit into the cache once, multiply submatrices, place them in matrix C, evict them and never use them again
+P225: Writes
+P227: If I write to cache, when do I actually push it to RAM?
+P228: Write-through (immediately write back to memory). Problem: Slow
+P229: Write-back (wait until line gets evicted). Problem: Multiple cores working on the same address
+P230: Requires a dirty bit (“This block has been modified and must be written back”)
+P232: How about a write-miss? 2 options:
+P233: Write straight to memory, skip the cache. OR
+P234: Write-allocate (load into cache, update line in cache). Good if there will be more writes to this location
+P236: Typical implementations:
+P237: Write-through straight to memory
+P238: Write-back and write-allocate
+P240: Hit and Miss Metrics
+P242: Miss rate and hit rate
+P243: Hit time: Time to deliver a line in the cache to the processor. Includes time determining whether line is in the cache. Very fast
+P244: Miss penalty: Very slow. Can take hundreds of cycles to access from RAM
+P246: How bad is a cache miss? Consider a 97% and 99% hit rate. Assume:
+P247: Hit time: 1 cycle
+P248: Miss penalty: 100 cycles
+P249: Average access time:
+P250: 97% hits: 1 cycle + 0.03 * 100 cycles = 4 cycles
+P251: 99% hits: 1 cycle * 0.01 * 100 cycles = 2 cycles
+P252: Using miss rate instead of hit rate is more transparent
+P266: Linkers
+P268: Remember that a C program is compiled as:
+P269: Preprocessor: Removes comments and expands macros. Outputs .i file
+P270: Compiler: Turns preprocessed C code into assembly code. Outputs .s file
+P271: Assembler: Turns assembly into machine code. Outputs .o, a relocatable object file
+P272: Shared object files (.so): Special type of relocatable object file that can be loaded into memory and linked dynamically, at either load time or runtime
+P273: Both .o and .so files contain a symbol table that’s actually an array of structs per symbol, each struct containing the symbol’s name, size and memory location.
+P274: More on symbols soon...
+P275: Linker: Combines all necessary object files (like whatever was from stdio.c) into executable object file a.out (default name)
+P276: Linker performs symbol resolution, using symbol tables from the .o files, then afterwards it performs relocation
+P278: Executable and Linkable Format (ELF): Standard format for .o, executables and .so
+P280: ELF Format
+P281: Section
+P282: Contents
+P283: ELF header
+P284: Word size, byte ordering, file type (.o, exec, .so), machine type, etc.
+P285: Segment header table
+P286: Used for virtual memory. Page size, virtual addresses memory segments and their sizes
+P287: .text
+P288: Code
+P289: .rodata
+P290: String literals, immutable variables, read-only data, jump tables, etc.
+P291: .data
+P292: Initialized global variables
+P293: .bss
+P294: Uninitialized global vars. Has section header but occupies no space
+P295: .symtab
+P296: Symbol table, procedure and static variable names, section names and locations
+P297: .rel.text
+P298: Relocation info for .text section. Addresses of instructions that will need to be modified in the executable. Instructions for modifying
+P299: .rel.data
+P300: Relocation info for .data section. Addresses of pointer data that will need to be modified in the merged executable
+P301: .debug
+P302: Info for symbolic debugging. Present when doing (gcc -g)
+P303: Section header table
+P304: Offsets and sizes of each section (.text, .data, etc) in this table
+P306: The ELF header is at address 0. As you go down the list, the address increases
+P307: Symbol Resolution
+P309: There are 3 types of linker symbols:
+P310: Global: Defined by module p and can be referenced by other modules
+P311: Not static functions and global variables
+P312: External: Global symbols referenced by module q but defined by p
+P313: Variables use the extern keyword
+P314: Local: Defined and referenced exclusively by module p. Nothing else
+P315: static functions and global variables
+P316: Local variables (defined inside functions without static) are NOT linker symbols
+P317: The linker simply ignores them (ignores stack and heap)
+P321: Symbol resolution: Linker uses the symbol table, found in the .o files, to resolve references
+P322: The linker associates each symbol reference with exactly one symbol definition (not declaration)
+P323: val, a, i, n and s are ignored (local variables)
+P325: The unique case of static local variables:
+P327: First call of g(): returns 2. Second call of g(): 3. Defined once, cannot be redefined
+P329: Strong vs weak symbols
+P331: Weak: Uninitialized global variables
+P332: Strong: Everything else (functions and initialized globals)
+P333: int foo = 5; // Strong
+P334: int bar;  // Weak
+P335: void q() {}  // Strong
+P336: The rules concerning this:
+P337: Rule 1: Multiple strong symbols with the same name are not allowed. Throw linker error
+P338: Rule 2: References to the strong symbol (if any) are preferred over any weak symbols
+P339: Rule 3: If there are multiple weak symbols, pick an arbitrary one
+P341: An example below:
+P344: In the 4th one, the file p2 knows that x is a double and will write to x in the p1 file. It WILL overwrite y. Whereas in the 3rd one, the int or double x is randomly chosen, so it might work
+P346: Takeaway: Don’t use global variables
+P347: If you must, use static
+P348: If it must be used elsewhere, make it strong
+P349: Use extern if you reference an external global variable
+P356: Relocation
+P358: Relocation: Linker merges separate code and data sections into a single section
+P359: Relocates symbols from their relative addresses in the .o files to their final absolute memory addresses in the executable
+P360: Compiler and assembler assume that memory addresses start at 0
+P361: Updates all references to these symbols to reflect their new positions
+P365: Libraries
+P367: Libraries are stored in the archive format .a
+P368: When the linker finds a reference symbol it doesn’t have, it will check the libraries and copy only the object files from the needed symbols
+P369: Below is how they are made
+P371: There was stuff about dynamic linking, but we breezed through it
+P373: Position-independent code:
+P374: Flag -fpic: Compile and link code without needing the ELF to start at address 0
+P375: Larger (and possibly slower) code, but you can create a system object that can be dynamically linked outside of your program’s ELF file
+P376: Skips relocation passes and allows programs to be loaded at arbitrary memory locations
+P378: Linkers work at any of the following:
+P379: Compile time (when program is compiled)
+P380: Load time (when a program is loaded into memory)
+P381: Run time (while a program is executing)

@@ -4,11 +4,43 @@ import importlib.util
 import json
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import quote, unquote, urlparse
 
 
 ROOT = Path(__file__).resolve().parent
 BANKS = ROOT / "question_banks"
+ASSET_ROOT = ROOT / "cse320"
+IMAGE_TYPES = {".png": "image/png", ".svg": "image/svg+xml"}
+
+
+def image_name(value):
+    parts = str(value).replace("\\", "/").split("/")
+    if len(parts) != 2 or parts[0] != "cse320" or parts[1] in ("", ".", ".."):
+        raise ValueError(f"Invalid question image path: {value}")
+    name = parts[1]
+    if Path(name).suffix.lower() not in IMAGE_TYPES or not (ASSET_ROOT / name).is_file():
+        raise ValueError(f"Missing or unsupported question image: {value}")
+    return name
+
+
+def normalize_question(question, answer):
+    if not isinstance(answer, dict):
+        return {"question": str(question), "answer": str(answer)}
+    choices = answer.get("choices")
+    correct = answer.get("correct_answer")
+    if not isinstance(choices, dict) or set(choices) != set("ABCD") or correct not in choices:
+        raise ValueError(f"Invalid choices for question: {question}")
+    choices = {letter: str(choices[letter]) for letter in "ABCD"}
+    explanation = str(answer.get("explanation", ""))
+    record = {
+        "question": str(question),
+        "answer": f"{correct}. {choices[correct]}\n\n{explanation}".strip(),
+        "choices": choices,
+        "correct_answer": correct,
+    }
+    if answer.get("image"):
+        record["image"] = f"/assets/cse320/{quote(image_name(answer['image']))}"
+    return record
 
 
 def load_banks():
@@ -27,7 +59,7 @@ def load_banks():
         else:
             topics = {"All questions": raw}
         result[path.stem] = {
-            topic: [{"question": str(q), "answer": str(a)} for q, a in entries.items()]
+            topic: [normalize_question(q, a) for q, a in entries.items()]
             for topic, entries in topics.items()
         }
     return result
@@ -52,6 +84,15 @@ class Handler(BaseHTTPRequestHandler):
         elif path == "/style.css":
             body = (ROOT / "style.css").read_bytes()
             content_type = "text/css; charset=utf-8"
+        elif path.startswith("/assets/cse320/"):
+            name = unquote(path[len("/assets/cse320/"):])
+            try:
+                image_name(f"cse320/{name}")
+            except ValueError:
+                self.send_error(404)
+                return
+            body = (ASSET_ROOT / name).read_bytes()
+            content_type = IMAGE_TYPES[Path(name).suffix.lower()]
         else:
             self.send_error(404)
             return
