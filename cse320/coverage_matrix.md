@@ -1,6 +1,6 @@
 # CSE 320 Midterm 1 Phase 1 source map and coverage matrix
 
-**Status:** Phases 2–5 are complete in `question_banks/CSE320.py`: 30 Cache, 18 Physical Memory, 25 Basic Code, and 34 General Concepts questions. The latter covers 28 of 29 official definition terms; the user directed us to skip `Assertion` because its definition/example is absent from the supplied course sources. Twenty-one Cache, eight Physical Memory, and two General Concepts questions use images. HW questions have not been written. The official `MT1 Topics/Questions List` in `FULL CSE 320 Notes (1).docx` paragraphs 302–308 controls exam scope; its duplicate in `CSE 320 Notes.docx` paragraphs 26–32 agrees. Professor comments in the full notes guide weighting. Slides and the supplied PNGs guide technical details and visual structure.
+**Status:** Phases 2–5 are complete in `question_banks/CSE320.py`: 30 Cache, 18 Physical Memory, 25 Basic Code, and 34 General Concepts questions. The latter covers 28 of 29 official definition terms; the user directed us to skip `Assertion` because its definition/example is absent from the supplied course sources. Twenty-one Cache, seven Physical Memory, and two General Concepts questions use images; label-reading prompts were replaced with application questions. HW questions have not been written. The official `MT1 Topics/Questions List` in `FULL CSE 320 Notes (1).docx` paragraphs 302–308 controls exam scope; its duplicate in `CSE 320 Notes.docx` paragraphs 26–32 agrees. Professor comments in the full notes guide weighting. Slides and the supplied PNGs guide technical details and visual structure.
 
 ## Exact exam structure and proposed bank coverage
 
@@ -62,7 +62,7 @@ The official list contains 29 terms. The bank covers 28 with source-backed quest
 | `hdd_single_platter_tracks_sectors_geometry.png`; `hdd_multi_platter_cylinder_surfaces.png` | Interpret geometry and component descriptions. |
 | `Physical Memory Hierachy.png` | Order levels and read direction of speed, capacity, and cost. |
 | `ELF Diagram.png` | Interpret `.text`, `.data`, `.bss`, symbol table, and relocation sections within official linker/global scope. |
-| `io_memory_bus_diagram.png` | Extracted without modification from Physical Memory slide 20. Distinguish the I/O, memory, and system buses by reading their labeled connections. |
+| `io_memory_bus_diagram.png`; `io_memory_bus_diagram_UNLABELED.png` | The first is the labeled slide-20 source. The second is the user-provided unlabeled variant used by the I/O and memory bus questions; students trace the DMA path and identify each bus by its role. |
 
 The target is **at least 20 questions whose answer truly depends on reading a figure**. Proposed allocation: 10 cache mapping tables, 3 address/organization figures, 2 HDD figures, 2 hierarchy figures, 2 toolchain/ELF figures, and 1 additional cache structure figure. An attached decorative figure does not count. Some supplied figures are labeled or blank, so numerical exercises will need a carefully adapted figure or an adjacent structured state table. Do not alter the original PNGs.
 

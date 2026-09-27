@@ -237,20 +237,20 @@ questions = {
 }
 
 questions["Physical Memory"] = {
-    "In the right-hand enlargement of the single-platter diagram, a curved portion of Track k lies between two gaps. What is that portion called?": {
-        "subcategory": "HDD component", "choices": {"A": "Cylinder", "B": "Surface", "C": "Sector", "D": "Platter"},
-        "correct_answer": "C", "explanation": "The diagram divides one circular track into curved sectors separated by gaps. A cylinder instead combines aligned tracks across surfaces.",
-        "source": "6. Physical Memory.pptx slide 11 — hdd_single_platter_tracks_sectors_geometry.png", "image": "cse320/hdd_single_platter_tracks_sectors_geometry.png",
+    "The head is already positioned over Track k in the single-platter diagram, but the requested sector has just passed under it. What delay remains before that sector can be read on its next pass?": {
+        "subcategory": "HDD component", "choices": {"A": "A seek to another cylinder", "B": "Almost one full rotation", "C": "No delay because the head is on the correct track", "D": "Only the transfer time for one sector"},
+        "correct_answer": "B", "explanation": "The head is already on the correct track, so no seek is needed. Because the sector has just passed the head, the platter must rotate almost once more before that sector returns; transfer follows when it arrives.",
+        "source": "6. Physical Memory.pptx slides 11, 17 — hdd_single_platter_tracks_sectors_geometry.png", "image": "cse320/hdd_single_platter_tracks_sectors_geometry.png",
     },
-    "In the multi-platter diagram, imagine the tracks at the same radius on all six labeled surfaces. What name describes that aligned group?": {
-        "subcategory": "HDD component", "choices": {"A": "Cylinder", "B": "Sector", "C": "Spindle", "D": "Platter"},
-        "correct_answer": "A", "explanation": "A cylinder is the set of tracks aligned at one radius across the platter surfaces; the figure labels Cylinder k around such aligned tracks.",
-        "source": "6. Physical Memory.pptx slide 12 — hdd_multi_platter_cylinder_surfaces.png", "image": "cse320/hdd_multi_platter_cylinder_surfaces.png",
+    "On the pictured multi-platter drive, a read moves from a track on Surface 0 to the same-radius track on Surface 5. Assuming each surface has a head, which positioning cost can this avoid?": {
+        "subcategory": "HDD component", "choices": {"A": "A radial seek to a different cylinder", "B": "All rotational waiting", "C": "Reading the target sector's bits", "D": "Selecting the head for the new surface"},
+        "correct_answer": "A", "explanation": "Same-radius tracks lie in one cylinder. The heads move together radially, so switching to another surface at that radius need not seek to a different cylinder. Rotation and head selection may still take time.",
+        "source": "6. Physical Memory.pptx slides 12–13, 17 — hdd_multi_platter_cylinder_surfaces.png", "image": "cse320/hdd_multi_platter_cylinder_surfaces.png",
     },
-    "In the multi-platter diagram, which named physical object has two labeled recording surfaces, one on each face?": {
-        "subcategory": "HDD component", "choices": {"A": "Track", "B": "Cylinder", "C": "Sector", "D": "Platter"},
-        "correct_answer": "D", "explanation": "The figure pairs Surface 0 and Surface 1 with Platter 0, Surface 2 and Surface 3 with Platter 1, and so on. Each platter has two recording surfaces.",
-        "source": "6. Physical Memory.pptx slides 11–12 — hdd_multi_platter_cylinder_surfaces.png", "image": "cse320/hdd_multi_platter_cylinder_surfaces.png",
+    "A program requests logical disk block 17 without naming a surface, track, or sector. Which component maps that request to its physical disk location?": {
+        "subcategory": "HDD component", "choices": {"A": "Read/write head", "B": "Disk controller", "C": "Spindle", "D": "Sector gap"},
+        "correct_answer": "B", "explanation": "The disk controller's firmware maps logical blocks to physical (surface, track, sector) locations. The head reads or writes once the location has been selected.",
+        "source": "6. Physical Memory.pptx slide 19",
     },
     "On a disk surface, what is the concentric circular path that can be subdivided into sectors?": {
         "subcategory": "HDD component", "choices": {"A": "Platter", "B": "Track", "C": "Cylinder", "D": "Read/write head"},
@@ -262,20 +262,20 @@ questions["Physical Memory"] = {
         "correct_answer": "C", "explanation": "The disk-operation slide says read/write heads move together between cylinders. A sector or track is a storage region, not a moving read/write component.",
         "source": "6. Physical Memory.pptx slide 13",
     },
-    "Use the memory-hierarchy pyramid. Which sequence moves down from the level nearest the CPU toward slower, larger storage?": {
-        "subcategory": "Memory hierarchy", "choices": {"A": "Registers, caches, main memory, flash disk, traditional disk", "B": "Registers, main memory, caches, traditional disk, flash disk", "C": "Traditional disk, flash disk, main memory, caches, registers", "D": "Caches, registers, flash disk, main memory, traditional disk"},
-        "correct_answer": "A", "explanation": "Read the pyramid from its narrow top downward: registers, caches, main memory, flash disk, traditional disk. The arrows indicate access generally slows and capacity rises downward.",
-        "source": "6. Physical Memory.pptx slides 2–4 — Physical Memory Hierachy.png", "image": "cse320/Physical Memory Hierachy.png",
+    "A CPU read misses in the pyramid level immediately below Registers, but the next level down holds the requested block. Which action can make a later read hit in the missed level?": {
+        "subcategory": "Memory hierarchy", "choices": {"A": "Copy the block from main memory into cache", "B": "Move the entire main memory into registers", "C": "Write the block to traditional disk before reading it", "D": "Bypass cache permanently after its first miss"},
+        "correct_answer": "A", "explanation": "An upper, faster level caches a subset of the level below it. On a miss, the block can be fetched from main memory into cache, so a later access may hit there.",
+        "source": "6. Physical Memory.pptx slides 3, 38–40 — Physical Memory Hierachy.png", "image": "cse320/Physical Memory Hierachy.png",
     },
-    "The hierarchy image brackets 'On CPU' separately from the rest. Which two levels does that bracket include?": {
-        "subcategory": "Memory hierarchy", "choices": {"A": "Main memory and flash disk", "B": "Registers and caches", "C": "Caches and main memory", "D": "Flash disk and traditional disk"},
-        "correct_answer": "B", "explanation": "The 'On CPU' bracket spans the registers and caches at the top of the figure; main memory begins below it.",
-        "source": "6. Physical Memory.pptx slide 3 — Physical Memory Hierachy.png", "image": "cse320/Physical Memory Hierachy.png",
+    "A loop reuses an array that fits in the on-CPU level immediately below Registers in the pyramid. Why can later passes avoid fetching every element from Main Memory again?": {
+        "subcategory": "Memory hierarchy", "choices": {"A": "Temporal locality lets recently used blocks remain in Caches", "B": "Spatial locality guarantees a hit even after blocks leave Caches", "C": "Temporal locality makes Flash Disk part of the CPU", "D": "Main Memory becomes as fast as Registers after one pass"},
+        "correct_answer": "A", "explanation": "Repeated accesses exhibit temporal locality. Because the working blocks fit in cache, they can remain there and satisfy later reads without another main-memory fetch for each element.",
+        "source": "6. Physical Memory.pptx slides 3, 5–6, 38 — Physical Memory Hierachy.png", "image": "cse320/Physical Memory Hierachy.png",
     },
-    "In the hierarchy pyramid, moving from main memory down to traditional disk changes typical speed, capacity, and cost per byte in which directions?": {
-        "subcategory": "Memory hierarchy", "choices": {"A": "Faster, smaller, more expensive", "B": "Faster, larger, cheaper", "C": "Slower, smaller, more expensive", "D": "Slower, larger, cheaper"},
-        "correct_answer": "D", "explanation": "The figure shows slower access and lower cost per byte toward the bottom; its widening shape shows greater storage capacity.",
-        "source": "6. Physical Memory.pptx slides 2–3 — Physical Memory Hierachy.png", "image": "cse320/Physical Memory Hierachy.png",
+    "A data set exceeds Main Memory but fits in the level directly below it in the pyramid. The program repeatedly revisits a small subset. Which arrangement uses that hierarchy effectively?": {
+        "subcategory": "Memory hierarchy", "choices": {"A": "Keep the full set on flash disk and cache the hot subset in Main Memory and higher levels", "B": "Keep the full set only in Registers", "C": "Read every item from traditional disk on every revisit", "D": "Disable caching because the full set exceeds Main Memory"},
+        "correct_answer": "A", "explanation": "The level directly below Main Memory is flash disk. It can hold the full set while Main Memory and higher levels retain the frequently reused subset; locality makes these smaller levels effective.",
+        "source": "6. Physical Memory.pptx slides 2–3, 38–40, 43 — Physical Memory Hierachy.png", "image": "cse320/Physical Memory Hierachy.png",
     },
     "A disk rotates at 6,000 RPM, has 100 sectors per track, and has a 5 ms average seek. Using the lecture's average-access formula, what is the average time to access one sector?": {
         "subcategory": "HDD access time", "choices": {"A": "5.1 ms", "B": "10.1 ms", "C": "15.1 ms", "D": "10.01 ms"},
@@ -290,15 +290,15 @@ questions["Physical Memory"] = {
 }
 
 questions["Physical Memory"].update({
-    "The hierarchy figure groups levels into primary and secondary storage. Which pair lies in secondary storage immediately below main memory?": {
-        "subcategory": "Memory hierarchy", "choices": {"A": "Registers and caches", "B": "Caches and main memory", "C": "Main memory and flash disk", "D": "Flash disk and traditional disk"},
-        "correct_answer": "D", "explanation": "The figure's secondary-storage bracket begins below main memory and includes flash disk followed by traditional disk.",
-        "source": "6. Physical Memory.pptx slide 3 — Physical Memory Hierachy.png", "image": "cse320/Physical Memory Hierachy.png",
+    "A program keeps one copy in the pyramid level immediately below Caches and successfully writes another to the level immediately below Main Memory. After power loss, which copy remains available and why?": {
+        "subcategory": "Memory hierarchy", "choices": {"A": "Only the DRAM copy, because primary storage is permanent", "B": "Only the flash-disk copy, because flash is nonvolatile while DRAM is volatile", "C": "Both copies, because all hierarchy levels retain data without power", "D": "Neither copy, because flash must rotate to preserve its bits"},
+        "correct_answer": "B", "explanation": "DRAM loses its contents without power. Flash storage is nonvolatile, so the successfully written copy survives; the hierarchy places flash below DRAM, but the persistence difference requires knowing their storage behavior.",
+        "source": "6. Physical Memory.pptx slides 3, 23, 27–28, 36–37 — Physical Memory Hierachy.png", "image": "cse320/Physical Memory Hierachy.png",
     },
-    "Using the approximate cycle labels printed on the hierarchy image, which adjacent pair has the largest multiplicative increase in access time as you move downward?": {
-        "subcategory": "Memory hierarchy", "choices": {"A": "Registers to caches", "B": "Main memory to flash disk", "C": "Caches to main memory", "D": "Flash disk to traditional disk"},
-        "correct_answer": "B", "explanation": "The labels rise from about 100 cycles for main memory to about 1 million for flash disk, roughly 10,000×. Each other listed adjacent jump is about 10×.",
-        "source": "6. Physical Memory.pptx slide 3 — Physical Memory Hierachy.png", "image": "cse320/Physical Memory Hierachy.png",
+    "A program reads the same small record thousands of times from the level two steps below Main Memory in the pyramid. Main Memory has room to retain it after the first read. Which change best reduces the repeated-access cost?": {
+        "subcategory": "Memory hierarchy", "choices": {"A": "Retain the record in main memory so later reads avoid disk seek and rotation", "B": "Keep it on flash disk and issue a new flash read for every use", "C": "Increase the traditional disk's RPM but still read it every time", "D": "Make each traditional-disk request smaller while still requesting it each time"},
+        "correct_answer": "A", "explanation": "Reusing the record shows temporal locality. Keeping it at a faster level avoids paying the traditional disk's mechanical seek and rotational latency on each repeated access.",
+        "source": "6. Physical Memory.pptx slides 3, 5, 17–18, 38–40 — Physical Memory Hierachy.png", "image": "cse320/Physical Memory Hierachy.png",
     },
     "At 12,000 RPM, a disk track contains 100 sectors and average seek time is 3 ms. Under the lecture's one-sector model, what is average access time?": {
         "subcategory": "HDD access time", "choices": {"A": "3.05 ms", "B": "5.5 ms", "C": "5.55 ms", "D": "8.05 ms"},
@@ -489,15 +489,15 @@ questions["General Concepts"] = {
         "correct_answer": "A", "explanation": "The slides identify SRAM and DRAM as volatile because their contents are lost without power.",
         "source": "6. Physical Memory.pptx slides 27, 36–37; Copy of CSE 320 Notes.docx P108–113",
     },
-    "In the supplied computer-system figure, which named bus runs below the I/O bridge and connects the USB controller, graphics adapter, and disk controller?": {
-        "subcategory": "Definition identification", "choices": {"A": "Memory Bus", "B": "IO Bus", "C": "System bus", "D": "DMA"},
-        "correct_answer": "B", "explanation": "The lower horizontal connection from the I/O bridge to peripheral controllers is labeled I/O bus. The memory bus instead runs from the bridge to main memory.",
-        "source": "6. Physical Memory.pptx slide 20 — io_memory_bus_diagram.png", "image": "cse320/io_memory_bus_diagram.png",
+    "Trace DMA data from the disk controller toward main memory in the unlabeled figure. Which named bus carries it from the controller to the I/O bridge?": {
+        "subcategory": "Definition identification", "choices": {"A": "Memory Bus", "B": "IO Bus", "C": "System bus", "D": "Register file"},
+        "correct_answer": "B", "explanation": "The disk controller sits on the I/O bus, which connects peripheral controllers to the I/O bridge. DMA then moves data onward toward main memory without the CPU copying each word.",
+        "source": "6. Physical Memory.pptx slides 20–21; io_memory_bus_diagram_UNLABELED.png", "image": "cse320/io_memory_bus_diagram_UNLABELED.png",
     },
-    "In the supplied computer-system figure, which named bus connects the I/O bridge directly to main memory?": {
-        "subcategory": "Definition identification", "choices": {"A": "IO Bus", "B": "System bus", "C": "Memory Bus", "D": "Interrupt"},
-        "correct_answer": "C", "explanation": "The bus to the right of the I/O bridge terminates at main memory and is labeled memory bus. The system bus is on the CPU side of the bridge.",
-        "source": "6. Physical Memory.pptx slide 20 — io_memory_bus_diagram.png", "image": "cse320/io_memory_bus_diagram.png",
+    "Continue the disk-to-memory DMA path through the I/O bridge in the unlabeled figure. Which named bus carries the data from that bridge to main memory?": {
+        "subcategory": "Definition identification", "choices": {"A": "IO Bus", "B": "System bus", "C": "Memory Bus", "D": "Interrupt controller"},
+        "correct_answer": "C", "explanation": "The memory bus connects the I/O bridge to main memory. The I/O bus is on the controller side of the bridge, and the system bus is on the CPU side.",
+        "source": "6. Physical Memory.pptx slides 20–21; io_memory_bus_diagram_UNLABELED.png", "image": "cse320/io_memory_bus_diagram_UNLABELED.png",
     },
     "Specialized hardware copies a large amount of data between memory and a device without the CPU handling each transferred word. Which term matches?": {
         "subcategory": "Definition identification", "choices": {"A": "Polling", "B": "Interrupt", "C": "Write-through", "D": "DMA"},
