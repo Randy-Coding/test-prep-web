@@ -373,7 +373,16 @@ questions["Basic Code"] = {
         "correct_answer": "C", "explanation": "Each increment of i moves to the same column in the next row. One row contains eight ints, so the address advances by eight int elements.",
         "source": "6. Physical Memory.pptx slides 5–8",
     },
-    "In `int sum=0; for(int i=0;i<n;i++) sum+=a[i];`, which pairing correctly describes the loop's locality?": {
+    """Consider this loop:
+
+```c
+int sum = 0;
+for (int i = 0; i < n; i++) {
+    sum += a[i];
+}
+```
+
+Which pairing correctly describes the loop's locality?""": {
         "subcategory": "Code concepts", "choices": {"A": "sum: temporal locality; a[i]: spatial locality", "B": "sum: spatial locality; a[i]: temporal locality", "C": "sum and a[i]: temporal locality only", "D": "sum and a[i]: neither kind of locality"},
         "correct_answer": "A", "explanation": "sum is reused each iteration, giving temporal locality. Consecutive a elements reside at nearby addresses, giving spatial locality.",
         "source": "6. Physical Memory.pptx slides 5–6",
@@ -391,14 +400,14 @@ questions["Basic Code"].update({
         "correct_answer": "C", "explanation": "The local accumulator can stay in a register and stores to *b once. If b aliases a, the two snippets can behave differently, so equivalence must not be assumed without a nonaliasing condition.",
         "source": "5. Optimizations and Profiling.pptx slides 35–38",
     },
-    "In `for(int j=0;j<n;j++) a[n*i+j]=b[j];`, assume `n` and `i` do not change in the loop. Which named optimization computes `n*i` once before the loop?": {
-        "subcategory": "Code concepts", "choices": {"A": "Code motion", "B": "Loop unrolling", "C": "Inlining", "D": "Relocation"},
-        "correct_answer": "A", "explanation": "n*i is loop invariant. Code motion moves that multiplication outside the j loop, matching the lecture's set_row example.",
+    "Code motion changes `for(int j=0;j<n;j++) a[n*i+j]=b[j];` by computing `n*i` before the loop. If the loop runs n times, how does this affect the number of `n*i` multiplications?": {
+        "subcategory": "Code concepts", "choices": {"A": "It falls from n multiplications to 1", "B": "It rises from 1 multiplication to n", "C": "It remains n because the expression still appears in the index", "D": "It falls to 0 because the multiplication is replaced by division"},
+        "correct_answer": "A", "explanation": "Because n and i do not change during the j loop, code motion computes their product once before the loop and reuses it for all n iterations.",
         "source": "5. Optimizations and Profiling.pptx slides 24–25",
     },
-    "In `for(int i=0;i<n;i++) use(i*8);`, a running value starts at 0 and increases by 8 per iteration instead of multiplying each time. Which named optimization is this?": {
-        "subcategory": "Code concepts", "choices": {"A": "Common subexpression sharing", "B": "Reduction in strength", "C": "Loop unrolling", "D": "Code motion"},
-        "correct_answer": "B", "explanation": "A repeated multiplication is replaced by a cheaper addition recurrence, the slide's reduction-in-strength pattern.",
+    "Reduction in strength rewrites `for(int i=0;i<n;i++) use(i*8);` to update a running value after each call. Which update preserves the original argument sequence?": {
+        "subcategory": "Code concepts", "choices": {"A": "Start at 8 and subtract 1", "B": "Start at 0 and add 8", "C": "Start at 0 and add i", "D": "Start at n and divide by 8"},
+        "correct_answer": "B", "explanation": "The original arguments are 0, 8, 16, and so on. Starting at 0 and adding 8 after each use produces the same sequence without multiplying on every iteration.",
         "source": "5. Optimizations and Profiling.pptx slide 26",
     },
     "For `int t=(x+y)*(x+y);`, which transformation avoids computing `x+y` twice without changing the operands?": {
@@ -449,152 +458,121 @@ questions["Basic Code"].update({
 })
 
 questions["General Concepts"] = {
-    "Two expressions in a C program may refer to the same storage location, so a write through one can change a later read through the other. Which term describes this?": {
-        "subcategory": "Definition identification", "choices": {"A": "Memory Aliasing", "B": "Relocation", "C": "Spatial Locality", "D": "Symbol Resolution"},
-        "correct_answer": "A", "explanation": "Memory aliasing means two different references designate one location. The possibility can block a compiler from reusing a prior load.",
-        "source": "5. Optimizations and Profiling.pptx slides 35–38; FULL CSE 320 Notes (1).docx P98",
+    "What is memory aliasing?": {
+        "subcategory": "Definition recall", "answer": "Memory aliasing occurs when different expressions or references designate the same storage location, so a write through one may affect a read through another.",
+        "source": "5. Optimizations and Profiling.pptx slides 35–38; FULL CSE 320 Notes (1).docx P98, P139, P304",
     },
-    "The notes list a nonvolatile memory category intended primarily to be read and contrast it with programmable and erasable variants. Which official term is being described?": {
-        "subcategory": "Definition identification", "choices": {"A": "Volatile Memory", "B": "Read Only Memory", "C": "Memory Bus", "D": "Write-Back"},
-        "correct_answer": "B", "explanation": "The notes group read-only memory with nonvolatile ROM variants. Volatile RAM loses its contents when power is removed.",
+    "What is read-only memory (ROM)?": {
+        "subcategory": "Definition recall", "answer": "Read-only memory is nonvolatile memory intended primarily for reading stored data. ROM variants differ in whether and how their contents can be programmed or erased.",
         "source": "Copy of CSE 320 Notes.docx P110–113; FULL CSE 320 Notes (1).docx P304",
     },
-    "A device signals the CPU that an event needs attention instead of making the CPU check continuously. Which official term matches?": {
-        "subcategory": "Definition identification", "choices": {"A": "DMA", "B": "Branch Prediction", "C": "Interrupt", "D": "Memory Bus"},
-        "correct_answer": "C", "explanation": "An interrupt alerts the CPU to an event; polling makes the CPU repeatedly check for one.",
+    "What is an interrupt?": {
+        "subcategory": "Definition recall", "answer": "An interrupt is a signal that causes the CPU to suspend its current work and handle an event, allowing a device to request attention without continuous polling.",
         "source": "6. Physical Memory.pptx slide 22; Copy of CSE 320 Notes.docx P164–165",
     },
-    "A cache removes an existing block to make room for a newly requested block. Which term names the removal?": {
-        "subcategory": "Definition identification", "choices": {"A": "Write-through", "B": "Relocation", "C": "DMA", "D": "Eviction"},
-        "correct_answer": "D", "explanation": "Eviction removes cache data to free a line. In an associative cache, a replacement policy selects which line leaves.",
+    "What is cache eviction?": {
+        "subcategory": "Definition recall", "answer": "Cache eviction is the removal of a resident cache block to make a cache line available for another block. A replacement policy selects the victim when necessary.",
         "source": "6.1 Caches.pptx slides 16–17",
     },
-    "SRAM and DRAM lose stored information when the machine is powered off. Which memory category does that describe?": {
-        "subcategory": "Definition identification", "choices": {"A": "Volatile Memory", "B": "Read Only Memory", "C": "Write-Back", "D": "Memory Bus"},
-        "correct_answer": "A", "explanation": "The slides identify SRAM and DRAM as volatile because their contents are lost without power.",
+    "What is volatile memory?": {
+        "subcategory": "Definition recall", "answer": "Volatile memory requires power to retain its stored information. SRAM and DRAM lose their contents when power is removed.",
         "source": "6. Physical Memory.pptx slides 27, 36–37; Copy of CSE 320 Notes.docx P108–113",
     },
-    "Trace DMA data from the disk controller toward main memory in the unlabeled figure. Which named bus carries it from the controller to the I/O bridge?": {
-        "subcategory": "Definition identification", "choices": {"A": "Memory Bus", "B": "IO Bus", "C": "DMA", "D": "Interrupt"},
-        "correct_answer": "B", "explanation": "The disk controller sits on the I/O bus, which connects peripheral controllers to the I/O bridge. DMA then moves data onward toward main memory without the CPU copying each word.",
-        "source": "6. Physical Memory.pptx slides 20–21; io_memory_bus_diagram_UNLABELED.png", "image": "cse320/io_memory_bus_diagram_UNLABELED.png",
+    "What is an I/O bus?": {
+        "subcategory": "Definition recall", "answer": "An I/O bus is the communication path that connects peripheral controllers and expansion devices to the I/O bridge.",
+        "source": "6. Physical Memory.pptx slides 20–21",
     },
-    "Continue the disk-to-memory DMA path through the I/O bridge in the unlabeled figure. Which named bus carries the data from that bridge to main memory?": {
-        "subcategory": "Definition identification", "choices": {"A": "IO Bus", "B": "DMA", "C": "Memory Bus", "D": "Interrupt"},
-        "correct_answer": "C", "explanation": "The memory bus connects the I/O bridge to main memory. The I/O bus is on the controller side of the bridge, and the system bus is on the CPU side.",
-        "source": "6. Physical Memory.pptx slides 20–21; io_memory_bus_diagram_UNLABELED.png", "image": "cse320/io_memory_bus_diagram_UNLABELED.png",
+    "What is a memory bus?": {
+        "subcategory": "Definition recall", "answer": "A memory bus is the communication path between the I/O bridge or memory controller and main memory.",
+        "source": "6. Physical Memory.pptx slides 20–21",
     },
-    "Specialized hardware copies a large amount of data between memory and a device without the CPU handling each transferred word. Which term matches?": {
-        "subcategory": "Definition identification", "choices": {"A": "Memory Bus", "B": "Interrupt", "C": "Write-Through", "D": "DMA"},
-        "correct_answer": "D", "explanation": "Direct Memory Access performs bulk transfers without making the CPU babysit each word; an interrupt can notify the CPU when the transfer finishes.",
+    "What is direct memory access (DMA)?": {
+        "subcategory": "Definition recall", "answer": "Direct memory access is a mechanism in which specialized hardware transfers data directly between an I/O device and main memory without requiring the CPU to handle each transferred word.",
         "source": "6. Physical Memory.pptx slide 21; Copy of 320 midterm 1 notes.docx P151–165",
     },
-    "A loop body handles several consecutive original iterations before its next loop-control test. Which optimization term describes this transformation?": {
-        "subcategory": "Definition identification", "choices": {"A": "Loop Unrolling", "B": "Inlining", "C": "Code Motion", "D": "Reduction in Strength"},
-        "correct_answer": "A", "explanation": "Loop unrolling repeats the per-iteration work within one larger iteration, reducing loop-control overhead and sometimes exposing parallel work.",
+    "What is loop unrolling?": {
+        "subcategory": "Definition recall", "answer": "Loop unrolling expands a loop body to perform several original iterations during one loop iteration, reducing loop-control overhead and potentially exposing more parallel work.",
         "source": "5. Optimizations and Profiling.pptx slides 52–53; FULL CSE 320 Notes (1).docx P280",
     },
-    "Before a conditional branch is resolved, a processor guesses its direction and starts fetching from the predicted path. Which term matches?": {
-        "subcategory": "Definition identification", "choices": {"A": "Inlining", "B": "Branch Prediction", "C": "Super scalar", "D": "Code Motion"},
-        "correct_answer": "B", "explanation": "Branch prediction guesses whether a branch will be taken so the processor can continue fetching; a wrong guess requires recovery.",
+    "What is branch prediction?": {
+        "subcategory": "Definition recall", "answer": "Branch prediction is the processor's attempt to predict a conditional branch's outcome before it is resolved so instruction fetching can continue along the predicted path.",
         "source": "5. Optimizations and Profiling.pptx slides 66–69; Copy of 320 midterm 1 notes.docx P82",
+    },
+    "What is function inlining?": {
+        "subcategory": "Definition recall", "answer": "Function inlining substitutes a function's body at a call site, which can eliminate function-call overhead while increasing generated code size.",
+        "source": "5. Optimizations and Profiling.pptx slides 14–15, 19–20",
+    },
+    "What is code motion?": {
+        "subcategory": "Definition recall", "answer": "Code motion moves a computation to a location where it executes less often while preserving program behavior, such as moving a loop-invariant calculation before the loop.",
+        "source": "5. Optimizations and Profiling.pptx slides 24–25",
+    },
+    "What is reduction in strength?": {
+        "subcategory": "Definition recall", "answer": "Reduction in strength replaces a costly operation with a cheaper equivalent operation, such as replacing repeated multiplication with addition or a constant multiplication with a shift.",
+        "source": "5. Optimizations and Profiling.pptx slide 26",
+    },
+    "What is a superscalar processor?": {
+        "subcategory": "Definition recall", "answer": "A superscalar processor can issue and execute multiple instructions during one cycle by exploiting instruction-level parallelism.",
+        "source": "5. Optimizations and Profiling.pptx slide 47; Copy of 320 midterm 1 notes.docx P83–84",
+    },
+    "What is latency?": {
+        "subcategory": "Definition recall", "answer": "Latency is the time between starting an operation and having its result available.",
+        "source": "5. Optimizations and Profiling.pptx slides 48–49; Copy of CSE 320 Notes.docx P69–70",
+    },
+    "What is throughput?": {
+        "subcategory": "Definition recall", "answer": "Throughput is the amount of work or number of operations completed per unit time when available hardware resources are kept busy.",
+        "source": "Copy of CSE 320 Notes.docx P69–70; 6.1 Caches.pptx slide 22",
+    },
+    "What is spatial locality?": {
+        "subcategory": "Definition recall", "answer": "Spatial locality is the tendency to access memory locations near recently accessed locations within a short period of time.",
+        "source": "6. Physical Memory.pptx slides 5–7",
+    },
+    "What is temporal locality?": {
+        "subcategory": "Definition recall", "answer": "Temporal locality is the tendency to access the same data or instructions again soon after they were accessed.",
+        "source": "6. Physical Memory.pptx slides 5–6",
+    },
+    "What is a write-back cache policy?": {
+        "subcategory": "Definition recall", "answer": "A write-back policy updates the cache on a write and postpones updating lower memory until the modified cache block is evicted, typically tracking the change with a dirty bit.",
+        "source": "6.1 Caches.pptx slide 15",
+    },
+    "What is a write-through cache policy?": {
+        "subcategory": "Definition recall", "answer": "A write-through policy updates both the cache and the next lower memory level immediately on a cache write.",
+        "source": "6.1 Caches.pptx slide 15",
+    },
+    "What is symbol resolution?": {
+        "subcategory": "Definition recall", "answer": "Symbol resolution is the linker's process of associating each symbol reference with exactly one symbol definition from its input object files.",
+        "source": "7. Compiler Toolchains.pptx slides 6–8",
+    },
+    "What is relocation?": {
+        "subcategory": "Definition recall", "answer": "Relocation is the linker's process of assigning final addresses to combined code and data sections and modifying references so they use those addresses.",
+        "source": "7. Compiler Toolchains.pptx slides 6, 8, 20",
+    },
+    "What is position-independent code?": {
+        "subcategory": "Definition recall", "answer": "Position-independent code executes correctly regardless of the memory address at which it is loaded, without depending on a fixed starting address.",
+        "source": "7. Compiler Toolchains.pptx slide 40",
+    },
+    "What is a profiler?": {
+        "subcategory": "Definition recall", "answer": "A profiler measures a running program's performance behavior, such as time spent in functions, call activity, or memory allocation, to identify hot spots.",
+        "source": "5. Optimizations and Profiling.pptx slides 5–6, 12–13",
+    },
+    "What is a debugger?": {
+        "subcategory": "Definition recall", "answer": "A debugger is a tool for observing and controlling a program's execution to investigate its state and locate defects. GDB is the debugger named in the notes.",
+        "source": "FULL CSE 320 Notes (1).docx P2, P46, P304",
+    },
+    "What is a compiler?": {
+        "subcategory": "Definition recall", "answer": "A compiler translates preprocessed source code into assembly code. In the course toolchain, it transforms a `.i` file into a `.s` file.",
+        "source": "7. Compiler Toolchains.pptx slides 2–3",
+    },
+    "What is a linker?": {
+        "subcategory": "Definition recall", "answer": "A linker combines relocatable object files, resolves symbol references, relocates code and data, and produces an executable or shared object.",
+        "source": "7. Compiler Toolchains.pptx slides 2, 6–8",
+    },
+    "What is an assembler?": {
+        "subcategory": "Definition recall", "answer": "An assembler translates assembly-language code into machine code stored in a relocatable object file. In the course toolchain, it transforms a `.s` file into a `.o` file.",
+        "source": "7. Compiler Toolchains.pptx slides 2–3",
     },
 }
 
 questions["General Concepts"].update({
-    "A small frequently called function has its body substituted at each call site, potentially removing call overhead. Which term describes this?": {
-        "subcategory": "Definition identification", "choices": {"A": "Loop Unrolling", "B": "Inlining", "C": "Code Motion", "D": "Reduction in Strength"},
-        "correct_answer": "B", "explanation": "Inlining places the callee's work at a call site rather than executing a separate call. It is distinct from repeating loop iterations.",
-        "source": "5. Optimizations and Profiling.pptx slides 14–15, 19–20",
-    },
-    "A calculation whose value cannot change during a loop is performed once before the loop instead of on every iteration. Which optimization is this?": {
-        "subcategory": "Definition identification", "choices": {"A": "Reduction in Strength", "B": "Inlining", "C": "Loop Unrolling", "D": "Code Motion"},
-        "correct_answer": "D", "explanation": "Code motion moves loop-invariant work out of the loop, reducing how often it runs.",
-        "source": "5. Optimizations and Profiling.pptx slides 24–25",
-    },
-    "A repeated multiplication in a loop is replaced by an addition that advances a running value. Which optimization term matches?": {
-        "subcategory": "Definition identification", "choices": {"A": "Reduction in Strength", "B": "Code Motion", "C": "Inlining", "D": "Loop Unrolling"},
-        "correct_answer": "A", "explanation": "Reduction in strength substitutes a cheaper operation, such as an addition recurrence, for a more costly repeated multiplication.",
-        "source": "5. Optimizations and Profiling.pptx slide 26",
-    },
-    "A processor can issue and execute multiple instructions during one cycle by exploiting instruction-level parallelism. Which course term describes it?": {
-        "subcategory": "Definition identification", "choices": {"A": "Branch Prediction", "B": "Throughput", "C": "Super scalar", "D": "Loop Unrolling"},
-        "correct_answer": "C", "explanation": "The slide defines a superscalar processor as one that can issue and execute multiple instructions in a cycle.",
-        "source": "5. Optimizations and Profiling.pptx slide 47; Copy of 320 midterm 1 notes.docx P83–84",
-    },
-    "For one operation, a measurement gives the time between starting it and having its result ready. Which performance term is being measured?": {
-        "subcategory": "Definition identification", "choices": {"A": "Throughput", "B": "Latency", "C": "Branch Prediction", "D": "Profiler"},
-        "correct_answer": "B", "explanation": "Latency is the delay for one operation or dependent result; throughput instead measures how many operations can be completed per unit time.",
-        "source": "5. Optimizations and Profiling.pptx slides 48–49; Copy of CSE 320 Notes.docx P69–70",
-    },
-    "A measurement gives the maximum number of operations a system can complete per second when its hardware units are kept busy. Which term is this?": {
-        "subcategory": "Definition identification", "choices": {"A": "Latency", "B": "Branch Prediction", "C": "Super scalar", "D": "Throughput"},
-        "correct_answer": "D", "explanation": "Throughput is work completed per unit time. Latency instead describes how long one operation takes.",
-        "source": "Copy of CSE 320 Notes.docx P69–70; 6.1 Caches.pptx slide 22",
-    },
-    "After a program reads one array element, it soon reads neighboring addresses. Which locality term describes the pattern?": {
-        "subcategory": "Definition identification", "choices": {"A": "Spatial Locality", "B": "Temporal Locality", "C": "Memory Aliasing", "D": "Code Motion"},
-        "correct_answer": "A", "explanation": "Spatial locality is the tendency to access nearby addresses close together in time, as in stride-1 array traversal.",
-        "source": "6. Physical Memory.pptx slides 5–7",
-    },
-    "A program reuses an item it accessed recently, such as an accumulator on each loop iteration. Which locality term describes this?": {
-        "subcategory": "Definition identification", "choices": {"A": "Spatial Locality", "B": "Memory Aliasing", "C": "Temporal Locality", "D": "Branch Prediction"},
-        "correct_answer": "C", "explanation": "Temporal locality is reuse of the same recently referenced item; spatial locality concerns nearby addresses.",
-        "source": "6. Physical Memory.pptx slides 5–6",
-    },
-    "After a cache write hit, the changed line is kept locally and lower memory is updated when that line is replaced. Which write policy is described?": {
-        "subcategory": "Definition identification", "choices": {"A": "Write-Through", "B": "Write-Back", "C": "DMA", "D": "Eviction"},
-        "correct_answer": "B", "explanation": "Write-back defers the lower-level write until replacement and uses a dirty bit to record that the line differs from memory.",
-        "source": "6.1 Caches.pptx slide 15",
-    },
-    "After a cache write hit, the change is propagated immediately to lower memory rather than waiting for replacement. Which write policy is described?": {
-        "subcategory": "Definition identification", "choices": {"A": "Write-Back", "B": "Eviction", "C": "DMA", "D": "Write-Through"},
-        "correct_answer": "D", "explanation": "Write-through writes through to lower memory on the hit. Write-back defers that update until the dirty line is replaced.",
-        "source": "6.1 Caches.pptx slide 15",
-    },
-})
-
-questions["General Concepts"].update({
-    "The linker associates each reference to a function or global name with exactly one definition from its input object files. Which linker task is this?": {
-        "subcategory": "Definition identification", "choices": {"A": "Relocation", "B": "Inlining", "C": "Symbol Resolution", "D": "Code Motion"},
-        "correct_answer": "C", "explanation": "Symbol resolution connects references with definitions. Relocation later adjusts their addresses in the combined output.",
-        "source": "7. Compiler Toolchains.pptx slides 6–8",
-    },
-    "After combining object-file sections, the linker adjusts symbol positions and the code/data references to their final locations. Which task is described?": {
-        "subcategory": "Definition identification", "choices": {"A": "Relocation", "B": "Symbol Resolution", "C": "Inlining", "D": "Assembler"},
-        "correct_answer": "A", "explanation": "Relocation assigns final locations and updates references to them. Symbol resolution decides which definition each reference names.",
-        "source": "7. Compiler Toolchains.pptx slides 6, 8, 20",
-    },
-    "The compiler produces code intended to work when loaded at different memory locations instead of relying on a fixed starting address. Which term matches?": {
-        "subcategory": "Definition identification", "choices": {"A": "Relocation", "B": "Symbol Resolution", "C": "Reduction in Strength", "D": "Position Independent Code"},
-        "correct_answer": "D", "explanation": "The PIC slide describes code built without depending on an ELF start at address zero so it can be loaded at arbitrary locations.",
-        "source": "7. Compiler Toolchains.pptx slide 40",
-    },
-    "A tool records where a running program spends time or allocates memory so a developer can find hot spots. Which course term matches?": {
-        "subcategory": "Definition identification", "choices": {"A": "Debugger", "B": "Profiler", "C": "Compiler", "D": "Linker"},
-        "correct_answer": "B", "explanation": "A profiler measures execution or allocation behavior and helps identify expensive functions; the slides use gprof as an example.",
-        "source": "5. Optimizations and Profiling.pptx slides 5–6, 12–13",
-    },
-    "The course notes name GDB as a tool for investigating a program while finding defects. Which official term identifies that kind of tool?": {
-        "subcategory": "Definition identification", "choices": {"A": "Profiler", "B": "Assembler", "C": "Debugger", "D": "Linker"},
-        "correct_answer": "C", "explanation": "GDB is the debugger named in the notes; its role is investigating program behavior while locating defects. A profiler measures performance instead.",
-        "source": "FULL CSE 320 Notes (1).docx P2, P46, P304",
-    },
-    "In the course's toolchain diagram, `cc` translates preprocessed C (`.i`) into assembly (`.s`). Which stage is `cc` performing?": {
-        "subcategory": "Definition identification", "choices": {"A": "Compiler", "B": "Assembler", "C": "Linker", "D": "Debugger"},
-        "correct_answer": "A", "explanation": "The compiler converts preprocessed C to assembly. The slide names cc for this stage, followed by as and ld.",
-        "source": "7. Compiler Toolchains.pptx slides 2–3",
-    },
-    "In the course's toolchain diagram, `ld` combines relocatable `.o` files, resolves symbols, and produces an executable. Which stage is `ld`?": {
-        "subcategory": "Definition identification", "choices": {"A": "Compiler", "B": "Assembler", "C": "Profiler", "D": "Linker"},
-        "correct_answer": "D", "explanation": "ld is the linker. It combines object files and performs symbol resolution and relocation to form an executable.",
-        "source": "7. Compiler Toolchains.pptx slides 2, 6–8",
-    },
-    "In the course's toolchain diagram, `as` converts assembly (`.s`) into a relocatable object file (`.o`). Which stage is `as`?": {
-        "subcategory": "Definition identification", "choices": {"A": "Linker", "B": "Assembler", "C": "Compiler", "D": "Profiler"},
-        "correct_answer": "B", "explanation": "as is the assembler. It translates assembly into a relocatable object file for the linker.",
-        "source": "7. Compiler Toolchains.pptx slides 2–3",
-    },
     "A function receives `int *p`. Which statement distinguishes `p++` from `(*p)++` inside the function?": {
         "subcategory": "Concept", "choices": {"A": "Both change the caller's pointer variable", "B": "Both increment the pointed-to int", "C": "`p++` moves the pointer; `(*p)++` changes the int", "D": "`p++` changes the int; `(*p)++` moves p"},
         "correct_answer": "C", "explanation": "The parentheses make the dereference happen before incrementing the int. Without them, postfix ++ advances the local pointer value.",
@@ -615,14 +593,14 @@ questions["General Concepts"].update({
         "correct_answer": "D", "explanation": "The optimization slides treat a procedure call as a possible black box with side effects or changing results. Explicitly storing the length before the loop is code motion when safe.",
         "source": "5. Optimizations and Profiling.pptx slides 28–34",
     },
-    "Starting with C source, which tool order produces an executable?": {
-        "subcategory": "Concept", "choices": {"A": "`cpp` → `cc` → `as` → `ld`", "B": "`cc` → `cpp` → `ld` → `as`", "C": "`as` → `cpp` → `cc` → `ld`", "D": "`ld` → `as` → `cc` → `cpp`"},
-        "correct_answer": "A", "explanation": "The driver slide orders preprocessing (cpp), compilation (cc), assembly (as), and linking (ld).",
+    "Starting with C source, which sequence of toolchain stages produces an executable?": {
+        "subcategory": "Concept", "choices": {"A": "Preprocessor → Compiler → Assembler → Linker", "B": "Compiler → Preprocessor → Linker → Assembler", "C": "Assembler → Preprocessor → Compiler → Linker", "D": "Linker → Assembler → Compiler → Preprocessor"},
+        "correct_answer": "A", "explanation": "The toolchain preprocesses C source, compiles it into assembly, assembles it into a relocatable object file, and links object files into an executable.",
         "source": "7. Compiler Toolchains.pptx slide 2",
     },
-    "A flat profile shows one function consumes about 80% of runtime. Which next step follows the course's optimization workflow?": {
-        "subcategory": "Concept", "choices": {"A": "Rewrite every function before measuring again", "B": "Disable compiler optimization to keep the result stable", "C": "Optimize the hot function, then measure again", "D": "Optimize only the function with the fewest calls"},
-        "correct_answer": "C", "explanation": "The slides recommend using profiles to focus on functions consuming the most time and comparing results after a change.",
-        "source": "5. Optimizations and Profiling.pptx slides 3, 5, 12–13",
+    "A flat profile shows that `parse_input` uses 40% of runtime across 2 calls, while `compare_word` uses 40% across 20 million calls. What does the profile suggest?": {
+        "subcategory": "Concept", "choices": {"A": "`parse_input` is expensive per call, while `compare_word` is a hotspot mainly because it is called frequently", "B": "`compare_word` is expensive per call, while `parse_input` is a hotspot mainly because it is called frequently", "C": "The two functions have approximately the same cost per call", "D": "No comparison is possible without a heap-allocation profile"},
+        "correct_answer": "A", "explanation": "Both functions consume the same total share of runtime, but `parse_input` does so in only two calls. `compare_word` reaches the same total through millions of calls. The course notes that a hotspot may be individually slow or frequently used.",
+        "source": "5. Optimizations and Profiling.pptx slides 5, 12–13",
     },
 })

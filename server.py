@@ -28,6 +28,14 @@ def normalize_question(question, answer):
         return {"question": str(question), "answer": str(answer)}
     choices = answer.get("choices")
     correct = answer.get("correct_answer")
+    if choices is None and correct is None:
+        record = {
+            "question": str(question),
+            "answer": str(answer.get("answer", answer.get("explanation", ""))),
+        }
+        if answer.get("image"):
+            record["image"] = f"/assets/cse320/{quote(image_name(answer['image']))}"
+        return record
     if not isinstance(choices, dict) or set(choices) != set("ABCD") or correct not in choices:
         raise ValueError(f"Invalid choices for question: {question}")
     choices = {letter: str(choices[letter]) for letter in "ABCD"}
