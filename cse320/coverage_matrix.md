@@ -1,5 +1,7 @@
 # CSE 320 Midterm 1 Phase 1 source map and coverage matrix
 
+**October 3, 2026 individual supplemental audit:** Review Audit contains 41 questions: the previous 36 plus five retained for meaningful additional coverage. All 72 former Supplemental Practice questions received individual decisions: five retained and 67 removed; Supplemental Practice is empty. The four committed sections retain their original 104 questions unchanged; total bank size is 145. See the [individual decision ledger](supplemental_question_audit.md) and [corrected source inventory](mt1_review_audit.md). Counts and omission notes below are historical. HW1, HW2, and GREP lab remain deferred.
+
 **Status:** Phases 2–5 are complete in `question_banks/CSE320.py`: 30 Cache, 16 Physical Memory, 25 Basic Code, and 34 General Concepts questions. The latter covers 28 of 29 official definition terms; the user directed us to skip `Assertion` because its definition/example is absent from the supplied course sources. Twenty-one Cache, four Physical Memory, and two General Concepts questions use images; label-reading prompts were replaced with application questions. HW questions have not been written. The official `MT1 Topics/Questions List` in `FULL CSE 320 Notes (1).docx` paragraphs 302–308 controls exam scope; its duplicate in `CSE 320 Notes.docx` paragraphs 26–32 agrees. Professor comments in the full notes guide weighting. Slides and the supplied PNGs guide technical details and visual structure.
 
 ## Exact exam structure and proposed bank coverage

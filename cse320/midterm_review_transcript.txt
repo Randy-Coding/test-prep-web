@@ -1,0 +1,902 @@
+Search transcript
+Uh once everyone is downloaded the slides generally acceptably comfortable
+with the slides uh let me know just general raise of hand and then we could
+probably start the review
+>> for Google class or for Google meet. Can everyone hear me properly?
+>> Yeah.
+>> Okay. So again, the slides are on Piaza. I
+made a post about it. Uh download them and we can follow along.
+Everyone ready? Everyone have the slides open?
+Okay. So for starters, uh this review session
+is pretty early for the ex like compared to the exam time. I believe your exam is
+on the 7th. So you guys do have ample time to study. So in my opinion, the
+best use of your time beyond studying the material is you should be extremely
+comfortable with hexodimal, binary, and decimal conversions. And I think you
+should personally master cache translations.
+So just to preface I'm focusing on like the largest parts of what the exam
+covers, not focusing on everything. And the biggest section on the exam that I
+am not covering is the homeworks. I will not be covering any questions related to
+the homeworks. I didn't work on them. I don't cover them that well.
+Any questions for now? Okay. So just to warm up and get us in
+the groove, I will we'll just do some definitions. Again, not all of the
+definitions are listed here. I didn't do all of the ones that on the list, but I
+did a good chunk of them. So, different pointers or expressions accessing the
+same location in memory is called memory aliasing, right?
+Nonvolatile memory designed to hold fixed information such as firmware that
+is not normally rerun during ordinary operations. Basically, read only memory.
+Again, if anyone has any questions about the definitions,
+uh, I'm right here. Feel free to raise your hand. I will try to give a better
+explanation of it. I will assume that everything I'm covering is understood by
+everyone. So if you guys have a question or want me to go more in depth on it,
+you need to raise your hand. You need to let me know. For Google Meet, feel free
+to talk. I will hear you. A signal that causes the processor to
+temporarily suspend normal execution and transfer control to a handler is known
+as an interrupt. Removing a block from the cache, usually
+to make room for another block, is known as cash eviction.
+Memory that loses its stored contents when power is removed, is known as
+volatile memory. A communication pathway used to connect
+peripheral devices to the rest of the computer system. This is known as the IO
+bus. A communication pathway that carries
+data, addresses, and control signals between the memory controller and main
+memory is the memory bus. A mechanism that transfers data between
+an IO device and main memory without requiring the CPU to copy each
+individual piece of data is DMA or direct memory access.
+A programmer specified condition that is checked to catch programming errors. If
+the check fails, the program typically reports the failure and terminates. This
+is called an assertion. A processor technique that guesses a
+branch's outcome so execution can proceed before the actual outcome is
+known. This is known as branch prediction.
+An optimization that moves a calculation to a place where it executes fewer times
+such as outside a loop while preserving behavior. This is known as code motion.
+A processor design that can issue multiple instructions during a single
+clock cycle. This is known as supercaler.
+The time required for one operation to complete measured from its start until
+its result is available. This is latency.
+The amount of work completed per unit of time such as instructions completed per
+second is throughput. a cash write policy that updates the
+cache copy and marks it dirty postponing the update to the next memory level
+until eviction or a flush. This is the right back policy.
+A cach write policy that sends every right to a cache block through to the
+next memory level as well. This is known as a right through
+code that can execute correctly at different loading addresses without
+modifying the code itself to account for its location. This is position
+independent code. Matching a reference to a function or
+global variable with the definition that prov provides it. This is symbol
+resolution. Adjusting address references in code and
+data to match the locations assigned to program components. This is called
+relocation. So the warmup is over. I hope everyone's
+now acclimated and I hope everyone's now here. I think the biggest section of
+this exam will be caches. So I will probably spend an ample amount of time
+here. Before we start on caches, is there any specific thing anyone's
+struggling with in terms of caches? Okay.
+So why do caches work? Specifically, they work because of locality, right?
+When we're thinking about our memory hierarchy here, I'm sure everyone's
+familiar with that. But as you go deeper down, things take longer to get and
+memory is more dense as you go down, right? It'll hold more information, but
+it takes longer to get to. Locality is a great usage of code that allows caches
+to work. That like basically you store data in a faster to reach location that
+allows you to access it more frequently. That is essentially the definition of
+caching, right? So we have the principle of locality. Programs tend to reuse
+recently accessed locations and access locations near one another. Basically,
+you can split this up into two things. Temporal locality, which is something
+accessed recently will be reused again. An example being reusing the same memory
+address over and over again. And then we have spatial locality. Locations near
+something just access will be accessed soon. The example being an array, right?
+Think of a for loop and indexing through that array. we first go to the zeroth
+index and then the next iteration of the loop is the first index. This is how
+branch prediction works, right? Branch prediction is just expecting the for
+loop to cover the next few indexes. So another thing to note about caches is
+that caches load things in entire blocks, right? You don't just load one
+little in one little bite or one bit, right? You load an entire cache block.
+Now the cache block size is dependent on the cache system you have and what is
+dictated. But as example suppose an integer is four bytes and each cache
+block holds 64 bytes. A of0 is the start of a cache block and the cache starts
+empty. Is it a hit or a miss for a z? Yes. A of z is a miss because nothing is
+loaded into the cache yet. But what about a of 8?
+Yes. Why is that so? because the entire block was loaded. Right? Now the thing
+is you need to identify how big your cache block is based on your cache
+parameters. So in here for our example 64 bytes for each cache block holding
+divided by four bytes per integer means we can hold 16 integers. So that means
+our array each array index holding an integer means that it will load a a of
+zero through a of 15. Meaning a of 16 will be another miss causing the cache
+to load the next block. Any questions?
+Okay. Cache organization. A cache is designed and organized into sets, lines,
+and blocks. I think visualizing this is extremely important for your exam. It it
+allow you to help with cache design trade-offs which we will cover later.
+But essentially, you have a bunch of sets and each and then you have a bunch
+of lines. The lines are basically like the blocks.
+So an example is a cache with four sets, two lines per set and eight byte blocks
+holds. And you basically use the formula C= S * E * B. And that's how you get the
+size of the cache. So for an example problem, a cache is
+used in a system with 32-bit addresses. It contains eight sets, four lines per
+set, and 32 byt blocks. If we use the formula, we can see that the cache
+holds,024 bytes. Any questions?
+Okay. So, another thing to cover is cache misses, right? We already talked
+about the first one in our example here, but you have a compulsory miss.
+Basically, this is the first time you're accessing a block in a cache and after
+that it is loaded within the cache, right? You also have conflict misses
+where blocks are competing for the same set. This is covered later, but
+basically each block will have a pre pre-ordained set it belongs to. And then
+we have capacity. A capacity miss is when the cache is full and it need like
+you miss or you conflict specifically because there's just they can't hold any
+more information. Right? So we have different cache architectures
+and how we in how we decide where our our blocks go in our sets. Right? We
+have a directmapped architecture where a memory block can only go in one specific
+line. So E is one line per set is equal to one. There's a design trade-off here
+in which it's simple inex inexpensive hardware and it's a fast lookup, right?
+Because if only one block spec like is accord like attached to one line, it can
+only go in one place. So you really only have to check one thing, right? it is
+more prone to conflict misses because one line can only go in one set or you
+tend to have similar blocks that each like if I were to draw this out you have
+your cache and you say let's say cache block one goes into this set right but
+then obviously your cache is smaller than the data you have that's the but
+that's the whole point of caching right it's small but fast so then you also
+have cache block 2 three and four and they might also go in the exact same set
+they might share it basically. But if you if they can only go in that one set,
+then you're bound to have more conflict misses as they all use that one set.
+The next architecture is an e-way set associative. Any of the e- lines in one
+specific set, meaning you can have multiple lines per set. What are the
+benefits of this? It reduces conflict misses by allowing multiple blocks per
+set. Now instead of only one cache block
+getting one set, you can have all the cache blocks 1 2 3 and four can equally
+use a set. They all don't just belong there. So it reduces conflict misses,
+but it does increase hardware complexity and potential lookup time because now if
+you have a cache block, you need to not just check for it belonging. It's not
+just a check if it's there. you have to check if every if like if multiple
+blocks because each block can go into one set. So lookup time does increase.
+Finally, you have the fully associative cache which is any line basically any
+block can go anywhere in the cache. Meaning you only have one set.
+So it eliminates conflict misses generally because every like any block
+can go anywhere. It doesn't actually matter. They don't have anything
+nowhere. No one's telling cache block one that it has to go in that specific
+set. But the problem is is it must check tags
+across all cache lines and choose a replacement. It's expensive to basically
+walk through your entire cache over and over again and it's complex. Any
+questions?
+>> Um, excuse me. Uh, is this lecture being recorded? Sorry, I just didn't see the
+red dot.
+>> It is being recorded not on Google Meets but on OBS.
+>> Oh, okay. Got it. Thank you.
+>> Okay. Design trade-offs are like a guaranteed
+topic on your exam. So, we will go over a little bit more of them. Specifically,
+the nitty-gritty, not exactly just cache architectures, but we have like let's
+say your cache has higher associivity. Like let's say you're given a question
+that you have this cache and now the associivity is raised, right?
+So, your c what is fixed? Your cap capacity and your block size is still
+fixed, right? But the structural effect of higher associivity is you have fewer
+sets but more lines per set, right? Because if cache blocks share a set, the
+way to raise your associivity is to have more lines, right? So that way more like
+you can add more lines per set. They'll be able to share into each other more.
+So what is a performance trade-off? Having higher sensitivity usually means
+you get fewer conflict misses. You have to do more tag comparisons though as you
+have to like basically in a set you have a bunch of lines and you have to check
+which tag belongs to each line, right? So having more lines per set means you
+have to do more tag comparisons. You have more what is it? Yes, you have
+more replacement complexity and potentially a longer hit time as you
+still have to traverse through each line. What does lower associivity do?
+You still have a fixed capacity and you still have a fixed block size, but the
+structural effect is now you have more sets and fewer lines per set. It's
+basically the exact opposite of higher associivity, right? With more sets, you
+have simpler and potentially faster lookups, right? Because you have fewer
+lines per set, but you have more conflict misses because each cache block
+can only go in its pre-desated set. Then if you have if you have uh less lines
+per set then you just have to check more like each cache block that shares a set
+with other cache blocks then obviously you're going to have more conflict
+misses if you have less lines. Now what does the change of larger
+blocks do? What is fixed is your capacity and your associivity. Right?
+But think about what larger blocks do. A line can only a line can only hold so
+much and a set can only hold so much. So you'll have fewer blocks and sets.
+Right? So the performance trade-off, you can
+exploit spatial locality more. Larger blocks mean you can load more in, right?
+We're going back to our original example of a of 0 through a of 15. If I have
+larger block size, I might be able to load a of 0 through a of 20 or a of 30.
+That's just simply because I bring in the entire block on a compulsory miss.
+But unused bytes waste space. Say I load in a of 0 through a of 30. That's great.
+It's more than a of 15. But if I end up not using the rest of them, then it's
+really just wasted space. Fewer distinct blocks fit because you just have less
+space because the blocks are larger and miss penalty generally increases. Why
+does miss penalty increase? Because if your cache block is bigger and then you
+miss that is more you're obviously because you're like the bigger they are,
+the harder they fall, right? You're just going to suffer more damage.
+On the off on on the flip side, what do smaller blocks do? Again, the same
+things hold fixed or capacity and associativity, but it's basically the
+opposite. You get more blocks in sets, right? So, it's less wasted data and
+shorter transfers because you just have less information to go through, but you
+can get more misses and during sequential access like you can get more
+misses during sequential access and more tag entries to store, right? Because you
+have smaller blocks, you'll get more blocks, aka more lines, right? Which
+means more tag entries per set to go through and sift through, right? And
+another problem is sequential access. Like the bigger blocks, if you have
+smaller blocks, now a of 0 through a of 15 is not possible, right? It might be a
+of 0 through a of 8. Meaning if I'm indexing through an array, then I need a
+of 9, I have to comp I have to miss and load in a of 9 through a of 16 or
+something, right? Any questions?
+Okay, so finally, what do more sets do? What's what stays fixed is associivity
+and block size. But more sets means you have a larger cache capacity. What this
+means is you usually have fewer capacity or conflict misses because you have more
+sets, but more hardware area power and potentially longer hit time. As you
+increase the number of sets, you have to index through more and more sets and
+check their tags. More sets does not necess like more sets
+does not necessarily mean less lines. So being basically you're just increasing
+the size of your cache. On the flip side, what do fewer sets do?
+Again, what remains fixed is associivity and block size, but you have now just
+have a smaller cache. Smaller, so it's potentially faster hardware. You just
+don't have to search through as much stuff, but you have fewer blocks fit and
+misses can increase, right? Self-explanatory, just the reverse of
+what more sets do. So, to go talk about caches deeper, we
+need to talk about cache addresses, right? An address tells the cache where
+to look and what to check, right? So you have a bunch of information. You have a
+bunch of blocks. You have lines and you have sets. But you don't actually know
+how to access the information inside of them. That's what the cache address is
+for. Right? So a cast address divides the address bits into three parts.
+Right? You have a tag, you have a set index, and you have the block offset.
+Anyone don't know what those are? Okay. So I like to them as TSB. I think
+Professor Benz does the same. uh you have the formula down there which
+I included but I don't particularly follow it. I don't particularly find it
+helpful, but for running through how to use a cache address to find a cache
+block, you first use the set index to select a set, right? Then you check the
+lines in that set for a matching tag. And after you find if both of those
+conditions are true and correct, then you can check if the matching count if
+the valid bit is one. The valid bit is not one, you the cache block doesn't
+exist, right? And on a hit, you use the off select to select the requested bite
+or starting position. Any questions?
+Okay. So, how to do cash liquid questions? On the exam, at least when I
+took the class, Professor Benz will give you a hexadeimal code. So, my first step
+is convert hexodimal to binary. Then you need to split your bits into tag set and
+block offset, right? The TSB. And then you traverse the cache, whatever is
+provided to you, and find the indicated set. Check for the valid bit and
+matching tag. If it's found, it's a hit and otherwise it's a miss.
+Seems straightforward. Okay, we have a demo here, right? So,
+what cache block does 0x1D refer to? Following our steps here, we take 0x1D
+and we convert it, right? I don't know how familiar you guys are with the
+conversion, but I've already basically if you scroll through and head of the
+slides, I've already done everything. It's just like a guide for you to walk
+through. So if you convert 0x1D you get 0 1 1 01 right and if we split it up
+into our TSB using the image we see we have two bits of set two bits of block
+offset and two bits of tag. So converting our TSB we have 01 1 and 01
+right we're converting from binary to decimal is the next step. So 01 becomes
+one 1 is three and 01 is one right. So if we look at our cache table we look at
+our TSB it says set three right. So we go to set three. We scroll and we see
+the valid bit is also one and we see the tag is one. So everything matches. So we
+have a cache hit. Anyone confused how we got there?
+Okay, another cache demo. What cache block does 0x69 refer to? So 0x69
+converting it over is 011 01 0 01. Right? We have a problem here. If we
+look at to the left and the diagram, we have two bits of set, two bits of block
+offset, and three bits of tag, right? But we clearly have more bits than
+necessary. We need to remove a leading zero. So if you do encounter a question
+like this on the exam, remove the leading zero. Yeah. So then after that,
+we convert to TSB which is 1 0 1 0 1 and then binary to decimal which is 621.
+Right? And from that we get to look. So we look at the rows, we look at set two,
+right? We see that there are multiple options for set two. But then we need to
+check the validating tag and the valid bit right and we see only one of them ma
+has a tag of six even though there are two sets of two right so we can identify
+that cache block number five is the correct cache so we have a cash hit
+any questions okay next up oh yes
+>> uh generally I don't think questions like that would be posed
+because that information is useful although it's the important it's the
+least significant bit I don't have it on the slides but you can Google it
+cash hit miss rate questions are the next big topic on your exam right there
+I'm just covering this on like orders of magnitude so we for cash hit miss rate
+questions we first must calculate the elements per block right elements per
+block is basically equal to the block size divided by the element size. For
+example, we have a block size of 16 bytes and an element size of 8 byt
+doubles, right? Meaning we get two elements per block. Or if we have a
+block size of 64 bytes and an element size of four byt integers, then we have
+16 elements per block. So why does this actually matter on the on the slides for
+the course, right? He professor Ben gave a bunch of listed details on the cache
+assumptions, but on the exam there could be different cache assumptions. You
+could not just have 32 by integers or and each integer being four bytes. You
+could get doubles. So the fractions actually change and the fractions are
+going to be the answers. What is the mis rate of this cache? Right?
+So assuming sequential access to aligned initially uncashed blocks with each
+block retaining its elements have been accessed. We have different miss rates.
+Right? So we have one compulsory miss and then
+one hit. Right? If we have two elements per block, if anyone's unclear how that
+works. Okay, so then if we have four elements
+per block, we have the one compulsory miss and then we load the entire cache
+block. So then we'd have three hits, right? So our miss would be 1/4. And if
+we have eight elements per block, we have one miss, then seven hits, 1/8,
+etc., right? So typically arrays follow the form of
+array, row, and then column. Right? So to move across a row, we would have two
+0 and then 2 1 and then 2 two, right? The row stays the same and the column
+moves. That's how we traverse across a row. And to traverse across AC across a
+column, we would have the column bar move or no, the column bar stays the
+same and the row moves. Apologies. So traversing a row moves through
+consecutive elements while traversing through a column jumps through entire
+rows. That is very important for your exam, right? That is basically how we
+identify cache miss and hit rate. row is first and column is second. And you if
+you want another way of say thinking about it, you want the first bracket to
+be fixed and the second to change by one if the second is the innermost loop.
+So the triple nested loops on your slides, right?
+This is probably these are probably the examples that's going to be used to
+identify cash hit missions something similar to what's there. In the
+innermost loop, K will change while I and J stay fixed. Right? That is what we
+want to focus on the innermost loop. Inspecting each array axis, we have a of
+i k changes changes k in the second bracket. B of kj changes k in the first
+bracket and c of i j does not change k. It writes after the loop finishes.
+Right? We want to just focus on each axis to the array. Right? So assuming
+the problem gives 64 byt blocks and eight byt doubles, we have if we look at
+a misses 1/8 per inner iteration, which is pretty good. B misses one time per
+inner iteration. So misses per inner iteration we just add them up we get
+9/8s. So there are two array reads in the example. So our miss rate is just
+going to be 98 divided by two because there are two array reads which means we
+have a m rate of 56.25%. Any questions?
+Yes.
+>> Uh no.
+>> Why would you think you could ignore them? Because they're so small. it ends
+up not mattering.
+>> Yeah,
+>> it could lead to rounding issues. But generally on the exams, the numbers he
+uses are small enough
+>> to not lead to such problems. Right? So loop ordering notice. So for
+vocabulary purposes, loop ordering changes which loop is outermost and
+which is innermost, right? That's how we can modify what is what is good in terms
+of a locality, right? The goal is to access data in an order that uses the
+cache effectively. We want sequential axis, right? We want to traverse our
+rows and not traverse our columns. For C arrays, neighboring elements within a
+row are adjacent in memory. Making the second index change fastest, therefore
+improves spatial locality. However, even with sequential access, a large matrix
+may not fit in the cache. By the time the program needs an element again,
+other accesses may have evicted it. Good spatial locality does not guarantee that
+data survives until its next use. Right? Any questions?
+Okay, so then we like the slides combine it with something called blocking.
+Blocking, also called tiling, divides the computation into smaller matrix
+regions. Your program repeatedly uses those regions while they can remain in
+the cache. Within each small matrix multiplication, an element of A
+contributes to several output elements and an element of B is used for several
+output rows. Those repeated uses can happen close together.
+I don't have the image, but on Professor Benz's slides, you've seen examples of
+what tiling is. You basically split up your you basically split up it into even
+further divisions and then you use it even more closely together, which is an
+even better use of spatial and temporal locality. Temporal locality improves
+because the same elements are reused before eviction and spatial locality is
+exploited by traversing neighboring elements within tile rows.
+>> Yes. Uh there is a complicated math formula
+for how one would set up their tiling, but I don't think that's important to
+the exam. It's more about the concept of blocking and blocking itself more than
+how you would go go about setting up your tiling.
+So then the next thing that's covered is average access time of your cache.
+Average act average memory access time or MAT measures the average time needed
+to satisfy a memory request. So AMAT equals hit time plus miss rate times
+miss penalty. So miss rate is one minus hit rate. And the slides already talk
+about why you would use miss rate over hit rate which I don't think that's
+super important but it is covered. Hit time is the time spent checking the
+cache and accessing its data. In this model, you spend that lookup time even
+when the cache misses. Right? So if I want to get this block in my cache, even
+if my lookup is a cash miss, I've still wasted the time trying to get to that
+cache block. Right? So miss penalty is the additional time needed after a miss.
+It does not include the lookup time already counted. And that's the website
+I got it from. For example, a cash with a 90% hit rate has a 10% miss rate,
+right? Seems reasonable. So the problem with the exam is that it
+will extend this to multiple levels. And personally, I find that really
+difficult. So with multiple caches, the miss penalty includes
+>> Yes.
+>> It's normally provided.
+>> With multiple caches, the miss penalty includes the average time needed to
+access the remaining levels. Right? We talked this was talked about in the
+slides but you don't just have one cache right you have an L1 cache you have an
+L2 cache you have an L3 cache you have main memory right
+caches can use more caches it's basically like tiling so let T1 T2 and
+T3 represent each cach's lookup time let M1 M2 and M3 represent their miss rates
+time is the main memory access time so one cache then main memory so amat
+equals T1 plus M1* T memory Okay, two caches then main memory amat= t1 plus m1
+* t2 + m2 * t memory. Basically, the more cache levels you add, the formula
+will have to adapt, right? And I'm just trying to show a pattern here.
+So, we have an example. We want to find the average memory access time using the
+following information. So, we see here we have an L1, L2, and L3 cache and main
+memory and a LO and we have their local hit rates provided, right? And then we
+see the time spent accessing this level. So for the solution for this, first we
+convert the hit rates into miss rates, right? That's pretty standard. And then
+we work from the bottom up. First we start at L3. Every request reaching L3
+spends 20 nonds checking it. Half then requires another 100 ns for main memory.
+Right? So average time starting at L3 equals T3 plus M3 * T memory which is
+equal to 70 nonds. So then we've solved what L3 is. Then we move up to L2,
+right? Every request reaching L2 spends 5 nonds checking it. The 20% miss that
+miss continue to L3 where the average remaining time is 70 nconds, right? So
+the average time starting at L2 is equal to T2 + M2 * the average time starting
+at L3. That's why it's important we work from the bottom up. So we get 19 nonds
+for L2. L3 still remains the same. Finally, we calculate the average
+starting at L1. Every request spends one ncond checking L1. The 10% that miss
+continue to L2 where the average remaining time is 19 nonds. So amat
+equals T1 + M1* average time starting at L2. So we get 2.9 nconds. Right? So in
+in total for our MAT we combine everything together and we get 2.9.
+Any major questions?
+>> Yes. penalty based on
+>> uh not miss penalty more that just cash lookup time
+>> but this is something we don't get
+>> on the exam at least for when I took the class you will be given a chart similar
+to what I've like what I've provided and you'll be asked to solve for the hit
+rate or miss rate or whatever basically depending on different cache levels.
+Uh why do you think that
+>> the more caches you add like okay so the memory hierarchy right
+L1 is the fastest right when we want information we immediately go to L1
+Right? But L1 while it has a good hit rate of 90%, it is not always perfect.
+Right? So if the information is not in L1, then we have to go to L2, right? And
+L2 while it's also great, it's slower than L1, right? And but let's say L2
+also misses, then we have to go to L3. And if L3 misses, we go to main memory,
+right? And you don't want to go to main memory because that's really slow in
+terms of clock cycles. So
+the more like the more lower you go, the hit rate will like basically the time it
+takes to get to that cache will be longer. So the more caches you add,
+technically speaking, you'll have to keep going back and back because you if
+you miss, you don't get that time back, right?
+Okay, any more questions? We've covered caches unless anyone has
+any further questions about caches that they have that I didn't cover already. I
+think I've covered the important stuff for the exam, at least the major
+sections of caches for the exam. Uh, specifically, there are five questions
+on address cache translations. So, I still recommend that you master them.
+like by master I mean like you need to get them in like two seconds like it
+takes you two seconds to do everything the converting to the converting to like
+hexodimal to decimal and then the binary etc. I think it should be lickety split
+because the advantage to doing this is if you can solve those extremely fast,
+you basically just save a lot of time. I thought I I not for the midterms but for
+the final I found it really time consuming although I've uh like I found
+the time final really timeconuming and if I didn't get page translations and
+cash translations really fast I would have run out of time and this could help
+in midterm one where if you get them lickety split you have way more time to
+think about other questions that might have stumped you
+okay because like just to read it it's the same thing each cache transl address
+translation question is the same format. He'll give you a hexodimal code and then
+you'll be asked to see which block it corresponds to. It's if it's the same
+format but just with different numbers. If you can get them really fast, it's
+just free points, right? There's just it's just free test questions. Okay,
+moving on to optim optimization because this is also a large chunk of your exam.
+Optimizations. Compiler optimization changes how a program executes so it can
+perform the same work more efficiently. Importantly, the optimized program must
+preserve the required behavior of the original program. Choosing a better
+algorithm or data structure is still up to the program like the programmer. So
+let's say I use a linked list when maybe a hash table is a much more efficient
+way of storing things. The compiler cannot optim like even if the compiler
+optimizes my linked list, it will still be far slower than if I were to use a
+hash table, right? The data it cannot it must preserve the original behavior. So
+it cannot just rewrite your code for you and make you have a hash table instead.
+What can the what the compiler can't optimize? The compiler will not make a
+change if it is unsafe. So we have different obstacles here. Memory
+aliasing is an obstacle. Writing through one pointer might change a value access
+through another pointer. The compiler cannot tell if memory like if memory
+aliasing is prevalent. So it will just play it safe, right? You don't want your
+program to break. So it won't optimize obstacles containing memory aliasing.
+function side effects. Removing or moving a call might change global
+variables, memory or output. Right? So the compiler won't change function side
+effects either. It will also not change data dependencies. One calculation may
+require the result of an earlier calculation if it does not have the
+earlier calculation immediately in its vicinity. It will not it will not play
+it like it will won't play aggressively. It will remain safe, right? It won't
+change it. floating point rounding. Changing the grouping of a calculations,
+changing the grouping of calculations can change the answer, right? So,
+generally, it's not that you have to memorize these obstacles or why they
+matter, but you have to understand that the cache will always tend to play it
+safe. I know in the slides, Professor Benz already walked through a bunch of
+examples himself on what what the compiler won't optimize, but just to go
+over it again because this is a review session, right? So, we have pointers,
+right? Say we have an example int x= 10 and int star p equals the memory address
+of x, right? I've made a chart that just breaks down everything what this is
+saying, right? So, we have the expression x is the value stored in x
+and like I don't know what that amperand X is the address of X. P the address
+stored in the pointer. Star P is the value at that address. Star P equals 20
+changes X to be equal to 20. Right? More that it points to it. But and then P++
+moves the pointer to the next element. Whereas star P in parenthesis++
+increments the value the pointer points to, right? This is just review from like
+220, right? So track the program. We have array
+containing three, five, and seven. And then we have pointer P that points to A.
+What does pointer P specifically point to?
+>> Yes, the first element of the array, right? So then we have pointer Q that
+points to P, right? And then we do P++ pointer Q plus equals the dreference
+value of P. Pointer Q plus equals the reference
+value of P. And then we do dreference p++ right so on the side I've provided
+another table the initial setup p points to a of zero and q that points to p also
+points to a of zero right so our array is currently 3 five and seven when we do
+p++ a p increments right p increments the
+next to the next element of the array so now it's points to a of one whereas q
+still points to the initial initial first element of the array so it points
+to a of zero, right? But then we when we do star q plus equals to d reference p
+now we can see the only thing that's changed now is that we've taken the
+value of p and we've added it to q. So now it's now 8, five and seven. They
+point to the same array, right? And if we dreference p and plus+ we take
+the dreference value of p which in the in the in the array is considered five
+and then we increase it by one. So our final array is 867. So an exam question
+could 100% be that you track the program and you want to see what it outputs at
+the very end. Right? So you need to be comfortable like I
+don't know if I was tame in making this question or not but it could definitely
+get a lot more complicated. I remember it'd be more complicated where there's
+like multiple functions of different variations on the exam and each function
+they say they do the same thing but they have different versions of like they
+have different versions or different changes that some of them work some of
+the functions don't work you have to understand and be able to traverse what
+they do or you don't won't get the problem right
+so memory aliasing aliasing occurs when different references o access the same
+memory location we have int x= 10 and We have we designate a pointer that points
+to the memory address of X. Right? We also designate another pointer Q that
+also points to the memory address of X. Right? Then we say star Q equals 25. And
+then we print the value of P. So what is the value of D reference P after the
+program runs? It's going to be 25 because both P and Q point to the memory
+address of X. So if you make the pointer at Q modify the value at X since pointer
+P also points to the same exact memory address it will also be 25
+any questions okay local accumulators reduce repeated
+memory rights. This is also something covered in the slides but we have two
+example we have two functions right they do basically the same thing. One of them
+though has the dreference value of out and we modify out each time, right? Or
+not maybe not dreference but you modify the pointer of out to increment the
+value that it points to by a of each time, right? Whereas the other example
+you make int total and then you increment total by the same values, the
+exact same numbers. So while the programs here will produce the exact
+same output using a local accumulator means you don't you like you don't have
+to go back and search the memory address each and every loop iteration right you
+save a lot of you save a lot of memory usage
+so using a local accumulator is considered better if like example being
+for this they could have an exam question and they could ask what comp
+like what optimization would be good here you could say you could use a local
+accumulator right that could be that could definitely be an option
+Code motion. Code motion moves the computation outside a loop when its
+result stays unchanged and moving it preserves behavior. Right? Again, we
+have two examples here. They do functionally the same thing, but the
+second one at the bottom replaces the memory address of N* I with just base.
+Now you only calculate the value of base once at the very start. Long base equals
+N * I. So now every loop iteration instead of having to redo n* i, you just
+use the pre the preomputated value of base. Note you can only do this for
+things that won't change in value. If base changes in value later, you cannot
+do this, right? But because base stays the same for the entire loop iteration,
+you can instead of doing n times I each and every iteration, you can just do it
+once and reuse the same base variable. Any questions?
+Okay, reduction in strength replaces an operation with a cheaper equivalent
+operation. Examples include replacing multiplication with addition. Right?
+Let's say I do 10 * 3 or I can just do 10 + 10 + 10, right? That's the same
+thing in our eyes mathematically. But it's not the same thing for a computer.
+You can also use bit shifting to replace multiplication and division. But I will
+note you can only use bitshifting when it when it prov like revolves around
+powers of two, right? because bit shifting is basically multiplying by two
+or dividing by two. So shifts can replace suitable. Yeah,
+talked about that. So we have an example. We have int y= 10 and it x= y *
+3, right? Would replacing y * 3 with y like bit shifting 3 be correct? We
+actually have to understand how shifting works. Shifting left by 3 means doing 2
+^ 3 which is equal to 8. Right? So if we do 10 * 3 or 10 * 3 we get 30 but if we
+do 10 * 8 we get 80 right it is not correct to use the like if we're trying
+to do reduction in strength this is not the right way to do it right
+you have a question
+>> I am unsure actually if you want me to google
+Sorry.
+>> Y
+>> uh possibly. I'm not exactly sure about the math for that, but it it isn't a it
+is over complicating the reduction in strength, right? Preferably, we just
+replace it with one version of doing it, right? Instead of just doing a left
+shift plus Y, you could also just add add Y multiple times and get 30, right?
+That's probably the most standard straightforward solution.
+Debt code elimination. This is pretty self-explanatory, but if a value is
+never used, right, granted sometimes unused values can change the code. That
+is just a notice here. But if a value if you like can look through the code and
+traverse it and you realize this code doesn't actually do anything you might
+as well eliminate it right cuz even if it's dead and it won't
+affect the program output it actually still uses computation power right
+assigning int x to be equal to three will use power from the PC right as it
+go when it tries to compile and tries to do everything.
+So you might as well remove it. The compiler does loop unrolling. So loop
+unrolling is just a way for it makes it so that you do the work of multiple
+loops in one loop. Right? Processes more elements per loop iteration. The total
+work for the loop ends up being the same but the loop overhead is reduced. Anyone
+care to explain why this happens? Why is the loop overhead reduced? Yes.
+>> Yes. Basically, if I have a for loop that goes from let's say zero to 10,
+right? But then I do loop unrolling and I do two iterations of loop in one. I
+only loop five times now instead of 10 times, right? Loop overhead is reduced.
+Index example, both operate under the same accumulator total. The second
+addition needs the result of the first creating a dependency chain. This is
+very important if you're looking at a loop and rolling question, right? A
+processor we learned being supercalar is capable of doing multiple calculations
+at once, right? You can start the calculation for A but also start
+calculating B and get the answers around the same time in a few clock cycles
+instead of having to wait for A to finish solving entirely and then doing
+B, right? Everyone remember the supercaler image from lecture slides? I
+assume so. Okay. So but doing loop unrolling the way this is currently done
+in this example is total the total for the second iteration is based on the
+total result of the first iteration right which is bad. It creates a
+dependency chain. So now we can't be supercaler. We have to wait for the
+first one to fully finish calculating before we start the second one. That is
+bad right because you could say loop and rolling is good optimization but if it
+actually ends up losing time it's not good.
+So what like the solution being we need to have two separate accumulators
+instead of total and instead of just using total we can use total one and
+total two right and if we have two separate accumulators then it doesn't
+actually matter because then on then they're not dependent on each other.
+So we have an example here just to demo anything.
+Uh I'll let you guys take like a couple seconds maybe like maybe 30 seconds a
+minute to look at and understand the example and then I can start asking
+questions. The questions are on the side already. Suppose lines 10 to 12 get
+replaced with the code segment below. Or suppose lines 14 to 16 get replaced with
+the code segment below. If everyone's ready, we can proceed. If
+not, I'll give 30 more seconds. Just a general gauge. If you have thumbs up if
+you're ready, if thumbs down if you're not.
+Okay, I'll give more time. Okay, another show of hands.
+All right, overwhelmingly thumbs up. We'll continue. So suppose you've
+replaced lines 10 to 12 with what's shown at the code, right? We in total
+equals zero. We have a for loop and then we do total plus equals a of i and then
+we reassign we reassign the value of total to the pointer out. Right?
+So out points to a of 1. So writing to star out also changes the array being
+read. Originally star out equals 0 sets a of 1 to zero. Right? The loop then
+updates it to 1 to 2 to 5. The replacement adds the original values 1 +
+2 + 3 equals 6. Then write six into a of 1. So the new output is 12 then six then
+three right this is a problem of memory aliasing it makes like it delay delaying
+the rights changes the result. So this would not be a suitable
+replacement for whatever is in the code segment.
+So what about lines 14 to 16 getting replaced with this right
+originally the next value runs three times returning 1 2 and three.
+Therefore, extra equals 6 and calls equal three. The replacement calls it
+once, then adds the return value three times. 1 plus 1 plus 1 equals three.
+Therefore, extra equals 3 and calls equal 1. Our new output is now 8, five,
+and 1. Moving the call changes both its side effects and the values added. So,
+this is also not a suitable replacement for the code segment.
+>> Yes.
+>> Uh, that was in the first coverage. Yeah.
+>> Okay. So, basically you set it to like we're delaying when
+we write to it because we're replacing with a accumulator, right? And delaying
+the result makes it so that the value is different.
+Yes, but we're delaying when we write to we're delaying when we write to the
+actual memory value because we're using an accumulator, right?
+>> We like so when we talked about like using an accumulator value, right? We
+want we can only do this code motion when the out like when the program
+behavior is preserved, right? And so if you run through like I I know this is
+like a large example, right? But this is something you have to expect for the
+exam in which you need to make sure that the program behavior is maintained,
+right? This is not a suitable use. This is not a suitable optimization because
+the program behavior is not maintained.
+>> Oh, I see. eventually.
+>> Yeah,
+>> it sets a of one to zero, which it'll make the updating different
+if you traverse through it more. Any questions?
+Okay, so concept questions. Right on the
+midterm one coverage, it says four o'clock, you have Sorry, someone said
+something. Okay, you have four concept questions
+about pointers, memory aliasing, locality, and compiler optimization/tool
+chains. I will note in this review session, I do
+not cover chapter 7 of your slides because there's like five questions
+about them link like if you if you don't have the
+time to study, I would not study chapter 7 super in-depth. There's like one
+question about linkers, I think like on the exam for chapter 7 and then that's
+part of the tool chain. So if you are going to study anything do for chapter 7
+do study the tool chain like what is a linker what is an assembler right the
+orderings of the file name like what what is a dot like aas file or LD right
+if you are going to study chapter 7 I would study tool chain more than the
+linker file in general right the question on global variables also I
+believe pertains to chapter 7 if I were to think about it but it's not it's not
+the biggest coverage of the exam so I don't cover
+So pointers this is just general conceptual questions about pointers.
+What is the difference between P star P and like amperand P when P is a pointer.
+P is the address stored in the pointer. Star P accesses the object at that
+address being a pointer and amperand P is the address of the pointer variable
+itself. It is the memory address of the pointer. The pointer and the object it
+points to occupy separate memory locations.
+How does P++ differ from uh star P++? Does incrementing a pointer always moves
+forward by one bite? P++ moves the pointer to the next element of its
+pointed to type. For example, if an int occupies four bytes, incrementing an int
+star advances the address by four bytes. Star P++ leaves the pointer's address
+unchanged and increases the pointed to value by one. I think it's important to
+realize this difference though I mean I think most of you probably get
+understand this is just 220 right okay when a function receives a pointer
+argument can it modify the caller's data can assigning a new address to that
+parameter change the caller's pointer the function receives a copy of the
+pointer's address it can modify the caller's data by dreferencing that
+address right by putting a star next to it however assigning a different address
+to the parameter only changes the function local pointer copy. Changing
+the caller's pointer itself requires access to that pointer variable,
+commonly through a pointer to a pointer. It's probably
+too complicated to be on the exam. I I I hopefully wouldn't expect a double
+pointer to a pointer question, but it is something to keep in mind.
+Does a pointer being non-null guarantee that it is safe to dreference? Answer is
+no. A non-null pointer might be uninitialized, point outside a val valid
+object or point to memory whose lifetime is ended. For example, freeing allocated
+memory does not automatically set every pointer to that memory to null. Such
+pointers become dangling pointers and dreferencing them is invalid. So this
+goes a little bit into like um memory and like garbage collectors and heaps,
+but that's later stuff. Just just try to get the base idea down, right? If it's
+safe to do reference or not. Memory aliasing. So, does copying one
+pointer into another create a separate copy of the pointer to data? Right? When
+you're thinking about memory aliasing and if it works or not in the code
+you're reading, this is something important to note. Memory aliasing
+occurs when different references access the same memory location. Copying a
+pointer copies it address, not the data at that address. Both pointers can
+therefore access the same object and a change made through one can be observed
+through the other. It's important you get the memory address. they point to
+the same memory address, right? Because then they're actually
+modifying. And that's actually when you have memory aliasing. If they don't
+point to the same memory address, they can't modify each other's data, and it's
+not memory aliasing. A program reads through P, writes
+through Q, and then reads through P again. Why might the compiler need to
+repeat the read? P and Q might point to the same object. The right through Q
+could change the value access through P, making the previously loaded value
+outdated. Reusing the earlier value is safe only if the compiler can establish
+that doing so preserves the program's behavior. Right? This is a combination.
+So again, we've established the compiler likes to play it safe, right? So if the
+information is not known, then it needs to just call it safe and do more than an
+extra read. Why can replacing repeated writes
+through an output pointer with a local accumulator change your program's
+result? This is that question from earlier, right? The output pointer might
+refer to an element of the input array. In the original program, each write
+could change a value that a later iteration reads. A local accumulator
+delays those writes until the end. So later iterations might read different
+values. The optimization is valid only when changing the timing of the rights
+preserves behavior. Right? If an input pointer is declared constint
+star a, can the compiler assume that the values in the array never change? The
+answer is no. This declaration prevents modification through a but another
+pointer may still modify the same underlying data if that data is not
+itself defined as const. For example, an output pointer could point into the
+array. A pointer to const declaration does not establish that the input and
+output occupy separate memory. Everyone good?
+Okay. If an input pointer is declared const int star a, can the compiler
+assume that the values in the array never change?
+You can't. Basically, this declaration prevents modification through A, but
+another pointer that points to the same array can definitely still modify the
+index values of the array. Okay.
+Locality. These are just conceptual questions about locality. Now, what is
+the difference between spatial locality and temporal locality? Anyone care to
+answer before?
+>> Yeah. the same value multiple times.
+>> Yes, although I will note it's not just in the caches. This is just a concept
+everywhere. Spatial locality means accessing locations near one another,
+such as consecutive array elements. Temporal locality means accessing the
+same location again soon, such as repeatedly looking up the same table
+entry. Caches exploit spatial locality by loading entire blocks and temporal
+locality by retaining recently accessed data.
+Why does sequential array traversal usually have better spatial locality
+than linked list traversal? Does using an array automatically guarantee good
+locality? Anyone care to answer?
+>> Yep.
+>> Yes, correct. Array elements occupy consecutive memory locations. So a
+loaded cache block often contains several elements that will be accessed
+next. Link list nodes may be scattered throughout memory, right? So it's
+technically better like it's technically better to not use a linked list, right?
+Generally for sequentially traveling arrays. Yeah.
+So a stride is just how much you jump forward in a loop.
+So an array can still have poor locality if the program accesses widely separate
+separated separated elements or uses a large stride that skips most of each
+loaded block. To talk more about strides, basically let's say I load
+blocks like let's say I load a cache block and it goes from eight of zero to
+eight of eight, right? If my stride makes me jump from a eight a of a of
+zero to a of 15, I don't have that loaded in my cache block. So, I'm going
+to completely skip over that entire loaded chunk, which is bad, right?
+That's not a good use of our uh sequential axis
+for C two-dimensional array. Why is it usually better for the innermost loop to
+change the second index? Does loop variables name matter? Anyone care to
+answer?
+>> Yep.
+>> Yeah. Uh, probably not. Yeah, that's just like
+kind of a joke.
+>> Basically, these some of these questions are basically review of what I talked
+about earlier. This basically covering like the blocking tiling and like loop
+ordering section. So yes, C stores two dimensional arrays in row major order.
+So consecutive elements within a row or adjacent in memory, right? Keeping the
+first index fixed while increasing the second index by one accesses these like
+by one accesses those adjacent elements. Right? You want to traverse through the
+row not through the column. That's how you keep it sequential and that's how
+you have the best locality. Right? What is cache blocking and why can it
+improve performance even when a program perform performs the same calculations?
+Anyone want to answer? Okay. Cache blocking divides a large
+computation into smaller regions of data that can fit in the cache. The program
+performs several operations using one region before moving on, increasing the
+chance that needed data is still cached. The arithmetic can remain the same while
+fewer values must be fetched repeatedly from slower memory. Right? The whole
+point of tiling is so you can group things even tighter and that you can
+keep referencing it having even better use of temporal and spatial locality.
+Right? So blocks that are too large might lose
+this benefit because they're just too large to tile at all, but generally
+that's not a problem, right? Compiler optimizations. I do not cover
+tool chains. Is an unchanged result enough to make moving a calculation
+outside a loop safe? Anyone care to answer?
+>> Yeah.
+>> Yes. The compiler must also consider whether the calculation originally
+executes at all and whether moving it changes observable effects. Again, it's
+it's it's vital to know that you must maintain the behavior of the program,
+right? You need to you need to be methodical when running through each
+different function variation you're looking at.
+Function A performs one addition and is called millions of times inside a loop.
+Function B performs a lengthy calculation and is called once. Which is
+generally the stronger candidate for inlining and why? I know I didn't talk
+about inlining, but does everyone know what inlining is?
+Okay, anyone have any answers? Yeah.
+>> Uh, you'd be right. So, function a call and return overhead can account for a
+substantial fraction of the work of a tiny function, especially across
+millions of calls, right? So inlining function A would be the best because you
+call it so many times, right? Whereas function B is only called one time. So
+reducing the overhead of searching for it using inlining is not really that
+helpful. Whereas the dominant force of why function B takes forever is its
+lengthy complex calculation? If a function's return value is unused,
+can the compiler automatically remove the function call?
+The answer is no. The function might produce output, modify memory, change a
+global variable, or perform another observable action. Removing the call
+would remove those effects. The compiler may eliminate the call only when it can
+establish that doing so preserves the program's required behavior. More of the
+same repetition. Just got to drill it in. Does loop unrolling always make a
+program faster? What limitations can remain after a loop is unrolled? Anyone
+have any answers?
+>> Yep. Yes, you can have a dependency chain,
+right? If your if the loop unrolling example you were looking at possibly for
+the exam contains a dependency chain, you know that it might be slower, right?
+That it might not actually be worth it to use loop enrolling there. However, if
+they have two separate accumulators, right? If they have some way of working
+out that it doesn't create a dependency chain, you're completely fine.
+Unrolling reduces loop control overhead by processing multiple elements per
+iteration, but dependencies may remain if every operation updates the same
+accumulator. It also increases code size and may increase register pressure
+because you're doing so many iterations of a loop in only one iteration. Right?
+Multiple accumulators can expose more independent work, but performance still
+depends on the processor and workload. So the last thing I'm going to cover at
+least I think this is the last thing on my slides is physical memory. That's the
+last largest chunk you have. I don't cover HDD components but they will be on
+the exam. Right. I just think this is just that's HDD components is just a
+hard memorization thing. I don't really think there's a point.
+>> Yeah. DM or
+>> uh not NAND norates from what I can say but SRM and DM might be on the exam.
+I won't cover HD components because I think that's just a hard memorization
+thing. Same with the same with the definitions earlier. That was really
+just a warm-up, right? Actually knowing the definitions of things is just
+something you're going to have to hard memorize. Nothing not nothing I can
+really help with that. So memory hierarchy right we understand how it
+works but just to cover it again we go from fastest access to slowest access
+right you have that pyramid here you have the L1 cache L2 cache L3 cache main
+memory and then you go to SSDs and HDDs right moving down the hierarchy
+generally means greater capacity lower cost per bite and higher access latency
+right you can store more information but it is slower to access moving up means
+smaller faster and but more expensive storage right caches typically ally use
+SRAMM which is fast but relatively inexpensive. Main memory typically uses
+DRAM which is denser and cheaper but requires periodic refreshing. It's not
+super important to know like the super nitty-gritty details of SRM and DM. You
+just have to know what they are. I think registers, caches, and ordinary RAM are
+volatile. Anyone know what that is?
+>> Yeah.
+>> Yes. SSDs and HDDs are nonvatile. So their stored data survives power loss.
+Moving from HDD to STD domain memory to DR like to cache access generally
+becomes faster, cost per bite increases and typical storage capacity decreases.
+Moving down the simplified memory hierarchy generally means slower access,
+lower cost per bite, and greater capacity. Just review again, lower
+levels also have greater storage density on average. Like it depends on the
+machine. It depends sometimes on the machine, but generally speaking, lower
+levels also have greater storage density.
+Faster memory prioritizes quick access while lower act levels prioritize
+storing more data. HDD access time questions are something
+you will have on the exam. That is a guarantee. So, you will need to know the
+formula. It's also just like it's the same thing as the cache access
+questions, but just with a different formula. An HD stores data on rotating
+magnetic platters. Each surface contains circular tracks which are divided into
+sectors. So you have things like seek time. The read write head moves to the
+track containing the requested sector. Rotational latency. Once the head
+reaches the track, it waits for the requested sector to rotate underneath
+it. You have transfer time. Once the sector reaches the head, the drive reads
+its data. So average access time for HDDs are average seek time plus average
+rotational latency plus the transfer time. Seems straightforward.
+Okay. So we have an example here. Say you have 6,000 RPM, 6 millisecond
+average seek time, and 500 sectors per track. So how do you calculate
+everything? Full rotation time. You take 60,000 divided by the RPM. That's just a
+formula. So you take 60,000 / 6,000 and equals 10 milliseconds. So now we have
+the rotation time. Average rotational latency is calculated using full
+rotation time divided by two. So in this example, it's 10 divided by two.
+transfer time, you have the sectors requested divided by the sectors per
+track times the full rotation time. So in this example, it's one divided by
+500* 10. So you get 0.02 for one sector. This simplifies to full rotation time
+divided by sectors per track. Not super important. So then we combine it all at
+the very bottom. Right? We get 6 + 5 + 002 equal 11.02 milliseconds. The
+average seek time is given in the question. It cannot be calculated from
+RPM. Any questions?
+Okay, so this is just a comparison chart
+between SS SSDs and HDDs, right? So SSDs use electronic flash memory. I don't
+know if Professor Benz covered this, but they use something called pages and they
+have a limited number of writes. Not super important right now, but HDDs on
+the other hand use a rotating like magnetic rotating platters, right? The
+SSDs have no moving parts. While the HDDs do have moving parts, there are no
+mechanical access delays in SSDs, right? Whereas an HDD, it needs to move the
+read head to the correct sector and track, right? That is all that is time
+that is time delay. Random access performance. SSDs
+generally perform much better in this access whereas HDDs have slower because
+they need to like they have mechanical parts, right? Cost per bite. SSDs are
+generally much higher. HDS are just really outdated these days.
+physical shock. SSDs are more resistant whereas HDS again mechanical components
+they take more if they take damage they're more damaged
+wear concerns SSDs have a limited number of rights to them they have a limited
+lifespan basically in fact all your computers actually have an SSD the
+problem the thing is though for regular consumer use they have so many rights
+that it doesn't actually matter you're probably going to throw away the laptop
+before it runs out whereas HDS can have mechanical wear and other failures and
+they both have non nonvolatile memory. All right,
+that is the end of the review. Any questions?
+Anything else you want to cover? Yes,
+>> the exam.
+>> Yes, it covers including to chapter 7. So, you will you will have there will be
+questions on linkers. Professor Benz does have the entire question breakdown
+on Piaza. All right, if there are no more
+questions, you guys are free to go.
