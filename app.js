@@ -148,17 +148,146 @@ function renderImageLink(item, link) {
   else link.removeAttribute('href');
 }
 
+function formatCodeBlock(source) {
+  let input = String(source).trim();
+  if (input.includes('\n')) return input;
+  const nestedLoops = input.match(/^for\s*(\([^)]*\))\s*for\s*(\([^)]*\))\s*(.+;)$/);
+  if (nestedLoops) {
+    return [
+      `for ${nestedLoops[1]} {`,
+      `    for ${nestedLoops[2]} {`,
+      `        ${nestedLoops[3].trim()}`,
+      '    }',
+      '}',
+    ].join('\n');
+  }
+  const singleLoop = input.match(/^for\s*(\([^)]*\))\s*(.+;)$/);
+  if (singleLoop) {
+    return [
+      `for ${singleLoop[1]} {`,
+      `    ${singleLoop[2].trim()}`,
+      '}',
+    ].join('\n');
+  }
+  input = input.replace(/for\s*(\([^)]*\))\s*(?!\{)([^{};]+;)/g, 'for $1 { $2 }');
+  let output = '';
+  let indent = 0;
+  let parenDepth = 0;
+  let quote = '';
+  const padding = () => '    '.repeat(indent);
+  const newline = () => {
+    output = output.trimEnd();
+    if (!output.endsWith('\n')) output += '\n';
+    output += padding();
+  };
+  for (let index = 0; index < input.length; index++) {
+    const char = input[index];
+    const next = input[index + 1] || '';
+    if (quote) {
+      output += char;
+      if (char === quote && input[index - 1] !== '\\') quote = '';
+      continue;
+    }
+    if (char === '"' || char === "'") {
+      quote = char;
+      output += char;
+    } else if (char === '(') {
+      parenDepth++;
+      output += char;
+    } else if (char === ')') {
+      parenDepth--;
+      output += char;
+      const rest = input.slice(index + 1);
+      const line = output.slice(output.lastIndexOf('\n') + 1).trimStart();
+      if (parenDepth === 0 && /^(for|if|while)\b/.test(line) && !/^\s*\{/.test(rest)) {
+        indent++;
+        newline();
+      }
+    } else if (char === '{') {
+      output = output.trimEnd() + ' {';
+      indent++;
+      newline();
+    } else if (char === '}') {
+      indent = Math.max(0, indent - 1);
+      output = output.trimEnd();
+      if (!output.endsWith('\n')) output += '\n';
+      output += padding() + '}';
+      if (next && next !== ';') newline();
+    } else if (char === ';') {
+      output += char;
+      if (parenDepth === 0 && next) newline();
+    } else if (/\s/.test(char)) {
+      if (output && !/[\s\n]$/.test(output)) output += ' ';
+    } else {
+      output += char;
+    }
+  }
+  return output.trim();
+}
+
+function renderFormatted(text, container) {
+  container.replaceChildren();
+  const source = String(text ?? '');
+  const fenced = source.split(/```(?:[a-zA-Z0-9_+-]+)?\n?([\s\S]*?)```/g);
+  fenced.forEach((part, index) => {
+    if (index % 2 === 1) {
+      const pre = document.createElement('span');
+      pre.className = 'code-block';
+      const code = document.createElement('code');
+      code.textContent = formatCodeBlock(part.replace(/^\n|\n$/g, ''));
+      pre.append(code);
+      container.append(pre);
+      return;
+    }
+    let afterBlock = false;
+    part.split(/(`[^`]+`)/g).forEach((piece) => {
+      if (piece.startsWith('`') && piece.endsWith('`')) {
+        const value = piece.slice(1, -1);
+        const isBlock = value.includes('\n') || value.includes(';') || value.includes('{') || value.length > 60;
+        if (isBlock) {
+          const pre = document.createElement('span');
+          pre.className = 'code-block';
+          const code = document.createElement('code');
+          code.textContent = formatCodeBlock(value);
+          pre.append(code);
+          container.append(pre);
+          afterBlock = true;
+        } else {
+          const code = document.createElement('code');
+          code.className = 'inline-code';
+          code.textContent = value;
+          container.append(code);
+          afterBlock = false;
+        }
+      } else if (piece) {
+        let prose = piece;
+        if (afterBlock) prose = prose.replace(/^\s*[,.:;]\s*/, '\n\n');
+        const cue = prose.trim();
+        if (/^(In|For)$/.test(cue)) prose = 'Consider this code:\n\n';
+        else if (cue === 'Given') prose = 'Given this code:\n\n';
+        else if (cue === 'After') prose = 'After executing:\n\n';
+        else if (cue === 'Compare') prose = 'Compare these snippets:\n\n';
+        container.append(document.createTextNode(prose));
+        afterBlock = false;
+      }
+    });
+  });
+}
+
 function renderChoices(item, container, showCorrect = false) {
   container.replaceChildren();
   container.hidden = !item.choices;
   if (!item.choices) return;
   for (const letter of ['A', 'B', 'C', 'D']) {
-    const choice = document.createElement('span');
+    const choice = document.createElement('div');
     choice.className = 'choice';
     if (showCorrect && letter === item.correct_answer) choice.classList.add('correct-choice');
     const label = document.createElement('strong');
     label.textContent = `${letter}.`;
-    choice.append(label, document.createTextNode(item.choices[letter]));
+    const content = document.createElement('div');
+    content.className = 'choice-content';
+    renderFormatted(item.choices[letter], content);
+    choice.append(label, content);
     container.append(choice);
   }
 }
@@ -168,11 +297,11 @@ function renderQuestion() {
   $('progress').textContent = `Question ${position + 1} of ${session.length}`;
   $('score').textContent = `Score ${score}/${position}`;
   $('progress-fill').style.width = `${position / session.length * 100}%`;
-  $('question').textContent = item.question;
+  renderFormatted(item.question, $('question'));
   renderImage(item, $('question-image'));
   renderImageLink(item, $('question-image-link'));
   renderChoices(item, $('choices'), revealed);
-  $('answer').textContent = item.answer;
+  renderFormatted(item.answer, $('answer'));
   $('answer-panel').hidden = !revealed;
   $('reveal').hidden = revealed;
 }
@@ -191,11 +320,11 @@ function begin(items) {
 function renderCard() {
   const card = session[position];
   $('card-progress').textContent = `Card ${position + 1} of ${session.length}`;
-  $('card-question').textContent = card.question;
+  renderFormatted(card.question, $('card-question'));
   renderImage(card, $('card-image'));
   renderImageLink(card, $('card-image-link'));
   renderChoices(card, $('card-choices'));
-  $('card-answer').textContent = card.answer;
+  renderFormatted(card.answer, $('card-answer'));
   renderImage(card, $('card-answer-image'));
   $('flash-card').classList.toggle('flipped', flipped);
   $('flash-card').setAttribute('aria-label', flipped ? 'Show question' : 'Show answer');
@@ -231,10 +360,12 @@ function finish() {
     missed.forEach((item) => {
       const row = document.createElement('div');
       row.className = 'missed-item';
-      const q = document.createElement('strong');
-      q.textContent = item.question;
-      const a = document.createElement('span');
-      a.textContent = item.answer;
+      const q = document.createElement('div');
+      q.className = 'missed-question';
+      renderFormatted(item.question, q);
+      const a = document.createElement('div');
+      a.className = 'missed-answer';
+      renderFormatted(item.answer, a);
       row.append(q);
       if (item.image) {
         const link = document.createElement('a');
