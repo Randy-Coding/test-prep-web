@@ -904,5 +904,3 @@ questions['Review Audit'].update({
         'source': 'CSE_320_MT1_Review_Session.pdf pp54; midterm_review_transcript.txt',
     },
 })
-
-questions['Supplemental Practice'] = {}
