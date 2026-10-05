@@ -913,154 +913,182 @@ for _question, _record in questions['MT1_review_session'].items():
 del _question, _record, _subcategory, _destination
 del _CACHE_CONCEPT_QUESTIONS, _BASIC_CODE_CONCEPT_QUESTIONS, _CACHE_SUBCATEGORIES
 
-# Homework study questions. These are open response because the goal is to
-# explain the assigned functions and design choices, not recognize an option.
 questions['HW1 · MP3'] = {
-    'How do the MP3 homework’s parsing commands differ from its audio analysis and editing commands? Trace the main data path for each kind of work.': {
-        'subcategory': 'Project architecture',
-        'answer': 'The section, metadata, and first-header commands interpret file bytes directly. Duration and loudest-time commands locate and decode MPEG audio to PCM. Trim and overlay also change PCM, encode it, and write a new MP3 while retaining the source tags.',
-        'explanation': 'This division explains why a metadata query does not need an audio decoder and why editing cannot simply cut arbitrary MPEG bytes at a requested second. The shared workflow first separates optional ID3 tags from the MPEG region; only the audio features pass that region to the instructor-provided codec. The editing features then build new PCM and replace the MPEG region in the output.',
-        'sources': ['cse320/MP3_HW/README.md (Features at a Glance)', 'cse320/MP3_HW/src/mp3_audio.c', 'cse320/MP3_HW/src/mp3_trim.c'],
+    'For mp3_mpeg_version_str(), which integer version code maps to each result?': {
+        'subcategory': 'MPEG header labels',
+        'answer': '0 → MPEG 2.5; 1 → reserved; 2 → MPEG 2; 3 → MPEG 1; any other value → Unknown.',
+        'explanation': 'The function labels the two-bit MPEG version field for the first-frame report.',
+        'sources': ['cse320/MP3_HW_NEW/src/mp3_sections.c', 'cse320/MP3_HW_NEW/README.md (MPEG Frame Header)'],
     },
-    'What does the section summary function report, and how does it find the next MPEG frame instead of assuming every frame has the same length?': {
-        'subcategory': 'Section reader',
-        'answer': 'It returns an array of logical file sections and a count: optional ID3v2 header and frames, each MPEG audio frame, and optional ID3v1 tag. It parses each MPEG frame’s own header to advance by that frame’s size.',
-        'explanation': 'Each section records its type, byte offset, and length; ID3 frame sections also carry an ID. A file may vary bitrate or padding between MPEG frames, so fixed-stride iteration could lose synchronization. The implementation starts and stops at the checked audio bounds, validates a complete header and frame on each step, and returns owned section storage to be released by the caller.',
-        'sources': ['cse320/MP3_HW/README.md (Section Summary)', 'cse320/MP3_HW/src/mp3_reader.c', 'cse320/MP3_HW/src/mp3_sections.c'],
+    'For mp3_layer_str(), which integer layer code maps to each result?': {
+        'subcategory': 'MPEG header labels',
+        'answer': '0 → reserved; 1 → Layer III; 2 → Layer II; 3 → Layer I; any other value → Unknown.',
+        'explanation': 'The function labels the encoded MPEG layer field.',
+        'sources': ['cse320/MP3_HW_NEW/src/mp3_sections.c', 'cse320/MP3_HW_NEW/README.md (MPEG Frame Header)'],
     },
-    'Why is finding an MPEG sync word alone insufficient to determine a usable frame, and what does the frame-header parser contribute?': {
-        'subcategory': 'MPEG header',
-        'answer': 'A sync word identifies a possible frame start; the parser checks and interprets the rest of the four-byte header, including version, layer, bitrate, sample rate, padding, and calculated frame size.',
-        'explanation': 'The 11 sync bits can occur in bytes that do not form a supported, valid header. The parser uses masks and shifts to obtain field indexes, rejects reserved or invalid combinations, looks up bitrate and sample rate, and computes a size that the reader can use to locate the next frame. The sync predicate returns a yes/no value; the parser returns status and fills the header output on success.',
-        'sources': ['cse320/MP3_HW/README.md (MPEG Frame Header)', 'cse320/MP3_HW/src/mp3_sections.c'],
+    'For mp3_channel_mode_str(), which integer channel-mode code maps to each result?': {
+        'subcategory': 'MPEG header labels',
+        'answer': '0 → Stereo; 1 → Joint Stereo; 2 → Dual Channel; 3 → Mono; any other value → Unknown.',
+        'explanation': 'The function labels the two-bit channel-mode field for readable output.',
+        'sources': ['cse320/MP3_HW_NEW/src/mp3_sections.c', 'cse320/MP3_HW_NEW/README.md (MPEG Frame Header)'],
     },
-    'How does the MPEG frame-header parser use bitrate, sample rate, and padding to determine frame length, and why does that length matter to the reader?': {
-        'subcategory': 'MPEG header',
-        'answer': 'It converts the encoded indexes into bitrate and sample rate, then applies the formula for the MPEG version and layer with padding. The resulting byte length identifies the next frame boundary.',
-        'explanation': 'For MPEG-1 Layer III, the README uses floor(144 × bitrate-in-bits-per-second ÷ sample-rate) + padding; MPEG-2/2.5 Layer III uses 72 instead of 144. The parser also handles other supported layers. The reader advances by each parsed size and checks that the complete frame fits before reporting it. This is a conceptual relationship; memorizing a header declaration is unnecessary.',
-        'sources': ['cse320/MP3_HW/README.md (MPEG Frame Header)', 'cse320/MP3_HW/src/mp3_sections.c', 'cse320/MP3_HW/src/mp3_reader.c'],
+    'For mp3_emphasis_str(), which integer emphasis code maps to each result?': {
+        'subcategory': 'MPEG header labels',
+        'answer': '0 → none; 1 → 50/15 ms; 2 → reserved; 3 → CCIT J.17; any other value → Unknown.',
+        'explanation': 'The function labels the MPEG header emphasis field.',
+        'sources': ['cse320/MP3_HW_NEW/src/mp3_sections.c', 'cse320/MP3_HW_NEW/README.md (MPEG Frame Header)'],
     },
-    'An MP3 file has an ID3v2 tag at the front and an ID3v1 tag at the end. How are the MPEG audio bounds found, and why must both tags be excluded before decoding?': {
-        'subcategory': 'Tag boundaries',
-        'answer': 'The audio begins after the complete ID3v2 tag and ends where the 128-byte trailing ID3v1 tag begins. Only the half-open byte range between those offsets is passed to the MPEG decoder.',
-        'explanation': 'The ID3v2 header declares its body size using four synchsafe bytes; its total span includes the header and any specified footer. ID3v1 is recognized by a TAG marker at the start of the final 128 bytes. Bounds must be checked against file size before slicing. Those tag bytes are metadata rather than MPEG frames, so including them would corrupt decoding and frame traversal.',
-        'sources': ['cse320/MP3_HW/README.md (MP3 File Structure and Sections)', 'cse320/MP3_HW/src/mp3_id3.c', 'cse320/MP3_HW/src/mp3_audio.c'],
+    'For this homework, what does mp3_is_sync() mean by a sync word, and why does finding one matter?': {
+        'subcategory': 'MPEG frames',
+        'answer': 'A possible MPEG frame begins with 11 one bits. Finding that pattern identifies a candidate frame start, which the header parser then validates so the program can inspect and traverse MPEG audio.',
+        'explanation': 'The sync check recognizes a candidate boundary; other header fields determine whether the frame is usable.',
+        'sources': ['cse320/MP3_HW_NEW/README.md (MPEG Frame Header)', 'cse320/MP3_HW_NEW/src/mp3_sections.c'],
     },
-    'Why is the ID3v2 tag size read as a synchsafe integer, while an ID3v2.3 frame payload size is read as ordinary big-endian?': {
-        'subcategory': 'Binary parsing',
-        'answer': 'The formats specify different encodings: the tag header uses seven data bits per byte, while v2.3 frame sizes use all eight bits of each byte in big-endian order. ID3v2.4 frame sizes use synchsafe encoding.',
-        'explanation': 'The synchsafe reader masks each byte to seven bits and shifts by 21, 14, 7, and 0; the big-endian reader uses eight-bit shifts of 24, 16, 8, and 0. Applying the wrong reader changes the declared extent and can move parsing into the wrong part of the file. The tag and frame walkers also validate that declared extents remain within the file or tag body.',
-        'sources': ['cse320/MP3_HW/README.md (Reading the ID3v2 Tag Header; Reading ID3v2 Frames)', 'cse320/MP3_HW/src/util.c', 'cse320/MP3_HW/src/mp3_id3.c'],
+    'What does mp3_parse_frame_header() do, how does it support the MP3 homework, and how does it parse a header at a high level?': {
+        'subcategory': 'MPEG frames',
+        'answer': 'It validates a four-byte MPEG header and fills its version, layer, audio-format fields, and frame size. The reader uses that result to report the first frame and locate successive frames. It checks sync, extracts bit fields, rejects invalid combinations, looks up bitrate and sample rate, then computes frame length.',
+        'explanation': 'Frame size lets the reader advance to the next frame without assuming constant-length frames.',
+        'sources': ['cse320/MP3_HW_NEW/README.md (MPEG Frame Header; Section Summary)', 'cse320/MP3_HW_NEW/src/mp3_sections.c'],
     },
-    'What does metadata extraction return to the caller when both ID3v2 and ID3v1 tags exist, and what must the caller eventually release?': {
+    'How do mp3_has_id3v2() and mp3_has_id3v1() differ, and how does each check for its tag?': {
+        'subcategory': 'ID3 boundaries',
+        'answer': 'ID3v2 is an optional prefix: check for at least a ten-byte header beginning with ID3. ID3v1 is an optional 128-byte suffix: check for TAG at the start of the final 128 bytes.',
+        'explanation': 'Their locations determine which file regions are metadata and which contain MPEG audio.',
+        'sources': ['cse320/MP3_HW_NEW/README.md (MP3 File Structure and Sections)', 'cse320/MP3_HW_NEW/src/mp3_id3.c'],
+    },
+    'What is mp3_id3v2_total_size() for, where is that size used, and how is it found conceptually?': {
+        'subcategory': 'ID3 boundaries',
+        'answer': 'It finds the complete leading ID3v2 tag extent so later parsing and decoding begin after the tag. Read and validate the ten-byte header, decode its four synchsafe size bytes, then include the header and any valid footer.',
+        'explanation': 'The declared extent separates ID3v2 metadata from the MPEG region.',
+        'sources': ['cse320/MP3_HW_NEW/README.md (Reading the ID3v2 Tag Header)', 'cse320/MP3_HW_NEW/src/mp3_id3.c'],
+    },
+    'How does mp3_mpeg_audio_bounds() contribute to the homework, and how does it find the audio region conceptually?': {
+        'subcategory': 'ID3 boundaries',
+        'answer': 'It supplies the byte range that the reader and codec should treat as MPEG audio. Start after a valid ID3v2 prefix, end before an ID3v1 suffix if present, and check that the boundaries fit and do not overlap.',
+        'explanation': 'The range keeps metadata bytes out of frame traversal and audio decoding.',
+        'sources': ['cse320/MP3_HW_NEW/README.md (MP3 File Structure and Sections)', 'cse320/MP3_HW_NEW/src/mp3_id3.c'],
+    },
+    'What does mp3_extract_metadata() extract, where does it fit in the homework, and how does it work conceptually?': {
         'subcategory': 'Metadata',
-        'answer': 'It fills one metadata result containing both tag generations; it does not discard one in favor of the other. On success the caller owns the allocated ID3v2 frame array and text values and releases them with the metadata cleanup function.',
-        'explanation': 'The extraction function reads the file, validates its tag regions, parses each present tag, and publishes the result only after successful parsing. The older fixed-size ID3v1 fields and newer ID3v2 frame list coexist in the result. It returns a status code, not the metadata as its direct return value; the output parameter carries the data. Cleanup frees nested strings and the frame array and clears the structure.',
-        'sources': ['cse320/MP3_HW/README.md (ID3 Metadata)', 'cse320/MP3_HW/include/mp3_id3.h', 'cse320/MP3_HW/src/mp3_id3.c'],
+        'answer': 'It fills the metadata result used by the -t feature with both present tag generations: ID3v1 fields and ID3v2 frames such as title, artist, album, year, and comment. It locates the tags, walks valid ID3v2 frames within the declared tag body, decodes their values, and parses the trailing ID3v1 fields.',
+        'explanation': 'Unknown ID3v2 frames use the assignment’s ASCII fallback rather than being discarded.',
+        'sources': ['cse320/MP3_HW_NEW/README.md (ID3 Metadata)', 'cse320/MP3_HW_NEW/src/mp3_id3.c'],
     },
-    'Why does ID3v2 metadata extraction walk frames only within the tag’s declared body, and how does it handle a recognized text frame versus an unrecognized frame?': {
+    'Why is mp3_free_metadata() needed, and which parts of an extracted metadata result does it free?': {
         'subcategory': 'Metadata',
-        'answer': 'The declared tag bounds keep frame parsing from treating MPEG audio as metadata. Recognized text frames are decoded according to their text encoding; unrecognized frame IDs use the assignment’s ASCII fallback.',
-        'explanation': 'A frame carries its own ID, payload length, and flags, so the walker checks each complete header and payload before advancing. Title, artist, album, year, and comment frames receive named handling; an unknown ID is still reportable through fallback decoding. An unsupported structure or invalid payload is a parsing failure, which is different from merely not recognizing the ID.',
-        'sources': ['cse320/MP3_HW/README.md (ID3 Metadata; Reading ID3v2 Frames)', 'cse320/MP3_HW/src/mp3_id3.c'],
+        'answer': 'Extraction allocates an ID3v2 frame array and a value string for each frame. The cleanup function frees those strings and the array, then clears the result. ID3v1 fields are stored inside the result and need no separate free.',
+        'explanation': 'The caller uses it after a successful metadata query; extraction also uses it to discard partial results on failure.',
+        'sources': ['cse320/MP3_HW_NEW/README.md (ID3 Metadata)', 'cse320/MP3_HW_NEW/src/mp3_id3.c'],
     },
-    'What information does the first-frame-header function provide that the section summary does not, and what happens when no complete MPEG frame is present?': {
-        'subcategory': 'Reader API',
-        'answer': 'It returns status and fills a frame-header result with decoded fields for the first MPEG frame. If the file has no complete valid MPEG frame, it fails rather than returning a partially filled header.',
-        'explanation': 'The summary describes locations and lengths of all sections; the first-header query exposes the interpreted version, layer, bitrate, sample rate, channel mode, and frame size of the first audio frame. It locates the checked MPEG region, verifies enough bytes for a header and its complete frame, and assigns the caller’s output only after validation succeeds.',
-        'sources': ['cse320/MP3_HW/README.md (MPEG Frame Header; Reader)', 'cse320/MP3_HW/src/mp3_reader.c', 'cse320/MP3_HW/src/mp3_sections.c'],
+    'Where does mp3_id3v1_genre_name() get the genre name for an ID3v1 genre number?': {
+        'subcategory': 'Metadata',
+        'answer': 'It looks up the numeric genre byte in the built-in ID3v1 genre-name table; a value without a known entry gets a fallback label.',
+        'explanation': 'The ID3v1 tag stores a genre number, so displaying a name requires a separate mapping.',
+        'sources': ['cse320/MP3_HW_NEW/ROADMAP.md (Phase 3)', 'cse320/MP3_HW_NEW/src/mp3_id3.c'],
     },
-    'How does the duration function calculate seconds from decoded PCM, and why is the sample count divided by the channel count first?': {
+    'What is mp3_summary() for, and how does it build a section summary conceptually?': {
+        'subcategory': 'Reader',
+        'answer': 'It lists the file’s logical sections with their offsets and lengths: an optional ID3v2 header and frames, each MPEG frame, and an optional ID3v1 tag. It establishes tag and audio bounds, walks ID3v2 frames, then parses each MPEG header to advance by that frame’s size.',
+        'explanation': 'The section list powers the homework’s -s output and shows how the file is laid out.',
+        'sources': ['cse320/MP3_HW_NEW/README.md (Section Summary)', 'cse320/MP3_HW_NEW/src/mp3_reader.c'],
+    },
+    'How does mp3_extract_frame_header() contribute to the homework, and how does it obtain the first header conceptually?': {
+        'subcategory': 'Reader',
+        'answer': 'It supplies the decoded fields for the -i first-frame report. It finds the MPEG audio start after any ID3v2 tag, parses the first four-byte header, and checks that the complete frame fits within the audio region.',
+        'explanation': 'A valid header alone is insufficient if its declared frame is truncated.',
+        'sources': ['cse320/MP3_HW_NEW/README.md (MPEG Frame Header; Reader)', 'cse320/MP3_HW_NEW/src/mp3_reader.c'],
+    },
+    'Why does mp3_free_sections() exist, and what calls it?': {
+        'subcategory': 'Reader',
+        'answer': 'A successful mp3_summary() returns an allocated section array with allocated payloads. The caller, including the -s command handler, calls mp3_free_sections() after using it; mp3_summary() also calls it to clean up a partial result on failure.',
+        'explanation': 'It frees each section payload and then the containing array.',
+        'sources': ['cse320/MP3_HW_NEW/README.md (Reader)', 'cse320/MP3_HW_NEW/src/mp3_reader.c', 'cse320/MP3_HW_NEW/src/mp3_cli.c'],
+    },
+    'In plain English, how does mp3_get_duration() determine the length of an MP3 file?': {
         'subcategory': 'Audio analysis',
-        'answer': 'Duration is (sample_count ÷ channels) ÷ sample_rate_hz. The first division converts individual interleaved sample values into time frames.',
-        'explanation': 'A stereo instant contains two sample values, one per channel, but occupies only one instant of time. Dividing the raw count directly by samples per second would double a stereo clip’s duration. The function decodes the MPEG region, computes a double-precision seconds value through an output pointer, frees the decoded PCM, and returns success or failure status.',
-        'sources': ['cse320/MP3_HW/README.md (Duration)', 'cse320/MP3_HW/src/mp3_trim.c', 'cse320/MP3_HW/include/mp3_codec.h'],
+        'answer': 'It decodes the MPEG audio into samples, divides the number of sample values by the channel count to get audio frames, then divides that frame count by frames per second, the sample rate.',
+        'explanation': 'For stereo audio, two sample values represent one instant of playback.',
+        'sources': ['cse320/MP3_HW_NEW/README.md (Duration)', 'cse320/MP3_HW_NEW/src/mp3_trim.c'],
     },
-    'How does the loudest-timestamp function decide which instant wins for stereo audio and for equal peaks?': {
+    'How does mp3_get_loudest_timestamp() identify audio timestamps, measure loudness at each instant, and select its result?': {
         'subcategory': 'Audio analysis',
-        'answer': 'It compares absolute sample magnitudes across both channels. The timestamp is the PCM frame containing the greatest peak; an equal later peak does not replace the first winner.',
-        'explanation': 'The time index is the sample index divided by the channel count, then divided by sample rate. Comparing with strictly greater than preserves the earliest frame in a tie. The implementation widens each signed 16-bit sample before taking its absolute value, so even the most negative sample can be handled safely. Like duration, the function returns status and writes seconds through an output pointer.',
-        'sources': ['cse320/MP3_HW/README.md (Loudest timestamp)', 'cse320/MP3_HW/src/mp3_trim.c'],
+        'answer': 'It decodes the file into PCM and groups consecutive channel samples into audio frames. Each frame has a timestamp equal to its index divided by sample rate. Its peak is the greatest absolute sample value among its channels. The function returns the earliest timestamp with the largest peak.',
+        'explanation': 'PCM frame indexes are time positions; channel samples at one index describe the same instant.',
+        'sources': ['cse320/MP3_HW_NEW/README.md (Loudest timestamp)', 'cse320/MP3_HW_NEW/src/mp3_trim.c'],
     },
-    'What does trimming the half-open interval [start, end) mean for PCM frames, and why does the function decode and re-encode audio?': {
+    'How does mp3_trim_audio() select and encode the requested audio interval?': {
         'subcategory': 'Audio editing',
-        'answer': 'The output contains frames beginning at start and stops before end. Timestamps become PCM frame indexes, then channel-aware sample indexes; that slice is encoded into new MPEG audio.',
-        'explanation': 'The conversion truncates seconds × sample rate to a frame boundary and multiplies by channel count to address interleaved samples. The implementation rejects an empty or invalid interval. Re-encoding makes the chosen audio segment a valid new MP3 stream; selecting byte offsets in compressed MPEG data would not reliably select the requested time range. The function reports success or failure by status.',
-        'sources': ['cse320/MP3_HW/README.md (Trim)', 'cse320/MP3_HW/src/mp3_trim.c', 'cse320/MP3_HW/src/mp3_audio.c'],
+        'answer': 'It decodes the audio to PCM, converts the start and end seconds to frame indexes, copies the half-open [start, end) slice across all channels, encodes that slice, and writes it between the original ID3v2 prefix and ID3v1 suffix.',
+        'explanation': 'Slicing decoded frames selects a time interval; encoding produces the new MPEG stream.',
+        'sources': ['cse320/MP3_HW_NEW/README.md (Trim)', 'cse320/MP3_HW_NEW/src/mp3_trim.c'],
     },
-    'After a trim or overlay, which bytes from the original file are retained around the newly encoded audio, and why?': {
+    'What steps does mp3_overlay_audio() take to produce an overlaid MP3?': {
         'subcategory': 'Audio editing',
-        'answer': 'The original ID3v2 prefix and ID3v1 suffix are copied around the newly encoded MPEG bytes. For overlay, the retained tags come from the base file.',
-        'explanation': 'The audio bounds divide the original bytes into prefix, MPEG region, and suffix. The writer constructs prefix + encoded audio + suffix, preserving metadata without treating tag bytes as audio. The MPEG region itself changes because editing works in PCM and then encodes again. Overlay uses the base file as the output track, so the overlay file’s tags do not replace the base tags.',
-        'sources': ['cse320/MP3_HW/README.md (Trim; Overlay)', 'cse320/MP3_HW/src/mp3_audio.c', 'cse320/MP3_HW/src/mp3_overlay.c'],
+        'answer': 'It decodes base and overlay audio, converts the start time to a base-frame index, resamples the overlay to the base sample rate, converts its channel layout, replaces base frames during the overlay window, encodes the result, and writes it with the base file’s ID3 tags.',
+        'explanation': 'The base plays before and after the replacement window; an overlay extending past the base end extends the output.',
+        'sources': ['cse320/MP3_HW_NEW/README.md (Audio Overlay)', 'cse320/MP3_HW_NEW/src/mp3_overlay.c'],
     },
-    'The overlay command starts a short clip partway through a base track. Does it mix or insert the clip, and what happens after the clip ends or extends beyond the base?': {
-        'subcategory': 'Audio overlay',
-        'answer': 'It replaces the base audio during the overlay window. Before the window the base plays; afterward the base resumes at its original timeline position if it remains. An overlay past the base end extends the output.',
-        'explanation': 'The output takes base frames before the start, converted overlay frames during its span, and base frames after the span. Covered base frames are skipped: their amplitudes are not added to the overlay, and the later base frames are not shifted in time as with insertion. The output length is the greater of the base length and the overlay end position.',
-        'sources': ['cse320/MP3_HW/README.md (Audio Overlay)', 'cse320/MP3_HW/src/mp3_overlay.c', 'cse320/MP3_HW/ROADMAP.md (Phase 8)'],
-    },
-    'Why must overlay audio be converted before replacement when its sample rate or channel count differs from the base track? Describe both conversions conceptually.': {
-        'subcategory': 'Audio overlay',
-        'answer': 'The replacement samples must share the base track’s time scale and channel layout. Different sample rates are resampled by linear interpolation; mono becomes stereo by duplication, while stereo becomes mono by combining left and right.',
-        'explanation': 'Without resampling, one overlay frame would represent a different duration from one base frame and the replacement would run at the wrong speed or duration. Without channel conversion, interleaved sample positions would not match the base layout. The implementation converts to the base rate first, then to the base channel count, and encodes the result using the base audio format.',
-        'sources': ['cse320/MP3_HW/README.md (Audio Overlay)', 'cse320/MP3_HW/src/mp3_overlay.c', 'cse320/MP3_HW/ROADMAP.md (Phase 8)'],
-    },
-    'Why does the MP3 command-line program validate the input-file option before dispatching feature flags, and how are feature results and errors reported?': {
-        'subcategory': 'CLI',
-        'answer': 'It first finds and checks the required input file, then executes requested features in command-line order. Results go to stdout; one user-facing error goes to stderr and leads to failure status.',
-        'explanation': 'Two passes let a feature appear before or after the -f argument without running it against an unknown file. Features call the parsing, analysis, or editing library functions and use the specified output macros for consistent messages. The CLI helper returns 0 on success and -1 on failure; main maps that to process exit 0 or 1. Debug logging is separate from graded output.',
-        'sources': ['cse320/MP3_HW/README.md (Program Usage; Program Output)', 'cse320/MP3_HW/src/mp3_cli.c', 'cse320/MP3_HW/src/main.c'],
-    },
-    'Several MP3 functions return a status code while filling an output parameter. What should a caller infer from success versus failure, and how is allocated output cleaned up?': {
-        'subcategory': 'Function contracts',
-        'answer': 'A zero status means the requested result was placed in the output parameter; -1 means failure, so the caller must not use an assumed result. Successful owned results require the matching cleanup function or free operation.',
-        'explanation': 'The section reader returns an owned section array and count; metadata extraction returns a structure containing allocated frame strings; audio analysis writes a double. The function return itself reports whether those outputs are valid. The section and metadata APIs provide cleanup functions for nested allocations, while decoded PCM uses the instructor codec’s cleanup routine. This pattern prevents partial results from being mistaken for valid answers.',
-        'sources': ['cse320/MP3_HW/ROADMAP.md (Shared implementation contract)', 'cse320/MP3_HW/include/mp3_reader.h', 'cse320/MP3_HW/include/mp3_id3.h', 'cse320/MP3_HW/include/mp3_trim.h'],
+    'In the MP3 homework, what does main() do with the command-line arguments, why does it process them in two passes, and how does it report feature results and errors?': {
+        'subcategory': 'Command line',
+        'answer': 'It validates the input-file and help options first, then dispatches the requested features. Feature results go to stdout; a user-facing error goes to stderr and produces a failure exit status.',
+        'explanation': 'The first pass makes the input file available even when a feature flag appears before -f. The second pass runs the features using the specified output macros.',
+        'sources': ['cse320/MP3_HW_ORIGINAL/README.md (Program Usage; Program Output)', 'cse320/MP3_HW_ORIGINAL/src/main.c', 'cse320/MP3_HW_NEW/src/mp3_cli.c'],
     },
 }
 
 questions['HW2 · CACHE'] = {
-    'What is the cache simulator supposed to produce from a configured cache and memory trace, and what distinguishes a miss from an eviction?': {
-        'subcategory': 'Part A simulator',
-        'answer': 'It replays memory accesses and reports hit, miss, and eviction counts. A miss means the requested block is absent; an eviction occurs only when that miss must replace a valid line in a full selected set.',
-        'explanation': 'Cache geometry determines each address’s offset, set, and tag. On a hit, the matching valid line is used. On a miss, an empty way can be filled without eviction; if every way in the set is valid, the policy chooses a victim and both miss and eviction counts increase. The simulator finishes by passing totals to printSummary.',
-        'sources': ['cse320/CACHE_HW/README.md (Part A; Cache Model)', 'cse320/CACHE_HW/src/csim.c'],
+    'What kind of cache does initCache() create, and what does a set mean in a set-associative cache?': {
+        'subcategory': 'Cache organization',
+        'answer': 'It creates a cache with 2^s sets and E lines per set, with blocks of 2^b bytes. An address maps to one set, where any of its E lines can hold the block. A set is that group of candidate lines.',
+        'explanation': 'initCache() allocates and initializes the sets and lines described by the command-line geometry.',
+        'sources': ['cse320/CACHE_HW_ORIGINAL/README.md (Part A; Cache Model)', 'cse320/CACHE_HW_ORIGINAL/src/csim.c', 'cse320/CACHE_HW_NEW/src/csim.c'],
     },
-    'How does the simulator treat load, store, modify, and instruction-fetch trace records, including an access that spans two cache blocks?': {
-        'subcategory': 'Part A trace replay',
-        'answer': 'Load and store each access the covered data blocks once; modify performs two passes, a load then a store; instruction fetch is ignored. A record spanning two blocks touches each block in each pass.',
-        'explanation': 'The trace parser reads the operation, hexadecimal address, and decimal byte count. The replay logic converts the byte range into all intersected cache blocks. A modify operation repeats that range, so its second access can hit after the first loads a block, subject to intervening accesses within the range. Ignored instruction fetches do not affect data-cache statistics.',
-        'sources': ['cse320/CACHE_HW/README.md (Trace Format)', 'cse320/CACHE_HW/src/csim.c'],
+    'How is the cache simulator’s eviction strategy chosen, and when does that strategy matter?': {
+        'subcategory': 'Cache replacement',
+        'answer': 'The -r option selects LRU, FIFO, or LFU; LRU is the default. The policy chooses a victim only when an access misses and every line in the selected set is occupied.',
+        'explanation': 'initCache() sets the cache geometry; the selected policy controls replacement during trace replay.',
+        'sources': ['cse320/CACHE_HW_ORIGINAL/README.md (Replacement Policies)', 'cse320/CACHE_HW_ORIGINAL/src/csim.c', 'cse320/CACHE_HW_NEW/src/csim.c'],
     },
-    'What information must the simulator update on cache accesses so that LRU, FIFO, and LFU choose different victims correctly?': {
-        'subcategory': 'Part A replacement',
-        'answer': 'LRU tracks most recent use, FIFO tracks load time, and LFU tracks access frequency with earliest load as the tie-breaker.',
-        'explanation': 'A hit changes LRU recency and increments LFU frequency, but does not change a FIFO line’s insertion order. A newly loaded line gets current use/load times and initial frequency one. When a set is full, the simulator compares the policy’s metric only among valid lines. This explains why the same trace can yield different eviction choices under the three policies.',
-        'sources': ['cse320/CACHE_HW/README.md (Replacement Policies)', 'cse320/CACHE_HW/src/csim.c'],
+    'What does accessData() do for one memory address, and how does it decide whether to count a hit, miss, or eviction?': {
+        'subcategory': 'Cache access',
+        'answer': 'It uses the address to select a set and tag. A matching valid line is a hit. Otherwise it counts a miss and fills an empty line, or counts both a miss and an eviction if the set is full and a line must be replaced.',
+        'explanation': 'This is the core access step used while replaying the trace; a full set uses the selected replacement policy to choose its victim.',
+        'sources': ['cse320/CACHE_HW_ORIGINAL/README.md (Part A; Cache Model)', 'cse320/CACHE_HW_ORIGINAL/src/csim.c', 'cse320/CACHE_HW_NEW/src/csim.c'],
     },
-    'What must the transpose submission produce for an N-by-M input matrix, and why do the M and N arguments require attention?': {
-        'subcategory': 'Part B correctness',
-        'answer': 'It must write an M-by-N output with B[j][i] = A[i][j] for every valid input element. M is the number of columns of A and N is its number of rows.',
-        'explanation': 'The function has no value return; its result is the changed B matrix. Swapping M and N in loop bounds may appear to work for square matrices but fails or accesses out of bounds for rectangles. The implementation dispatches by shape and cache profile, yet each path must satisfy the same transpose equation, including partial edge tiles.',
-        'sources': ['cse320/CACHE_HW/README.md (Part B Task; Required Function)', 'cse320/CACHE_HW/src/trans.c'],
+    'What does replayTrace() do with each trace operation, and how does it handle an access spanning multiple blocks?': {
+        'subcategory': 'Trace replay',
+        'answer': 'It reads the trace and simulates data accesses: L and S each make one pass, M makes two passes, and I is ignored. Each pass accesses every cache block touched by the record’s address range.',
+        'explanation': 'A modify record represents a load followed by a store. A range crossing a block boundary causes an access to both blocks in each pass.',
+        'sources': ['cse320/CACHE_HW_ORIGINAL/README.md (Trace Format)', 'cse320/CACHE_HW_ORIGINAL/src/csim.c', 'cse320/CACHE_HW_NEW/src/csim.c'],
     },
-    'Why does a simple row-wise matrix transpose tend to incur many cache misses, and what does blocking change about the order of work?': {
-        'subcategory': 'Part B blocking',
-        'answer': 'Reading adjacent A elements is friendly to row-major storage, but writing B[j][i] jumps between destination rows and may conflict with cached A lines. Blocking finishes small matrix regions while useful lines are still resident.',
-        'explanation': 'A tile limits the active source and destination region, improving reuse and reducing the distance between related accesses. It does not change which elements are transposed or the total mathematical work. The submitted implementation has a general blocked path; its scalar row path reads a whole source segment into local values before destination stores can displace the source line.',
-        'sources': ['cse320/CACHE_HW/README.md (Part B Hints)', 'cse320/CACHE_HW/src/trans.c', 'cse320/CACHE_HW/ROADMAP.md (Part B)'],
+    'What does freeCache() release after simulation, and why is that cleanup needed?': {
+        'subcategory': 'Cache organization',
+        'answer': 'It releases the heap storage allocated for the cache sets and lines and clears the simulator’s cache state. The allocation is no longer needed after the trace has been replayed.',
+        'explanation': 'The original starter marks freeCache() as the cleanup counterpart to initCache().',
+        'sources': ['cse320/CACHE_HW_ORIGINAL/src/csim.c', 'cse320/CACHE_HW_NEW/src/csim.c'],
     },
-    'Why can the same transpose tile perform differently on direct-mapped, two-way, and four-way caches of the same total size? How does the submission respond?': {
-        'subcategory': 'Part B strategy',
-        'answer': 'Changing associativity also changes the number of sets and which A and B blocks compete for a set. The submission chooses strategies by matrix shape and cache profile, with a general fallback.',
-        'explanation': 'All three graded organizations have 1 KB of data and 32-byte blocks, but use 32, 16, and 8 sets respectively. Their conflict patterns differ even at equal capacity, so one tile size is not universally best. The dispatcher selects measured blocked or scalar-row approaches for several sizes and profiles; every branch still performs the correct transpose.',
-        'sources': ['cse320/CACHE_HW/README.md (Cache Configurations; Hints)', 'cse320/CACHE_HW/src/trans.c', 'cse320/CACHE_HW/ROADMAP.md (Phases 6–7)'],
+    'What must transpose_submit() produce, and how do M and N describe the dimensions of A and B?': {
+        'subcategory': 'Transpose correctness',
+        'answer': 'For an N-row, M-column input A, it must fill an M-row, N-column output B so that B[j][i] equals A[i][j]. M is the column count of A and N is its row count.',
+        'explanation': 'The output is written into B; the function has no return value.',
+        'sources': ['cse320/CACHE_HW_ORIGINAL/README.md (Part B Task; Required Function)', 'cse320/CACHE_HW_ORIGINAL/src/trans.c'],
     },
-    'What extra cache conflict can occur when transposing a square matrix near its diagonal, and how does the implementation limit it?': {
-        'subcategory': 'Part B conflicts',
-        'answer': 'A source line and its destination line can map to the same cache set and evict one another. The general blocked path delays a diagonal store until after the relevant source row has been read; the 64-by-64 path uses staged values to reduce stronger conflicts.',
-        'explanation': 'Correctness requires writing the same B element eventually, but the timing of that write affects whether the source line remains cached. Holding one diagonal value in a scalar permits the rest of its source row to be consumed first. For the particularly conflict-prone 64-by-64 case, the implementation divides each tile into subregions and temporarily stages values in B while rearranging them into final positions. The idea is ordering for locality, not extra mathematical work.',
-        'sources': ['cse320/CACHE_HW/README.md (Part B Hints)', 'cse320/CACHE_HW/src/trans.c', 'cse320/CACHE_HW/ROADMAP.md (Phase 6)'],
+    'Why can a row-wise transpose cause many cache misses, and how do tiling and read/write order reduce conflicts?': {
+        'subcategory': 'Transpose locality',
+        'answer': 'Reading across a row of A is contiguous, but writing the corresponding values to B jumps between rows and can displace useful cache lines. Tiling works on a small region while its lines remain useful; delaying conflicting writes lets source values be read before their lines are evicted.',
+        'explanation': 'The blocked implementation delays diagonal stores in square tiles, where A and B can compete for the same set.',
+        'sources': ['cse320/CACHE_HW_ORIGINAL/README.md (Part B Hints)', 'cse320/CACHE_HW_NEW/src/trans.c'],
+    },
+    'Why might transpose_submit() use different strategies for different matrix shapes and cache configurations?': {
+        'subcategory': 'Transpose strategy',
+        'answer': 'Matrix dimensions change access patterns, while the three graded cache configurations have different numbers of sets and ways. That changes which A and B lines compete, so one tile shape or access order need not give the fewest misses in every case.',
+        'explanation': 'The implementation selects a strategy using matrix dimensions and trans_cache_profile.',
+        'sources': ['cse320/CACHE_HW_ORIGINAL/README.md (Cache Configurations; Part B Hints)', 'cse320/CACHE_HW_NEW/src/trans.c'],
+    },
+    'How does transpose_submit() handle a partial tile when the matrix dimensions are not multiples of the tile size?': {
+        'subcategory': 'Transpose edge cases',
+        'answer': 'It limits the last tile in each direction to the remaining rows and columns, then transposes only the valid elements in that smaller region.',
+        'explanation': 'The blocked path uses the matrix bounds for bottom and right edge tiles, preserving B[j][i] = A[i][j] for rectangular sizes.',
+        'sources': ['cse320/CACHE_HW_ORIGINAL/README.md (Part B Task; Test Cases)', 'cse320/CACHE_HW_NEW/src/trans.c'],
     },
 }

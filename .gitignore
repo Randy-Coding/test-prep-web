@@ -2,5 +2,5 @@ __pycache__/
 *.pyc
 dist/
 .vercel/
-CACHE_HW/
-MP3_HW/
+CACHE_HW*/
+MP3_HW*/
