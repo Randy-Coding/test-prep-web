@@ -29,9 +29,16 @@ def normalize_question(question, answer):
     choices = answer.get("choices")
     correct = answer.get("correct_answer")
     if choices is None and correct is None:
+        answer_text = str(answer.get("answer", answer.get("explanation", "")))
+        explanation = str(answer.get("explanation", ""))
+        if explanation and "answer" in answer:
+            answer_text = f"{answer_text}\n\nExplanation: {explanation}".strip()
+        sources = answer.get("sources", [])
+        if sources:
+            answer_text += "\n\nInspect: " + "; ".join(str(source) for source in sources)
         record = {
             "question": str(question),
-            "answer": str(answer.get("answer", answer.get("explanation", ""))),
+            "answer": answer_text,
         }
         if answer.get("image"):
             record["image"] = f"/assets/cse320/{quote(image_name(answer['image']))}"

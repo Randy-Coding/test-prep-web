@@ -5,6 +5,8 @@ let session = [];
 let missed = [];
 let position = 0;
 let score = 0;
+let grades = [];
+let revealedQuestions = [];
 let mode = 'exam';
 let view = 'setup';
 let revealed = false;
@@ -14,13 +16,13 @@ const STORAGE_KEY = 'test-prep-web-state-v1';
 
 function save() {
   if ((view === 'exam' || view === 'results') && session.length) {
-    snapshots.exam = { view, session, missed, position, score, revealed };
+    snapshots.exam = { view, session, missed, position, score, grades, revealedQuestions, revealed };
   } else if (view === 'flashcards' && session.length) {
     snapshots.flashcards = { view, session, position, flipped };
   }
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      mode, view, session, missed, position, score, revealed, flipped,
+      mode, view, session, missed, position, score, grades, revealedQuestions, revealed, flipped,
       snapshots,
       bank: $('bank').value, topics: checked('topics'),
       chunkSize: $('chunk-size').value, chunks: checked('chunks')
@@ -44,6 +46,43 @@ function shuffle(items) {
 
 function checked(container) {
   return [...$(container).querySelectorAll('input:checked')].map((input) => input.value);
+}
+
+function restoreGrades(state) {
+  if (Array.isArray(state.grades) && state.grades.length === session.length) {
+    return state.grades.map((grade) => grade === true ? true : grade === false ? false : null);
+  }
+  const restored = Array(session.length).fill(null);
+  const previouslyMissed = new Set((state.missed || []).map((item) => item.question));
+  const completedCount = Math.min(Number.isInteger(state.position) ? state.position : 0, session.length);
+  for (let index = 0; index < completedCount; index++) {
+    restored[index] = !previouslyMissed.has(session[index].question);
+  }
+  return restored;
+}
+
+function restoreRevealedQuestions(state) {
+  let restored;
+  if (Array.isArray(state.revealedQuestions) && state.revealedQuestions.length === session.length) {
+    restored = state.revealedQuestions.map((wasRevealed, index) => {
+      const legacyInconclusive = Array.isArray(state.completed)
+        && state.completed[index]
+        && Array.isArray(state.grades)
+        && state.grades[index] === null;
+      return Boolean(wasRevealed) && !legacyInconclusive;
+    });
+  } else {
+    restored = grades.map((grade) => grade !== null);
+  }
+  if (state.revealed && state.position >= 0 && state.position < restored.length) {
+    restored[state.position] = true;
+  }
+  return restored;
+}
+
+function updateGradeSummary() {
+  score = grades.filter((grade) => grade === true).length;
+  missed = session.filter((_, index) => grades[index] === false);
 }
 
 function show(nextView) {
@@ -90,7 +129,9 @@ function navigate(target) {
     renderCard();
   } else if (target === 'exam') {
     missed = state.missed || [];
-    score = state.score || 0;
+    grades = restoreGrades(state);
+    revealedQuestions = restoreRevealedQuestions(state);
+    updateGradeSummary();
     revealed = Boolean(state.revealed);
     if (state.view === 'results') finish();
     else if (position < session.length) { show('exam'); renderQuestion(); }
@@ -294,9 +335,10 @@ function renderChoices(item, container, showCorrect = false) {
 
 function renderQuestion() {
   const item = session[position];
+  const graded = grades.filter((grade) => grade !== null).length;
   $('progress').textContent = `Question ${position + 1} of ${session.length}`;
-  $('score').textContent = `Score ${score}/${position}`;
-  $('progress-fill').style.width = `${position / session.length * 100}%`;
+  $('score').textContent = `Score ${score}/${graded}`;
+  $('progress-fill').style.width = `${(position + 1) / session.length * 100}%`;
   renderFormatted(item.question, $('question'));
   renderImage(item, $('question-image'));
   renderImageLink(item, $('question-image-link'));
@@ -311,6 +353,8 @@ function begin(items) {
   missed = [];
   position = 0;
   score = 0;
+  grades = Array(session.length).fill(null);
+  revealedQuestions = Array(session.length).fill(false);
   revealed = false;
   show('exam');
   renderQuestion();
@@ -338,6 +382,45 @@ function flipCard() {
   save();
 }
 
+function revealExamAnswer() {
+  if (revealed) return;
+  revealed = true;
+  revealedQuestions[position] = true;
+  renderQuestion();
+  save();
+}
+
+function moveCard(step) {
+  const next = position + step;
+  if (next < 0 || next >= session.length) return;
+  position = next;
+  flipped = false;
+  renderCard();
+  save();
+}
+
+function moveExam(step) {
+  if (step > 0 && revealed && grades[position] === null) {
+    grades[position] = false;
+    updateGradeSummary();
+    if (grades.every((grade) => grade !== null)) {
+      finish();
+      save();
+      return;
+    }
+  }
+
+  const next = position + step;
+  if (next < 0 || next >= session.length) {
+    save();
+    return;
+  }
+  position = next;
+  revealed = revealedQuestions[position];
+  renderQuestion();
+  save();
+}
+
 function beginCards(items) {
   session = shuffle(items);
   position = 0;
@@ -348,16 +431,22 @@ function beginCards(items) {
 }
 
 function finish() {
+  updateGradeSummary();
+  const graded = grades.filter((grade) => grade !== null).length;
+  const reviewItems = session.filter((_, index) => grades[index] === false);
   show('results');
-  $('result-title').textContent = missed.length ? 'Keep going.' : 'You did it!';
-  $('result-score').textContent = `Final score: ${score}/${session.length} (${Math.round(score / session.length * 100)}%)`;
-  $('retry').hidden = missed.length === 0;
+  $('result-title').textContent = reviewItems.length ? 'Keep going.' : 'You did it!';
+  $('result-score').textContent = graded
+    ? `Final score: ${score}/${graded} (${Math.round(score / graded * 100)}%)`
+    : 'No questions were graded.';
+  $('retry').hidden = reviewItems.length === 0;
+  $('retry').onclick = () => begin(reviewItems);
   $('missed').replaceChildren();
-  if (missed.length) {
+  if (reviewItems.length) {
     const heading = document.createElement('h3');
-    heading.textContent = `Questions you missed (${missed.length})`;
+    heading.textContent = `Questions you missed (${reviewItems.length})`;
     $('missed').append(heading);
-    missed.forEach((item) => {
+    reviewItems.forEach((item) => {
       const row = document.createElement('div');
       row.className = 'missed-item';
       const q = document.createElement('div');
@@ -393,12 +482,20 @@ function finish() {
 }
 
 function grade(correct) {
-  if (correct) score++;
-  else missed.push(session[position]);
-  position++;
+  grades[position] = correct;
+  revealedQuestions[position] = true;
+  updateGradeSummary();
   revealed = false;
-  if (position === session.length) finish();
-  else renderQuestion();
+  if (grades.every((grade) => grade !== null)) {
+    finish();
+  } else {
+    let next = position;
+    do { next = (next + 1) % session.length; }
+    while (grades[next] !== null);
+    position = next;
+    revealed = revealedQuestions[position];
+    renderQuestion();
+  }
   save();
 }
 
@@ -442,20 +539,48 @@ $('start').addEventListener('click', () => {
   if (mode === 'exam') begin(items);
   else beginCards(items);
 });
-$('reveal').addEventListener('click', () => {
-  revealed = true;
-  renderQuestion();
-  save();
-});
+$('reveal').addEventListener('click', revealExamAnswer);
 $('correct').addEventListener('click', () => grade(true));
 $('incorrect').addEventListener('click', () => grade(false));
-$('retry').addEventListener('click', () => begin(missed));
 $('restart').addEventListener('click', () => show('setup'));
 $('back-setup').addEventListener('click', () => show('setup'));
 $('flash-card').addEventListener('click', flipCard);
-$('previous-card').addEventListener('click', () => { if (position > 0) { position--; flipped = false; renderCard(); save(); } });
-$('next-card').addEventListener('click', () => { if (position < session.length - 1) { position++; flipped = false; renderCard(); save(); } });
+$('previous-card').addEventListener('click', () => moveCard(-1));
+$('next-card').addEventListener('click', () => moveCard(1));
 $('shuffle-cards').addEventListener('click', () => { session = shuffle(session); position = 0; flipped = false; renderCard(); save(); });
+
+document.addEventListener('keydown', (event) => {
+  if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+  const target = event.target;
+  if (target instanceof Element && target.closest('input, select, textarea, [contenteditable="true"]')) return;
+
+  if (event.key === 'Enter' || event.key === ' ') {
+    if (target instanceof Element && target.closest('button, a')) return;
+    if (view === 'exam') {
+      event.preventDefault();
+      if (revealed) grade(true);
+      else revealExamAnswer();
+    } else if (view === 'flashcards' && !flipped) {
+      event.preventDefault();
+      flipped = true;
+      renderCard();
+      save();
+    }
+    return;
+  }
+
+  if (event.key === 'ArrowLeft') {
+    if (view !== 'exam' && view !== 'flashcards') return;
+    event.preventDefault();
+    if (view === 'exam') moveExam(-1);
+    else moveCard(-1);
+  } else if (event.key === 'ArrowRight') {
+    if (view !== 'exam' && view !== 'flashcards') return;
+    event.preventDefault();
+    if (view === 'exam') moveExam(1);
+    else moveCard(1);
+  }
+});
 
 fetch('/banks.json').then((response) => {
   if (!response.ok) throw new Error('Could not load question banks.');
@@ -487,7 +612,9 @@ fetch('/banks.json').then((response) => {
       session = state.session;
       missed = Array.isArray(state.missed) ? state.missed : [];
       position = state.position;
-      score = Number.isInteger(state.score) ? state.score : 0;
+      grades = restoreGrades(state);
+      revealedQuestions = restoreRevealedQuestions(state);
+      updateGradeSummary();
       revealed = Boolean(state.revealed);
       flipped = Boolean(state.flipped);
       if (state.view === 'exam' && position < session.length) { show('exam'); renderQuestion(); }

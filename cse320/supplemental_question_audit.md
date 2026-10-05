@@ -1,10 +1,10 @@
 # Individual supplemental question audit
 
-Completed October 3, 2026. All 72 original Supplemental Practice questions were reviewed individually against the existing bank and the review transcript. Five were retained in Review Audit; 67 were removed from the active bank. Supplemental Practice is empty. Review Audit now contains 41 questions; the bank contains 145 total.
+Completed October 3, 2026. All 72 original Supplemental Practice questions were reviewed individually against the existing bank and the review transcript. Five were retained in the MT1 review collection; 67 were removed from the active bank. Supplemental Practice is empty. After the subsequent question-by-question audit removed four duplicates, `MT1_review_session` contains 37 questions. Those questions are also distributed into the four chapter topics.
 
 Entry standard: retain a source-supported question when it tests a meaningful missing distinction or a substantially different code-analysis skill. Remove close variants, solution subparts, inverses of existing tradeoffs, and elementary questions generated from explanatory tables. Broad topic overlap alone is not a match: the decisions below identify the corresponding skill, prompt or subpart, or explain why the item is only extra practice. This audit is confined to the 72 supplemental items; it does not reclassify the original sections or the 36 earlier Review Audit questions. HW1, HW2 and GREP remain deferred.
 
-Numbers refer to dictionary insertion order within each named section. Original supplemental numbers below are frozen before removal; retained Review Audit questions are appended as #37–41. Existing source-inventory links remain valid.
+Numbers refer to dictionary insertion order at the time of this audit. Original supplemental numbers and the historical Review Audit #37–41 labels below are frozen decision-ledger references; the retained questions now appear in `MT1_review_session` and their appropriate chapter topics.
 
 | Original supplemental # | Question / skill | Decision and evidence |
 | --- | --- | --- |

@@ -2,9 +2,9 @@
 
 The earlier 108-question inventory incorrectly treated explanatory tables, demonstrations, and intermediate solution steps as separate review questions. This inventory counts explicit prompts and concrete worked exercises. It groups subparts of one exercise together and does not count its solution page again.
 
-**Review Audit: 41 questions** — 13 grouped worked exercises, 16 explicit concept prompts, the Assertion definition, and six questions covering exam topics without a close or exact match in the committed bank. Five further questions were retained after individually auditing supplemental practice: independent accumulators, compulsory misses, capacity misses, floating-point rounding, and dead-store elimination. The other 18 definition warm-ups reuse existing questions for the same word. Close matches do not replace the 29 substantive review exercises/prompts.
+**MT1_review_session: 37 questions** — 10 added grouped worked exercises, 15 added explicit concept prompts, the Assertion definition, and six questions covering exam topics without a close or exact match in the committed bank. Each question is also distributed into Cache, Physical Memory, Basic Code, or General Concepts so it can be studied with its chapter. The page 25 cache-capacity exercise is covered by the stronger page 26 capacity question. The aliased-pointer exercise on PDF page 49, the repeated-read aliasing prompt on page 66, and the HDD access-time exercise on page 81 reuse existing committed questions instead of adding duplicates. Five further questions were retained after individually auditing supplemental practice: independent accumulators, compulsory misses, capacity misses, floating-point rounding, and dead-store elimination. The other 18 definition warm-ups reuse existing questions for the same word. Together, the added, combined, and reused questions cover the 29 substantive review exercises/prompts.
 
-**Supplemental Practice: 0 questions** — all 72 former items received an individual decision: five retained in Review Audit and 67 removed. See the [72-item decision ledger](supplemental_question_audit.md) for specific matches, subparts, and extra-practice reasons. The original four committed sections retain all 104 questions unchanged. Total bank is 145. HW1, HW2, and GREP lab are deferred.
+**Supplemental Practice: 0 questions** — all 72 former items received an individual decision: five retained in MT1_review_session and 67 removed. See the [72-item decision ledger](supplemental_question_audit.md) for specific matches, subparts, and extra-practice reasons. The four chapter sections contain 141 unique questions after distribution. MT1_review_session provides a 37-question review copy of questions already present in those chapters. HW1, HW2, and GREP lab are deferred.
 
 ## Exam-topic coverage missing from the committed bank (6 additional questions)
 
@@ -26,29 +26,29 @@ The initial broad topic check identified existing coverage of cache lookup/addre
 | PDF page | Exercise | Bank entry |
 | --- | --- | --- |
 | 24 | a[0], a[8], a[16]: hit/miss sequence and loaded block | [Question](../question_banks/CSE320.py#L632) |
-| 25 | Cache capacity: 4 sets, 2 lines/set, 8-byte blocks | [Question](../question_banks/CSE320.py#L640) |
+| 25 | Cache capacity: 4 sets, 2 lines/set, 8-byte blocks | Covered by the retained page 26 capacity question |
 | 26 | Cache capacity: 8 sets, 4 lines/set, 32-byte blocks | [Question](../question_banks/CSE320.py#L647) |
 | 32 | Cache #1 lookup of 0x1D | [Question](../question_banks/CSE320.py#L654) |
-| 33 | Cache #2 lookup of 0x69 | [Question](../question_banks/CSE320.py#L662) |
+| 33 | Cache #2 lookup modeled on the 0x69 review exercise | [Question](../question_banks/CSE320.py#L662) |
 | 37 | Matrix multiplication: misses per inner iteration and miss rate | [Question](../question_banks/CSE320.py#L670) |
 | 42–43 | Three-level average memory access time | [Question](../question_banks/CSE320.py#L677) |
 | 48 | Track the {3,5,7} pointer program | [Question](../question_banks/CSE320.py#L684) |
-| 49 | Aliased pointers: write 25 through q, read through p | [Question](../question_banks/CSE320.py#L691) |
+| 49 | Aliased pointers: write through one pointer, read through another | [Existing question](../question_banks/CSE320.py#L351) |
 | 53 | Is replacing y*3 with y<<3 correct? | [Question](../question_banks/CSE320.py#L698) |
 | 57–58 | Replace output-pointer accumulation with a local accumulator | [Question](../question_banks/CSE320.py#L705) |
 | 57, 59 | Move next_value() outside the loop | [Question](../question_banks/CSE320.py#L712) |
-| 81 | HDD access time: 6,000 RPM, 6 ms seek, 500 sectors/track | [Question](../question_banks/CSE320.py#L719) |
+| 81 | HDD access time: 6,000 RPM, 6 ms seek, 500 sectors/track | [Existing equivalent question](../question_banks/CSE320.py#L275) |
 
-## Explicit concept prompts (16)
+## Explicit concept prompts (16 source prompts; 15 added questions)
 
 | PDF page | Source prompt | Bank entry |
 | --- | --- | --- |
 | 61 | What is the difference between p, *p, and &p when p is a pointer? | [Question](../question_banks/CSE320.py#L726) |
-| 62 | How does p++ differ from (*p)++? Does incrementing a pointer always move it forward by one byte? | [Question](../question_banks/CSE320.py#L733) |
+| 62 | Does incrementing a pointer with p++ always move it forward by one byte? | [Question](../question_banks/CSE320.py#L733) |
 | 63 | When a function receives a pointer argument, can it modify the caller data? Can assigning a new address to that parameter change the caller pointer? | [Question](../question_banks/CSE320.py#L740) |
 | 64 | Does a pointer being non-NULL guarantee that it is safe to dereference? | [Question](../question_banks/CSE320.py#L747) |
-| 65 | What is memory aliasing? Does copying one pointer into another create a separate copy of the pointed-to data? | [Question](../question_banks/CSE320.py#L754) |
-| 66 | A program reads through p, writes through q, and then reads through p again. Why might the compiler need to repeat the read? | [Question](../question_banks/CSE320.py#L761) |
+| 65 | Does copying one pointer into another create a separate copy of the pointed-to data? | [Question](../question_banks/CSE320.py#L754) |
+| 66 | A program reads through p, writes through q, and then reads through p again. Why might the compiler need to repeat the read? | [Existing question](../question_banks/CSE320.py#L361) |
 | 67 | Why can replacing repeated writes through an output pointer with a local accumulator change a program result? | [Question](../question_banks/CSE320.py#L768) |
 | 68 | If an input pointer is declared const int *a, can the compiler assume that the values in the array never change? | [Question](../question_banks/CSE320.py#L775) |
 | 69 | What is the difference between spatial locality and temporal locality? | [Question](../question_banks/CSE320.py#L782) |

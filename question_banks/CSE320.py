@@ -605,22 +605,16 @@ questions["General Concepts"].update({
     },
 })
 
-# Direct review questions and missing exam-topic coverage, pending audit.
+# Audited MT1 review-session questions. These are also distributed into the
+# chapter topics below so they can be studied either by chapter or as one review.
 
-questions['Review Audit'] = {
+questions['MT1_review_session'] = {
     'An int is 4 bytes, cache blocks are 64 bytes, a[0] begins a cache block, and the cache starts empty. Read a[0], then a[8], then a[16], with no intervening evictions. What is the hit/miss sequence? Which elements are loaded by the first read?': {
         'subcategory': 'Address mapping',
-        'choices': {'A': 'Hit, hit, miss; first read loads a[0] through a[15]', 'B': 'Miss, miss, miss; first read loads a[0] through a[15]', 'C': 'Miss, hit, miss; first read loads a[0] through a[15]', 'D': 'Miss, hit, hit; first read loads a[0] through a[15]'},
+        'choices': {'A': 'Miss, hit, miss; first read loads a[0] through a[7]', 'B': 'Miss, miss, miss; first read loads a[0] through a[15]', 'C': 'Miss, hit, miss; first read loads a[0] through a[15]', 'D': 'Miss, hit, hit; first read loads a[0] through a[16]'},
         'correct_answer': 'C',
         'explanation': 'One block holds 16 ints. Reading a[0] misses and loads a[0] through a[15]. a[8] hits; a[16] is in the next block and misses.',
         'source': 'CSE_320_MT1_Review_Session.pdf pp24; midterm_review_transcript.txt',
-    },
-    'A cache has 4 sets, 2 lines per set, and 8-byte blocks. How many data bytes does it hold?': {
-        'subcategory': 'Address-field interpretation',
-        'choices': {'A': '16 bytes', 'B': '64 bytes', 'C': '128 bytes', 'D': '32 bytes'},
-        'correct_answer': 'B',
-        'explanation': 'C=S*E*B=4*2*8=64 data bytes. Address width does not multiply the data capacity.',
-        'source': 'CSE_320_MT1_Review_Session.pdf pp25; midterm_review_transcript.txt',
     },
     'A cache has 8 sets, 4 lines per set, and 32-byte blocks in a system with 32-bit addresses. How many data bytes does it hold?': {
         'subcategory': 'Address-field interpretation',
@@ -629,7 +623,7 @@ questions['Review Audit'] = {
         'explanation': 'C=S*E*B=8*4*32=1024 data bytes. Address width does not multiply the data capacity.',
         'source': 'CSE_320_MT1_Review_Session.pdf pp26; midterm_review_transcript.txt',
     },
-    'Use Cache #1 in the image. For the 6-bit byte address 0x1D, which cache block is selected, and is the read a hit?': {
+    'Use Cache #1 in the image. For the 6-bit byte address 0x1D, which cache block and byte offset are selected, and is the read a hit?': {
         'subcategory': 'Address mapping',
         'choices': {'A': 'Block 1; hit; offset 3', 'B': 'Block 3; miss; offset 1', 'C': 'Block 3; hit; offset 1', 'D': 'Block 2; hit; offset 1'},
         'correct_answer': 'C',
@@ -637,17 +631,17 @@ questions['Review Audit'] = {
         'source': 'CSE_320_MT1_Review_Session.pdf p32; midterm_review_transcript.txt lines 250-259; 6.1 Caches.pptx slides 8-11',
         'image': 'cse320/Cache Diagram.png',
     },
-    'Use Cache #2 in the image. Express 0x69 as a 7-bit byte address. Which block number and byte offset apply if the read hits?': {
+    'Use Cache #2 in the image. Express 0x35 as a 7-bit byte address. Which block number and byte offset apply if the read hits?': {
         'subcategory': 'Address mapping',
-        'choices': {'A': 'Block 4, offset 1', 'B': 'Block 5, offset 1', 'C': 'Block 5, offset 2', 'D': 'Block 2, offset 1'},
-        'correct_answer': 'B',
-        'explanation': '0x69 is 01101001 in eight bits; the extra leading zero can be dropped to fit the seven-bit address space. The fields are 110/10/01: tag 6, set 2, offset 1. Valid block number 5 has tag 6.',
+        'choices': {'A': 'Block 2, offset 1', 'B': 'Block 3, offset 1', 'C': 'Block 2, offset 3', 'D': 'Block 1, offset 1'},
+        'correct_answer': 'A',
+        'explanation': '0x35 is 00110101 in eight bits; the extra leading zero can be dropped to fit the seven-bit address space. The fields are 011/01/01: tag 3, set 1, offset 1. Valid block number 2 has tag 3, so the read hits.',
         'source': 'CSE_320_MT1_Review_Session.pdf p33; midterm_review_transcript.txt lines 262-273; 6.1 Caches.pptx slides 12-14',
         'image': 'cse320/Cache Diagram.png',
     },
-    'Consider the complete matrix-multiplication example from the review:\n```c\nfor (i = 0; i < n; i++) {\n    for (j = 0; j < n; j++) {\n        double sum = 0;\n        for (k = 0; k < n; k++) {\n            sum += A[i][k] * B[k][j];\n        }\n        C[i][j] = sum;\n    }\n}\n```\nAssume row-major storage, 64-byte aligned blocks, 8-byte doubles, very large n divisible by 8, no useful column reuse, no interference between the current A block and B accesses, and each sequential block retained until consumed. Ignore O(1/n) effects and count only the two array reads per inner iteration. What are approximate misses per inner iteration and the miss rate?': {
+    'Consider the complete matrix-multiplication example from the review:\n```c\nfor (i = 0; i < n; i++) {\n    for (j = 0; j < n; j++) {\n        double sum = 0;\n        for (k = 0; k < n; k++) {\n            sum += A[i][k] * B[k][j];\n        }\n        C[i][j] = sum;\n    }\n}\n```\nUse the review\'s cache model: each 64-byte block holds eight doubles, an A[i][k] block remains cached for its eight consecutive accesses, and every B[k][j] access misses. Count only the reads of A and B. What are the approximate misses per inner-loop iteration and the miss rate?': {
         'subcategory': 'Program cache hit/miss',
-        'choices': {'A': '9/8 misses; 56.25% miss rate', 'B': '9/8 misses; 112.5% miss rate', 'C': '1/8 misses; 6.25% miss rate', 'D': '2 misses; 100% miss rate'},
+        'choices': {'A': '9/8 misses; 56.25% miss rate', 'B': '1 miss; 50% miss rate', 'C': '1/8 miss; 6.25% miss rate', 'D': '2 misses; 100% miss rate'},
         'correct_answer': 'A',
         'explanation': 'A[i][k] is sequential, giving one miss per eight doubles (1/8). B[k][j] advances by a row and has one miss per read under the stated model. Total misses per iteration are 1/8+1=9/8. There are two reads, so the miss fraction is (9/8)/2=9/16=56.25%. Misses per iteration and misses per access have different denominators.',
         'source': 'CSE_320_MT1_Review_Session.pdf p37; midterm_review_transcript.txt',
@@ -665,13 +659,6 @@ questions['Review Audit'] = {
         'correct_answer': 'D',
         'explanation': 'Copying p into q copies the address of a[0]. Incrementing p moves only p to a[1]. The write through q adds a[1]=5 to a[0]=3, producing 8. (*p)++ then changes a[1] from 5 to 6.',
         'source': 'CSE_320_MT1_Review_Session.pdf pp47-48; midterm_review_transcript.txt lines 479-506; 5. Optimizations and Profiling.pptx slides 35-36',
-    },
-    'Assume <stdio.h> is included. What does this review code print?\n```c\nint x = 10;\nint *p = &x;\nint *q = &x;\n*q = 25;\nprintf("%d\\n", *p);\n```': {
-        'subcategory': 'Code concepts',
-        'choices': {'A': '10', 'B': 'The address of x', 'C': 'An unspecified value', 'D': '25'},
-        'correct_answer': 'D',
-        'explanation': 'Both pointers refer to x. Writing 25 through q changes the same object later read through p.',
-        'source': 'CSE_320_MT1_Review_Session.pdf pp49; midterm_review_transcript.txt',
     },
     'For the review code int y=10; int x=y*3;, would replacing y*3 with y<<3 be correct, and what values do the two expressions produce?': {
         'subcategory': 'Code concepts',
@@ -694,54 +681,38 @@ questions['Review Audit'] = {
         'explanation': 'The original first loop still leaves *out=a[1]=5. The hoisted call executes once, returns 1, and leaves calls=1. Adding that value three times gives extra=3, result=8. The output is 8 5 1. Both the return-value sequence and the global side effect differ from the original.',
         'source': 'CSE_320_MT1_Review_Session.pdf pp57, 59; midterm_review_transcript.txt lines 621-639; 5. Optimizations and Profiling.pptx slides 23, 28-34',
     },
-    'An HDD rotates at 6,000 RPM, has 6 ms average seek time and 500 sectors per track. Under the review one-sector model, what is average access time?': {
-        'subcategory': 'HDD access time',
-        'choices': {'A': '16.02 ms', 'B': '11.02 ms', 'C': '6.02 ms', 'D': '11.2 ms'},
-        'correct_answer': 'B',
-        'explanation': 'Seek + average rotational latency + transfer = 6+5+0.02=11.02 ms.',
-        'source': 'CSE_320_MT1_Review_Session.pdf pp81; midterm_review_transcript.txt',
-    },
     'What is the difference between p, *p, and &p when p is a pointer?': {
         'subcategory': 'Concept',
-        'choices': {'A': 'p stores the target address, *p accesses that object, and &p is the address of the pointer variable', 'B': 'All three are the same address', 'C': 'p is the pointed-to value and *p is the pointer address', 'D': '&p is always NULL'},
-        'correct_answer': 'A',
-        'explanation': 'The pointer variable and its target occupy separate storage. Dereferencing uses the address stored in p.',
+        'answer': 'p is the address stored in the pointer, *p accesses the object at that address, and &p is the address of the pointer variable itself. For example, after int x = 5; int *p = &x;, p holds the address of x, *p is 5, and &p is the address where the pointer p is stored.',
         'source': 'CSE_320_MT1_Review_Session.pdf pp61; midterm_review_transcript.txt',
     },
-    'How does p++ differ from (*p)++? Does incrementing a pointer always move it forward by one byte?': {
+    'Does incrementing a pointer with p++ always move it forward by one byte?': {
         'subcategory': 'Concept',
-        'choices': {'A': 'Both increment the target value and neither changes p', 'B': 'p++ advances by one element of the pointed-to type; (*p)++ increments the pointed-to value without moving p', 'C': 'p++ always advances one byte and (*p)++ moves by two bytes', 'D': 'Both always move the pointer'},
-        'correct_answer': 'B',
-        'explanation': 'Pointer arithmetic scales by the pointed-to type. An int* advances four bytes when an int is four bytes. (*p)++ increments the object. The different expression *p++ means *(p++).',
+        'choices': {'A': 'Yes; int* and char* both advance by one byte', 'B': 'Yes; all pointer types use one-byte steps regardless of type', 'C': 'No; if int is four bytes, an int* advances four bytes', 'D': 'No; every pointer advances by its own storage size'},
+        'correct_answer': 'C',
+        'explanation': 'p++ moves p to the next element of its pointed-to type, so the address changes by sizeof(*p). For example, if p is an int* holding address 1000 and an int is four bytes, p++ changes the address to 1004. A char* at address 1000 would advance to 1001 because sizeof(char) is one byte.',
         'source': 'CSE_320_MT1_Review_Session.pdf pp62; midterm_review_transcript.txt',
     },
     'When a function receives a pointer argument, can it modify the caller data? Can assigning a new address to that parameter change the caller pointer?': {
         'subcategory': 'Concept',
-        'choices': {'A': 'Neither operation can affect anything in the caller', 'B': 'Both operations always change the caller pointer', 'C': 'Dereferencing can modify caller data; reassigning the local parameter does not change the caller pointer variable', 'D': 'Reassigning the parameter changes the caller pointer but dereferencing cannot modify data'},
+        'choices': {'A': 'Caller data: no; caller pointer: yes', 'B': 'Caller data: yes; caller pointer: yes', 'C': 'Caller data: yes; caller pointer: no', 'D': 'Caller data: no; caller pointer: no'},
         'correct_answer': 'C',
         'explanation': 'The function receives a copy of the pointer value. To change the caller pointer itself it needs access to that variable, commonly via a pointer to a pointer.',
         'source': 'CSE_320_MT1_Review_Session.pdf pp63; midterm_review_transcript.txt',
     },
     'Does a pointer being non-NULL guarantee that it is safe to dereference?': {
         'subcategory': 'Concept',
-        'choices': {'A': 'Yes, every non-NULL pointer is valid', 'B': 'Yes, unless its type is char*', 'C': 'Yes, freeing memory sets every pointer to NULL', 'D': 'No; it may refer outside a valid object or to an object whose lifetime ended'},
+        'choices': {'A': 'Yes; non-NULL always identifies a live object', 'B': 'Yes; non-NULL guarantees the address is readable', 'C': 'No; only pointers returned by malloc are safe to dereference', 'D': 'No; it may be dangling or outside a valid object'},
         'correct_answer': 'D',
         'explanation': 'Non-NULL is insufficient. Dangling, out-of-bounds, or improperly initialized pointers may not be valid to dereference; free does not clear all aliases.',
         'source': 'CSE_320_MT1_Review_Session.pdf pp64; midterm_review_transcript.txt',
     },
-    'What is memory aliasing? Does copying one pointer into another create a separate copy of the pointed-to data?': {
+    'Does copying one pointer into another create a separate copy of the pointed-to data?': {
         'subcategory': 'Concept',
-        'choices': {'A': 'Aliasing means multiple references access one location; pointer copying copies the address, not the data', 'B': 'Aliasing means different locations hold equal values; pointer copying duplicates the entire object', 'C': 'Aliasing is a linker error; pointer copying is forbidden', 'D': 'Aliasing occurs only when the pointer variable itself is copied by memcpy'},
+        'choices': {'A': 'No; it copies the address, so both pointers can refer to the same data', 'B': 'Yes; it duplicates the pointed-to object at a new address', 'C': 'No; the second pointer remains NULL until data is assigned to it', 'D': 'Yes; every pointer assignment performs a complete data copy'},
         'correct_answer': 'A',
         'explanation': 'A copied pointer can refer to the same object, so changes through either pointer can be observed through the other.',
         'source': 'CSE_320_MT1_Review_Session.pdf pp65; midterm_review_transcript.txt',
-    },
-    'A program reads through p, writes through q, and then reads through p again. Why might the compiler need to repeat the read?': {
-        'subcategory': 'Concept',
-        'choices': {'A': 'The first read permanently invalidates the pointer', 'B': 'p and q might alias, so the write can change the value later read through p', 'C': 'Every compiler must reload every variable regardless of proof', 'D': 'The linker relocates p between the two reads'},
-        'correct_answer': 'B',
-        'explanation': 'When p and q may refer to one object, the second read may differ. Reusing the first value is safe only if equivalent behavior can be established.',
-        'source': 'CSE_320_MT1_Review_Session.pdf pp66; midterm_review_transcript.txt',
     },
     'Why can replacing repeated writes through an output pointer with a local accumulator change a program result?': {
         'subcategory': 'Concept',
@@ -752,8 +723,8 @@ questions['Review Audit'] = {
     },
     'If an input pointer is declared const int *a, can the compiler assume that the values in the array never change?': {
         'subcategory': 'Concept',
-        'choices': {'A': 'Yes, const makes every alias read-only', 'B': 'Yes, const means the array occupies ROM', 'C': 'Yes, arrays never alias output pointers', 'D': 'No; another pointer may modify the underlying writable data'},
-        'correct_answer': 'D',
+        'choices': {'A': 'Yes; const makes the underlying array immutable everywhere', 'B': 'Yes; const guarantees that no writable alias can exist', 'C': 'No; const blocks writes through a, not through other aliases', 'D': 'No; const affects pointer reassignment, not access through a'},
+        'correct_answer': 'C',
         'explanation': 'The declaration restricts writes through a, not through every other pointer. It does not establish separate storage or global immutability.',
         'source': 'CSE_320_MT1_Review_Session.pdf pp68; midterm_review_transcript.txt',
     },
@@ -766,51 +737,51 @@ questions['Review Audit'] = {
     },
     'Why does sequential array traversal usually have better spatial locality than linked-list traversal? Does using an array automatically guarantee good locality?': {
         'subcategory': 'Concept',
-        'choices': {'A': 'Linked lists are always adjacent and arrays are scattered', 'B': 'Array elements are contiguous, but large strides or widely separated accesses can still give poor locality', 'C': 'Every array access pattern has optimal spatial locality', 'D': 'Arrays always have fewer arithmetic operations'},
+        'choices': {'A': 'Linked-list nodes are contiguous, while array elements usually are not', 'B': 'Array elements are contiguous, but large strides can still waste blocks', 'C': 'Arrays always have good locality, regardless of their access order', 'D': 'Arrays use fewer instructions, which guarantees that accesses hit'},
         'correct_answer': 'B',
         'explanation': 'A block can provide several consecutive array elements; list nodes may be scattered. An array can still skip most loaded bytes with a large stride.',
         'source': 'CSE_320_MT1_Review_Session.pdf pp70; midterm_review_transcript.txt',
     },
     'For a C two-dimensional array, why is it usually better for the innermost loop to change the second index? Does the loop variable name matter?': {
         'subcategory': 'Concept',
-        'choices': {'A': 'The variable must be named j or the hardware cannot cache it', 'B': 'C stores columns contiguously, so the second index should be fixed', 'C': 'Rows are contiguous, so changing the second index accesses neighbors; the variable name does not matter', 'D': 'Changing the second index guarantees zero misses'},
+        'choices': {'A': 'It follows columns; the variable name matters', 'B': 'It follows columns; the variable name does not matter', 'C': 'It follows rows; the variable name does not matter', 'D': 'It follows rows; the variable name matters'},
         'correct_answer': 'C',
-        'explanation': 'C arrays are row-major. Access pattern and changing subscript matter, not whether a loop variable is named i, j, or k.',
+        'explanation': 'C stores two-dimensional arrays in row-major order, so elements that differ only in the second index are adjacent in memory. Changing that index in the innermost loop therefore traverses a row sequentially and usually improves spatial locality. The identifier itself is irrelevant: i, j, k, or any other name behaves the same if it changes the second index.',
         'source': 'CSE_320_MT1_Review_Session.pdf pp71; midterm_review_transcript.txt',
     },
     'What is cache blocking, and why can it improve performance even when a program performs the same calculations?': {
         'subcategory': 'Concept',
-        'choices': {'A': 'It converts arithmetic to zero-time operations', 'B': 'It makes every matrix permanently reside in registers', 'C': 'It changes the mathematical result to avoid slow work', 'D': 'It works on smaller regions that fit in cache and reuses their data before moving on'},
+        'choices': {'A': 'It removes arithmetic by skipping iterations that access memory', 'B': 'It stores whole matrices in registers before computation begins', 'C': 'It changes results so fewer values need to be processed', 'D': 'It processes cache-sized regions and reuses data before eviction'},
         'correct_answer': 'D',
         'explanation': 'Blocking clusters reuse and adjacent accesses, improving temporal and spatial locality without needing fewer mathematical operations. Tiles too large for cache can lose the benefit.',
         'source': 'CSE_320_MT1_Review_Session.pdf pp72; midterm_review_transcript.txt',
     },
     'Is an unchanged result enough to make moving a calculation outside a loop safe?': {
         'subcategory': 'Concept',
-        'choices': {'A': 'No; execution count, zero-iteration loops, and observable effects must also be preserved', 'B': 'Yes; only the numerical return value matters', 'C': 'Yes; side effects are ignored by optimization', 'D': 'No calculation can ever move out of a loop'},
+        'choices': {'A': 'No; moving it can change observable program behavior', 'B': 'Yes; an unchanged value guarantees equivalent program behavior', 'C': 'Yes; loop-invariant calculations are always safe to move', 'D': 'No; calculations must always remain inside their original loops'},
         'correct_answer': 'A',
         'explanation': 'The moved calculation may run when the original would not, or change effects and call counts. Safe motion preserves complete required behavior.',
         'source': 'CSE_320_MT1_Review_Session.pdf pp73; midterm_review_transcript.txt',
     },
     'Function A performs one addition and is called millions of times inside a loop. Function B performs a lengthy calculation and is called once. Which is generally the stronger candidate for inlining and why?': {
         'subcategory': 'Concept',
-        'choices': {'A': 'B, because inlining eliminates its calculation', 'B': 'A, because removing repeated call/return overhead can save a large part of its tiny per-call work', 'C': 'Both always produce equal savings', 'D': 'Neither, because inlining requires a cache miss'},
+        'choices': {'A': 'B, because inlining removes the lengthy calculation it performs', 'B': 'A, because repeated call overhead is large relative to its tiny body', 'C': 'Both, because inlining always saves the same execution time', 'D': 'Neither, because functions called inside loops cannot be inlined'},
         'correct_answer': 'B',
         'explanation': 'A pays call overhead millions of times; B pays it once and is dominated by its computation. Inlining can also expose work to nearby optimizations.',
         'source': 'CSE_320_MT1_Review_Session.pdf pp74; midterm_review_transcript.txt',
     },
     'If a function return value is unused, can the compiler automatically remove the function call?': {
         'subcategory': 'Concept',
-        'choices': {'A': 'Yes, all unused returns mean dead calls', 'B': 'Yes, regardless of global changes', 'C': 'No; output, memory changes, or other observable effects may still need to occur', 'D': 'No call may ever be removed, even when proven safe'},
+        'choices': {'A': 'Yes, whenever its return value is ignored', 'B': 'Yes, unless it changes a global variable', 'C': 'No; the call may have observable side effects', 'D': 'No; function calls can never be removed'},
         'correct_answer': 'C',
         'explanation': 'An unused result does not prove absence of effects. Removing the call requires proof that required behavior is preserved.',
         'source': 'CSE_320_MT1_Review_Session.pdf pp75; midterm_review_transcript.txt',
     },
     'Does loop unrolling always make a program faster? What limitations can remain after a loop is unrolled?': {
         'subcategory': 'Concept',
-        'choices': {'A': 'Yes; all dependency chains disappear', 'B': 'Yes; code size and register pressure always decrease', 'C': 'No; the only issue is selecting the wrong cache set', 'D': 'No; dependencies can remain, code size and register pressure can grow, and leftover elements must be handled'},
+        'choices': {'A': 'Yes; dependencies vanish and code size always decreases', 'B': 'Yes; register pressure falls and remainder handling disappears', 'C': 'No; only cache misses can limit the resulting speedup', 'D': 'No; dependencies, code growth, register pressure, and remainders may remain'},
         'correct_answer': 'D',
-        'explanation': 'Less loop-control overhead does not guarantee higher performance. Independent accumulators can expose work, but hardware/workload constraints remain.',
+        'explanation': 'Unrolling processes more work per loop iteration, reducing branch, comparison, and index-update overhead. It does not remove dependencies within the loop body, so operations may still execute serially. It can also increase code size and register pressure, and a cleanup loop may be needed when the iteration count is not divisible by the unroll factor. These costs can outweigh the saved loop overhead.',
         'source': 'CSE_320_MT1_Review_Session.pdf pp76; midterm_review_transcript.txt',
     },
     'A programmer supplies a condition to check for programming errors. When the enabled check fails, the program reports the failure and typically terminates. Which term describes this?': {
@@ -822,7 +793,7 @@ questions['Review Audit'] = {
     },
     'A cache keeps 2 lines per set and 32-byte blocks, but increases from 8 sets to 16 sets. Which structural change and likely performance tradeoff follow?': {
         'subcategory': 'Design tradeoff',
-        'choices': {'A': 'Data capacity doubles from 512 to 1024 bytes; misses may decrease, but area and power can increase', 'B': 'Data capacity stays at 512 bytes because associativity is unchanged', 'C': 'Block offset grows from 5 to 6 bits because there are more sets', 'D': 'The cache becomes fully associative and eliminates all misses'},
+        'choices': {'A': 'Capacity doubles; misses may fall, but area and power may rise', 'B': 'Capacity stays fixed; misses may fall without additional hardware cost', 'C': 'Block size doubles; transfers grow, but area and power stay fixed', 'D': 'Associativity doubles; conflicts fall, but each lookup checks more lines'},
         'correct_answer': 'A',
         'explanation': 'C=S*E*B changes from 8*2*32=512 to 16*2*32=1024 data bytes. The set index grows from 3 to 4 bits, while the offset stays at 5. More capacity can reduce misses at an area/power cost; improvement depends on the workload.',
         'source': 'CSE_320_MT1_Review_Session.pdf pp25-30; midterm_review_transcript.txt lines 213-225; 6.1 Caches.pptx slide 7',
@@ -834,43 +805,37 @@ questions['Review Audit'] = {
         'explanation': 'A platter is the rotating disk. Its two surfaces contain tracks, and each track is divided into sectors. A cylinder groups same-radius tracks across surfaces.',
         'source': '6. Physical Memory.pptx slides 10-12; Copy of CSE 320 Notes.docx P125-131',
     },
-    'A circular HDD track is subdivided into smaller storage regions separated by gaps. What is one such region called?': {
+    'What is an HDD sector?': {
         'subcategory': 'HDD component',
-        'choices': {'A': 'Surface', 'B': 'Sector', 'C': 'Cylinder', 'D': 'Platter'},
-        'correct_answer': 'B',
-        'explanation': 'Each surface contains concentric tracks, and each track is divided into sectors separated by gaps. A sector is a portion of a track, not an entire surface.',
+        'answer': 'An HDD sector is a smaller storage region within a circular track. Tracks are divided into sectors separated by gaps, and each sector stores a fixed-size block of data.',
         'source': '6. Physical Memory.pptx slide 11; Copy of CSE 320 Notes.docx P128-131',
     },
-    'What is the name for the collection of aligned, same-radius tracks across all recording surfaces of a multi-platter HDD?': {
+    'What is an HDD cylinder component?': {
         'subcategory': 'HDD component',
-        'choices': {'A': 'Cylinder', 'B': 'Sector', 'C': 'Spindle', 'D': 'Track'},
-        'correct_answer': 'A',
-        'explanation': 'Aligned tracks across surfaces form a cylinder. Moving the heads radially changes cylinders; selecting a different surface at the same radius does not.',
+        'answer': 'An HDD cylinder is the collection of aligned, same-radius tracks across all recording surfaces. Moving the heads radially changes cylinders; selecting another surface at the same radius does not.',
         'source': '6. Physical Memory.pptx slides 12-13; Copy of CSE 320 Notes.docx P131',
     },
     'Which order follows the review session memory hierarchy from fastest access to slowest access?': {
         'subcategory': 'Memory hierarchy',
-        'choices': {'A': 'Registers, L3, L2, L1, DRAM, SSD, HDD', 'B': 'Registers, L1, L2, L3, SSD, DRAM, HDD', 'C': 'Registers, L1, L2, L3, DRAM, SSD, HDD', 'D': 'HDD, SSD, DRAM, L3, L2, L1, registers'},
+        'choices': {'A': 'Registers, L3, L2, L1, DRAM, SSD, HDD', 'B': 'Registers, L1, L2, L3, SSD, DRAM, HDD', 'C': 'Registers, L1, L2, L3, DRAM, SSD, HDD', 'D': 'Registers, L1, L3, L2, DRAM, SSD, HDD'},
         'correct_answer': 'C',
         'explanation': 'The review orders registers, L1 cache, L2 cache, L3 cache, main memory (DRAM), SSD, then HDD. Moving downward generally increases capacity and latency and lowers cost per byte.',
         'source': 'CSE_320_MT1_Review_Session.pdf pp78-79; 6. Physical Memory.pptx slides 2-4, 38-40',
     },
     'Which pairing and characteristics match the review: typical cache memory versus typical main memory?': {
         'subcategory': 'Memory hierarchy',
-        'choices': {'A': 'Cache uses DRAM; main memory uses SRAM', 'B': 'Both use nonvolatile flash', 'C': 'Cache uses SRAM; main memory uses denser, cheaper DRAM that needs refreshing', 'D': 'Cache uses an HDD; main memory uses ROM'},
+        'choices': {'A': 'Cache uses DRAM; main memory uses faster SRAM without refreshing', 'B': 'Cache uses SRAM; main memory uses nonvolatile flash without refreshing', 'C': 'Cache uses SRAM; main memory uses denser DRAM requiring refreshing', 'D': 'Cache uses flash; main memory uses faster SRAM requiring refreshing'},
         'correct_answer': 'C',
         'explanation': 'Caches typically use fast relatively expensive SRAM; main memory uses denser cheaper DRAM, which requires periodic refresh. Both are volatile.',
         'source': 'CSE_320_MT1_Review_Session.pdf pp78; midterm_review_transcript.txt',
     },
 }
 
-# Additional practice, not identified as direct review questions or missing exam coverage.
-
 # Additional questions retained after the individual supplemental audit.
-questions['Review Audit'].update({
+questions['MT1_review_session'].update({
     'Assume even n, valid array bounds, and integer sums that do not overflow. Compare these unrolled loops:\n```c\n/* P */\nfor (int i=0; i<n; i+=2) {\n    total += a[i];\n    total += a[i+1];\n}\n/* Q */\nfor (int i=0; i<n; i+=2) {\n    total0 += a[i];\n    total1 += a[i+1];\n}\n```\nThe accumulators start at zero and Q combines total0+total1 afterward. Why can Q expose more parallel work?': {
         'subcategory': 'Code concepts',
-        'choices': {'A': 'Q reads half as many array elements', 'B': 'Unrolling guarantees every array access hits', 'C': 'P has no loop-control overhead, while Q does', 'D': 'Q has two independent accumulator chains; P updates a single dependent chain'},
+        'choices': {'A': 'Q reads fewer array elements per loop iteration', 'B': 'Q guarantees that every array access hits the cache', 'C': 'Q removes loop-control work that remains in P', 'D': 'Q uses two independent accumulator chains'},
         'correct_answer': 'D',
         'explanation': 'In P, each addition needs the preceding total. In Q, updating total0 does not require the result of updating total1, permitting independent work. Both read n elements and reduce loop-control overhead; a speedup still depends on the processor and workload.',
         'source': 'CSE_320_MT1_Review_Session.pdf pp55-56, 76; midterm_review_transcript.txt lines 575-598, 805-819; 5. Optimizations and Profiling.pptx (loop unrolling examples)',
@@ -879,7 +844,7 @@ questions['Review Audit'].update({
         'subcategory': 'Miss types',
         'choices': {'A': 'Compulsory/cold', 'B': 'Conflict', 'C': 'Capacity', 'D': 'Write-through'},
         'correct_answer': 'A',
-        'explanation': 'First access to a block causes a compulsory miss.',
+        'explanation': 'This is a compulsory miss, also called a cold miss, because the block has never been brought into the cache before. It occurs on the first access regardless of the cache\'s capacity or associativity. Conflict and capacity misses instead describe blocks that were previously loaded but later displaced.',
         'source': 'CSE_320_MT1_Review_Session.pdf pp27; midterm_review_transcript.txt',
     },
     'The working set cannot fit in the cache even without set-placement restrictions. Which cache-miss category applies?': {
@@ -891,16 +856,211 @@ questions['Review Audit'].update({
     },
     'Why can regrouping floating-point additions prevent a compiler optimization from preserving the required result, even when the expressions are algebraically equivalent?': {
         'subcategory': 'Code concepts',
-        'choices': {'A': 'Intermediate floating-point results are rounded, so changing the grouping can change the final value', 'B': 'Floating-point addition is always exactly associative', 'C': 'Regrouping necessarily changes the cache block size', 'D': 'A compiler may ignore numerical results whenever a transformation is faster'},
+        'choices': {'A': 'Intermediate rounding can change the final value', 'B': 'Floating-point addition is always exactly associative', 'C': 'Regrouping changes the program\'s cache block size', 'D': 'Faster transformations may ignore numerical differences'},
         'correct_answer': 'A',
         'explanation': 'Finite-precision floating-point operations round intermediate results. A different grouping can therefore produce a different final value. Under requirements that preserve these results, algebraic equivalence alone does not justify reassociation.',
         'source': 'CSE_320_MT1_Review_Session.pdf p46; midterm_review_transcript.txt lines 462-466',
     },
-    'Compare both functions shown in the review:\n```c\n/* Original */\nint f(void) {\n    int x = 3;\n    x = 5;\n    return x;\n}\n/* Replacement */\nint f(void) {\n    return 5;\n}\n```\nTreat them as alternative definitions in separate programs. Does the replacement preserve behavior, and why?': {
+    'Consider this function from the review:\n```c\nint f(void) {\n    int x;      // line 1\n    x = 3;      // line 2\n    x = 5;      // line 3\n    return x;   // line 4\n}\n```\nWhich change safely optimizes the function without changing its return value?': {
         'subcategory': 'Code concepts',
-        'choices': {'A': 'No; the original must return 3', 'B': 'Yes; both return 5 and the initial 3 is overwritten without being read', 'C': 'No; local assignments always have externally observable effects', 'D': 'Yes; both return an uninitialized value'},
-        'correct_answer': 'B',
-        'explanation': 'The original returns 5, and the nonvolatile local value 3 is never read. The compiler can remove the unused initialization and simplify the function to return 5.',
+        'choices': {'A': 'Delete line 2; its stored value is overwritten before use', 'B': 'Delete line 3; its stored value is overwritten before use', 'C': 'Delete line 4; returning a local value has no visible effect', 'D': 'Swap lines 2 and 3; assignment order cannot affect the return'},
+        'correct_answer': 'A',
+        'explanation': 'Line 2 stores 3 in x, but line 3 overwrites x with 5 before any read occurs. The value 3 is therefore a dead store, so deleting line 2 preserves the return value of 5. Deleting line 3 or changing the assignment order would change the result, and deleting line 4 would remove the required return value.',
         'source': 'CSE_320_MT1_Review_Session.pdf pp54; midterm_review_transcript.txt',
     },
 })
+
+# Place every audited review question in its appropriate chapter while keeping
+# MT1_review_session as a complete review-specific copy.
+_CACHE_CONCEPT_QUESTIONS = {
+    'What is the difference between spatial locality and temporal locality?',
+    'Why does sequential array traversal usually have better spatial locality than linked-list traversal? Does using an array automatically guarantee good locality?',
+    'For a C two-dimensional array, why is it usually better for the innermost loop to change the second index? Does the loop variable name matter?',
+    'What is cache blocking, and why can it improve performance even when a program performs the same calculations?',
+}
+
+_BASIC_CODE_CONCEPT_QUESTIONS = {
+    'What is the difference between p, *p, and &p when p is a pointer?',
+    'Does incrementing a pointer with p++ always move it forward by one byte?',
+    'When a function receives a pointer argument, can it modify the caller data? Can assigning a new address to that parameter change the caller pointer?',
+    'Does a pointer being non-NULL guarantee that it is safe to dereference?',
+    'Does copying one pointer into another create a separate copy of the pointed-to data?',
+    'Why can replacing repeated writes through an output pointer with a local accumulator change a program result?',
+    'If an input pointer is declared const int *a, can the compiler assume that the values in the array never change?',
+}
+
+_CACHE_SUBCATEGORIES = {
+    'Address mapping',
+    'Address-field interpretation',
+    'Program cache hit/miss',
+    'Average access time',
+    'Design tradeoff',
+    'Miss types',
+}
+
+for _question, _record in questions['MT1_review_session'].items():
+    _subcategory = _record['subcategory']
+    if _subcategory in _CACHE_SUBCATEGORIES or _question in _CACHE_CONCEPT_QUESTIONS:
+        _destination = 'Cache'
+    elif _subcategory in {'HDD component', 'Memory hierarchy'}:
+        _destination = 'Physical Memory'
+    elif _subcategory == 'Code concepts' or _question in _BASIC_CODE_CONCEPT_QUESTIONS:
+        _destination = 'Basic Code'
+    else:
+        _destination = 'General Concepts'
+    questions[_destination][_question] = _record
+
+del _question, _record, _subcategory, _destination
+del _CACHE_CONCEPT_QUESTIONS, _BASIC_CODE_CONCEPT_QUESTIONS, _CACHE_SUBCATEGORIES
+
+# Homework study questions. These are open response because the goal is to
+# explain the assigned functions and design choices, not recognize an option.
+questions['HW1 · MP3'] = {
+    'How do the MP3 homework’s parsing commands differ from its audio analysis and editing commands? Trace the main data path for each kind of work.': {
+        'subcategory': 'Project architecture',
+        'answer': 'The section, metadata, and first-header commands interpret file bytes directly. Duration and loudest-time commands locate and decode MPEG audio to PCM. Trim and overlay also change PCM, encode it, and write a new MP3 while retaining the source tags.',
+        'explanation': 'This division explains why a metadata query does not need an audio decoder and why editing cannot simply cut arbitrary MPEG bytes at a requested second. The shared workflow first separates optional ID3 tags from the MPEG region; only the audio features pass that region to the instructor-provided codec. The editing features then build new PCM and replace the MPEG region in the output.',
+        'sources': ['cse320/MP3_HW/README.md (Features at a Glance)', 'cse320/MP3_HW/src/mp3_audio.c', 'cse320/MP3_HW/src/mp3_trim.c'],
+    },
+    'What does the section summary function report, and how does it find the next MPEG frame instead of assuming every frame has the same length?': {
+        'subcategory': 'Section reader',
+        'answer': 'It returns an array of logical file sections and a count: optional ID3v2 header and frames, each MPEG audio frame, and optional ID3v1 tag. It parses each MPEG frame’s own header to advance by that frame’s size.',
+        'explanation': 'Each section records its type, byte offset, and length; ID3 frame sections also carry an ID. A file may vary bitrate or padding between MPEG frames, so fixed-stride iteration could lose synchronization. The implementation starts and stops at the checked audio bounds, validates a complete header and frame on each step, and returns owned section storage to be released by the caller.',
+        'sources': ['cse320/MP3_HW/README.md (Section Summary)', 'cse320/MP3_HW/src/mp3_reader.c', 'cse320/MP3_HW/src/mp3_sections.c'],
+    },
+    'Why is finding an MPEG sync word alone insufficient to determine a usable frame, and what does the frame-header parser contribute?': {
+        'subcategory': 'MPEG header',
+        'answer': 'A sync word identifies a possible frame start; the parser checks and interprets the rest of the four-byte header, including version, layer, bitrate, sample rate, padding, and calculated frame size.',
+        'explanation': 'The 11 sync bits can occur in bytes that do not form a supported, valid header. The parser uses masks and shifts to obtain field indexes, rejects reserved or invalid combinations, looks up bitrate and sample rate, and computes a size that the reader can use to locate the next frame. The sync predicate returns a yes/no value; the parser returns status and fills the header output on success.',
+        'sources': ['cse320/MP3_HW/README.md (MPEG Frame Header)', 'cse320/MP3_HW/src/mp3_sections.c'],
+    },
+    'How does the MPEG frame-header parser use bitrate, sample rate, and padding to determine frame length, and why does that length matter to the reader?': {
+        'subcategory': 'MPEG header',
+        'answer': 'It converts the encoded indexes into bitrate and sample rate, then applies the formula for the MPEG version and layer with padding. The resulting byte length identifies the next frame boundary.',
+        'explanation': 'For MPEG-1 Layer III, the README uses floor(144 × bitrate-in-bits-per-second ÷ sample-rate) + padding; MPEG-2/2.5 Layer III uses 72 instead of 144. The parser also handles other supported layers. The reader advances by each parsed size and checks that the complete frame fits before reporting it. This is a conceptual relationship; memorizing a header declaration is unnecessary.',
+        'sources': ['cse320/MP3_HW/README.md (MPEG Frame Header)', 'cse320/MP3_HW/src/mp3_sections.c', 'cse320/MP3_HW/src/mp3_reader.c'],
+    },
+    'An MP3 file has an ID3v2 tag at the front and an ID3v1 tag at the end. How are the MPEG audio bounds found, and why must both tags be excluded before decoding?': {
+        'subcategory': 'Tag boundaries',
+        'answer': 'The audio begins after the complete ID3v2 tag and ends where the 128-byte trailing ID3v1 tag begins. Only the half-open byte range between those offsets is passed to the MPEG decoder.',
+        'explanation': 'The ID3v2 header declares its body size using four synchsafe bytes; its total span includes the header and any specified footer. ID3v1 is recognized by a TAG marker at the start of the final 128 bytes. Bounds must be checked against file size before slicing. Those tag bytes are metadata rather than MPEG frames, so including them would corrupt decoding and frame traversal.',
+        'sources': ['cse320/MP3_HW/README.md (MP3 File Structure and Sections)', 'cse320/MP3_HW/src/mp3_id3.c', 'cse320/MP3_HW/src/mp3_audio.c'],
+    },
+    'Why is the ID3v2 tag size read as a synchsafe integer, while an ID3v2.3 frame payload size is read as ordinary big-endian?': {
+        'subcategory': 'Binary parsing',
+        'answer': 'The formats specify different encodings: the tag header uses seven data bits per byte, while v2.3 frame sizes use all eight bits of each byte in big-endian order. ID3v2.4 frame sizes use synchsafe encoding.',
+        'explanation': 'The synchsafe reader masks each byte to seven bits and shifts by 21, 14, 7, and 0; the big-endian reader uses eight-bit shifts of 24, 16, 8, and 0. Applying the wrong reader changes the declared extent and can move parsing into the wrong part of the file. The tag and frame walkers also validate that declared extents remain within the file or tag body.',
+        'sources': ['cse320/MP3_HW/README.md (Reading the ID3v2 Tag Header; Reading ID3v2 Frames)', 'cse320/MP3_HW/src/util.c', 'cse320/MP3_HW/src/mp3_id3.c'],
+    },
+    'What does metadata extraction return to the caller when both ID3v2 and ID3v1 tags exist, and what must the caller eventually release?': {
+        'subcategory': 'Metadata',
+        'answer': 'It fills one metadata result containing both tag generations; it does not discard one in favor of the other. On success the caller owns the allocated ID3v2 frame array and text values and releases them with the metadata cleanup function.',
+        'explanation': 'The extraction function reads the file, validates its tag regions, parses each present tag, and publishes the result only after successful parsing. The older fixed-size ID3v1 fields and newer ID3v2 frame list coexist in the result. It returns a status code, not the metadata as its direct return value; the output parameter carries the data. Cleanup frees nested strings and the frame array and clears the structure.',
+        'sources': ['cse320/MP3_HW/README.md (ID3 Metadata)', 'cse320/MP3_HW/include/mp3_id3.h', 'cse320/MP3_HW/src/mp3_id3.c'],
+    },
+    'Why does ID3v2 metadata extraction walk frames only within the tag’s declared body, and how does it handle a recognized text frame versus an unrecognized frame?': {
+        'subcategory': 'Metadata',
+        'answer': 'The declared tag bounds keep frame parsing from treating MPEG audio as metadata. Recognized text frames are decoded according to their text encoding; unrecognized frame IDs use the assignment’s ASCII fallback.',
+        'explanation': 'A frame carries its own ID, payload length, and flags, so the walker checks each complete header and payload before advancing. Title, artist, album, year, and comment frames receive named handling; an unknown ID is still reportable through fallback decoding. An unsupported structure or invalid payload is a parsing failure, which is different from merely not recognizing the ID.',
+        'sources': ['cse320/MP3_HW/README.md (ID3 Metadata; Reading ID3v2 Frames)', 'cse320/MP3_HW/src/mp3_id3.c'],
+    },
+    'What information does the first-frame-header function provide that the section summary does not, and what happens when no complete MPEG frame is present?': {
+        'subcategory': 'Reader API',
+        'answer': 'It returns status and fills a frame-header result with decoded fields for the first MPEG frame. If the file has no complete valid MPEG frame, it fails rather than returning a partially filled header.',
+        'explanation': 'The summary describes locations and lengths of all sections; the first-header query exposes the interpreted version, layer, bitrate, sample rate, channel mode, and frame size of the first audio frame. It locates the checked MPEG region, verifies enough bytes for a header and its complete frame, and assigns the caller’s output only after validation succeeds.',
+        'sources': ['cse320/MP3_HW/README.md (MPEG Frame Header; Reader)', 'cse320/MP3_HW/src/mp3_reader.c', 'cse320/MP3_HW/src/mp3_sections.c'],
+    },
+    'How does the duration function calculate seconds from decoded PCM, and why is the sample count divided by the channel count first?': {
+        'subcategory': 'Audio analysis',
+        'answer': 'Duration is (sample_count ÷ channels) ÷ sample_rate_hz. The first division converts individual interleaved sample values into time frames.',
+        'explanation': 'A stereo instant contains two sample values, one per channel, but occupies only one instant of time. Dividing the raw count directly by samples per second would double a stereo clip’s duration. The function decodes the MPEG region, computes a double-precision seconds value through an output pointer, frees the decoded PCM, and returns success or failure status.',
+        'sources': ['cse320/MP3_HW/README.md (Duration)', 'cse320/MP3_HW/src/mp3_trim.c', 'cse320/MP3_HW/include/mp3_codec.h'],
+    },
+    'How does the loudest-timestamp function decide which instant wins for stereo audio and for equal peaks?': {
+        'subcategory': 'Audio analysis',
+        'answer': 'It compares absolute sample magnitudes across both channels. The timestamp is the PCM frame containing the greatest peak; an equal later peak does not replace the first winner.',
+        'explanation': 'The time index is the sample index divided by the channel count, then divided by sample rate. Comparing with strictly greater than preserves the earliest frame in a tie. The implementation widens each signed 16-bit sample before taking its absolute value, so even the most negative sample can be handled safely. Like duration, the function returns status and writes seconds through an output pointer.',
+        'sources': ['cse320/MP3_HW/README.md (Loudest timestamp)', 'cse320/MP3_HW/src/mp3_trim.c'],
+    },
+    'What does trimming the half-open interval [start, end) mean for PCM frames, and why does the function decode and re-encode audio?': {
+        'subcategory': 'Audio editing',
+        'answer': 'The output contains frames beginning at start and stops before end. Timestamps become PCM frame indexes, then channel-aware sample indexes; that slice is encoded into new MPEG audio.',
+        'explanation': 'The conversion truncates seconds × sample rate to a frame boundary and multiplies by channel count to address interleaved samples. The implementation rejects an empty or invalid interval. Re-encoding makes the chosen audio segment a valid new MP3 stream; selecting byte offsets in compressed MPEG data would not reliably select the requested time range. The function reports success or failure by status.',
+        'sources': ['cse320/MP3_HW/README.md (Trim)', 'cse320/MP3_HW/src/mp3_trim.c', 'cse320/MP3_HW/src/mp3_audio.c'],
+    },
+    'After a trim or overlay, which bytes from the original file are retained around the newly encoded audio, and why?': {
+        'subcategory': 'Audio editing',
+        'answer': 'The original ID3v2 prefix and ID3v1 suffix are copied around the newly encoded MPEG bytes. For overlay, the retained tags come from the base file.',
+        'explanation': 'The audio bounds divide the original bytes into prefix, MPEG region, and suffix. The writer constructs prefix + encoded audio + suffix, preserving metadata without treating tag bytes as audio. The MPEG region itself changes because editing works in PCM and then encodes again. Overlay uses the base file as the output track, so the overlay file’s tags do not replace the base tags.',
+        'sources': ['cse320/MP3_HW/README.md (Trim; Overlay)', 'cse320/MP3_HW/src/mp3_audio.c', 'cse320/MP3_HW/src/mp3_overlay.c'],
+    },
+    'The overlay command starts a short clip partway through a base track. Does it mix or insert the clip, and what happens after the clip ends or extends beyond the base?': {
+        'subcategory': 'Audio overlay',
+        'answer': 'It replaces the base audio during the overlay window. Before the window the base plays; afterward the base resumes at its original timeline position if it remains. An overlay past the base end extends the output.',
+        'explanation': 'The output takes base frames before the start, converted overlay frames during its span, and base frames after the span. Covered base frames are skipped: their amplitudes are not added to the overlay, and the later base frames are not shifted in time as with insertion. The output length is the greater of the base length and the overlay end position.',
+        'sources': ['cse320/MP3_HW/README.md (Audio Overlay)', 'cse320/MP3_HW/src/mp3_overlay.c', 'cse320/MP3_HW/ROADMAP.md (Phase 8)'],
+    },
+    'Why must overlay audio be converted before replacement when its sample rate or channel count differs from the base track? Describe both conversions conceptually.': {
+        'subcategory': 'Audio overlay',
+        'answer': 'The replacement samples must share the base track’s time scale and channel layout. Different sample rates are resampled by linear interpolation; mono becomes stereo by duplication, while stereo becomes mono by combining left and right.',
+        'explanation': 'Without resampling, one overlay frame would represent a different duration from one base frame and the replacement would run at the wrong speed or duration. Without channel conversion, interleaved sample positions would not match the base layout. The implementation converts to the base rate first, then to the base channel count, and encodes the result using the base audio format.',
+        'sources': ['cse320/MP3_HW/README.md (Audio Overlay)', 'cse320/MP3_HW/src/mp3_overlay.c', 'cse320/MP3_HW/ROADMAP.md (Phase 8)'],
+    },
+    'Why does the MP3 command-line program validate the input-file option before dispatching feature flags, and how are feature results and errors reported?': {
+        'subcategory': 'CLI',
+        'answer': 'It first finds and checks the required input file, then executes requested features in command-line order. Results go to stdout; one user-facing error goes to stderr and leads to failure status.',
+        'explanation': 'Two passes let a feature appear before or after the -f argument without running it against an unknown file. Features call the parsing, analysis, or editing library functions and use the specified output macros for consistent messages. The CLI helper returns 0 on success and -1 on failure; main maps that to process exit 0 or 1. Debug logging is separate from graded output.',
+        'sources': ['cse320/MP3_HW/README.md (Program Usage; Program Output)', 'cse320/MP3_HW/src/mp3_cli.c', 'cse320/MP3_HW/src/main.c'],
+    },
+    'Several MP3 functions return a status code while filling an output parameter. What should a caller infer from success versus failure, and how is allocated output cleaned up?': {
+        'subcategory': 'Function contracts',
+        'answer': 'A zero status means the requested result was placed in the output parameter; -1 means failure, so the caller must not use an assumed result. Successful owned results require the matching cleanup function or free operation.',
+        'explanation': 'The section reader returns an owned section array and count; metadata extraction returns a structure containing allocated frame strings; audio analysis writes a double. The function return itself reports whether those outputs are valid. The section and metadata APIs provide cleanup functions for nested allocations, while decoded PCM uses the instructor codec’s cleanup routine. This pattern prevents partial results from being mistaken for valid answers.',
+        'sources': ['cse320/MP3_HW/ROADMAP.md (Shared implementation contract)', 'cse320/MP3_HW/include/mp3_reader.h', 'cse320/MP3_HW/include/mp3_id3.h', 'cse320/MP3_HW/include/mp3_trim.h'],
+    },
+}
+
+questions['HW2 · CACHE'] = {
+    'What is the cache simulator supposed to produce from a configured cache and memory trace, and what distinguishes a miss from an eviction?': {
+        'subcategory': 'Part A simulator',
+        'answer': 'It replays memory accesses and reports hit, miss, and eviction counts. A miss means the requested block is absent; an eviction occurs only when that miss must replace a valid line in a full selected set.',
+        'explanation': 'Cache geometry determines each address’s offset, set, and tag. On a hit, the matching valid line is used. On a miss, an empty way can be filled without eviction; if every way in the set is valid, the policy chooses a victim and both miss and eviction counts increase. The simulator finishes by passing totals to printSummary.',
+        'sources': ['cse320/CACHE_HW/README.md (Part A; Cache Model)', 'cse320/CACHE_HW/src/csim.c'],
+    },
+    'How does the simulator treat load, store, modify, and instruction-fetch trace records, including an access that spans two cache blocks?': {
+        'subcategory': 'Part A trace replay',
+        'answer': 'Load and store each access the covered data blocks once; modify performs two passes, a load then a store; instruction fetch is ignored. A record spanning two blocks touches each block in each pass.',
+        'explanation': 'The trace parser reads the operation, hexadecimal address, and decimal byte count. The replay logic converts the byte range into all intersected cache blocks. A modify operation repeats that range, so its second access can hit after the first loads a block, subject to intervening accesses within the range. Ignored instruction fetches do not affect data-cache statistics.',
+        'sources': ['cse320/CACHE_HW/README.md (Trace Format)', 'cse320/CACHE_HW/src/csim.c'],
+    },
+    'What information must the simulator update on cache accesses so that LRU, FIFO, and LFU choose different victims correctly?': {
+        'subcategory': 'Part A replacement',
+        'answer': 'LRU tracks most recent use, FIFO tracks load time, and LFU tracks access frequency with earliest load as the tie-breaker.',
+        'explanation': 'A hit changes LRU recency and increments LFU frequency, but does not change a FIFO line’s insertion order. A newly loaded line gets current use/load times and initial frequency one. When a set is full, the simulator compares the policy’s metric only among valid lines. This explains why the same trace can yield different eviction choices under the three policies.',
+        'sources': ['cse320/CACHE_HW/README.md (Replacement Policies)', 'cse320/CACHE_HW/src/csim.c'],
+    },
+    'What must the transpose submission produce for an N-by-M input matrix, and why do the M and N arguments require attention?': {
+        'subcategory': 'Part B correctness',
+        'answer': 'It must write an M-by-N output with B[j][i] = A[i][j] for every valid input element. M is the number of columns of A and N is its number of rows.',
+        'explanation': 'The function has no value return; its result is the changed B matrix. Swapping M and N in loop bounds may appear to work for square matrices but fails or accesses out of bounds for rectangles. The implementation dispatches by shape and cache profile, yet each path must satisfy the same transpose equation, including partial edge tiles.',
+        'sources': ['cse320/CACHE_HW/README.md (Part B Task; Required Function)', 'cse320/CACHE_HW/src/trans.c'],
+    },
+    'Why does a simple row-wise matrix transpose tend to incur many cache misses, and what does blocking change about the order of work?': {
+        'subcategory': 'Part B blocking',
+        'answer': 'Reading adjacent A elements is friendly to row-major storage, but writing B[j][i] jumps between destination rows and may conflict with cached A lines. Blocking finishes small matrix regions while useful lines are still resident.',
+        'explanation': 'A tile limits the active source and destination region, improving reuse and reducing the distance between related accesses. It does not change which elements are transposed or the total mathematical work. The submitted implementation has a general blocked path; its scalar row path reads a whole source segment into local values before destination stores can displace the source line.',
+        'sources': ['cse320/CACHE_HW/README.md (Part B Hints)', 'cse320/CACHE_HW/src/trans.c', 'cse320/CACHE_HW/ROADMAP.md (Part B)'],
+    },
+    'Why can the same transpose tile perform differently on direct-mapped, two-way, and four-way caches of the same total size? How does the submission respond?': {
+        'subcategory': 'Part B strategy',
+        'answer': 'Changing associativity also changes the number of sets and which A and B blocks compete for a set. The submission chooses strategies by matrix shape and cache profile, with a general fallback.',
+        'explanation': 'All three graded organizations have 1 KB of data and 32-byte blocks, but use 32, 16, and 8 sets respectively. Their conflict patterns differ even at equal capacity, so one tile size is not universally best. The dispatcher selects measured blocked or scalar-row approaches for several sizes and profiles; every branch still performs the correct transpose.',
+        'sources': ['cse320/CACHE_HW/README.md (Cache Configurations; Hints)', 'cse320/CACHE_HW/src/trans.c', 'cse320/CACHE_HW/ROADMAP.md (Phases 6–7)'],
+    },
+    'What extra cache conflict can occur when transposing a square matrix near its diagonal, and how does the implementation limit it?': {
+        'subcategory': 'Part B conflicts',
+        'answer': 'A source line and its destination line can map to the same cache set and evict one another. The general blocked path delays a diagonal store until after the relevant source row has been read; the 64-by-64 path uses staged values to reduce stronger conflicts.',
+        'explanation': 'Correctness requires writing the same B element eventually, but the timing of that write affects whether the source line remains cached. Holding one diagonal value in a scalar permits the rest of its source row to be consumed first. For the particularly conflict-prone 64-by-64 case, the implementation divides each tile into subregions and temporarily stages values in B while rearranging them into final positions. The idea is ordering for locality, not extra mathematical work.',
+        'sources': ['cse320/CACHE_HW/README.md (Part B Hints)', 'cse320/CACHE_HW/src/trans.c', 'cse320/CACHE_HW/ROADMAP.md (Phase 6)'],
+    },
+}
