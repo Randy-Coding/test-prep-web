@@ -1037,42 +1037,6 @@ questions['HW1 · MP3'] = {
 }
 
 questions['HW2 · CACHE'] = {
-    'What kind of cache does initCache() create, and what does a set mean in a set-associative cache?': {
-        'subcategory': 'Cache organization',
-        'answer': 'It creates a cache with 2^s sets and E lines per set, with blocks of 2^b bytes. An address maps to one set, where any of its E lines can hold the block. A set is that group of candidate lines.',
-        'explanation': 'initCache() allocates and initializes the sets and lines described by the command-line geometry.',
-        'sources': ['cse320/CACHE_HW_ORIGINAL/README.md (Part A; Cache Model)', 'cse320/CACHE_HW_ORIGINAL/src/csim.c', 'cse320/CACHE_HW_NEW/src/csim.c'],
-    },
-    'How is the cache simulator’s eviction strategy chosen, and when does that strategy matter?': {
-        'subcategory': 'Cache replacement',
-        'answer': 'The -r option selects LRU, FIFO, or LFU; LRU is the default. The policy chooses a victim only when an access misses and every line in the selected set is occupied.',
-        'explanation': 'initCache() sets the cache geometry; the selected policy controls replacement during trace replay.',
-        'sources': ['cse320/CACHE_HW_ORIGINAL/README.md (Replacement Policies)', 'cse320/CACHE_HW_ORIGINAL/src/csim.c', 'cse320/CACHE_HW_NEW/src/csim.c'],
-    },
-    'What does accessData() do for one memory address, and how does it decide whether to count a hit, miss, or eviction?': {
-        'subcategory': 'Cache access',
-        'answer': 'It uses the address to select a set and tag. A matching valid line is a hit. Otherwise it counts a miss and fills an empty line, or counts both a miss and an eviction if the set is full and a line must be replaced.',
-        'explanation': 'This is the core access step used while replaying the trace; a full set uses the selected replacement policy to choose its victim.',
-        'sources': ['cse320/CACHE_HW_ORIGINAL/README.md (Part A; Cache Model)', 'cse320/CACHE_HW_ORIGINAL/src/csim.c', 'cse320/CACHE_HW_NEW/src/csim.c'],
-    },
-    'What does replayTrace() do with each trace operation, and how does it handle an access spanning multiple blocks?': {
-        'subcategory': 'Trace replay',
-        'answer': 'It reads the trace and simulates data accesses: L and S each make one pass, M makes two passes, and I is ignored. Each pass accesses every cache block touched by the record’s address range.',
-        'explanation': 'A modify record represents a load followed by a store. A range crossing a block boundary causes an access to both blocks in each pass.',
-        'sources': ['cse320/CACHE_HW_ORIGINAL/README.md (Trace Format)', 'cse320/CACHE_HW_ORIGINAL/src/csim.c', 'cse320/CACHE_HW_NEW/src/csim.c'],
-    },
-    'What does freeCache() release after simulation, and why is that cleanup needed?': {
-        'subcategory': 'Cache organization',
-        'answer': 'It releases the heap storage allocated for the cache sets and lines and clears the simulator’s cache state. The allocation is no longer needed after the trace has been replayed.',
-        'explanation': 'The original starter marks freeCache() as the cleanup counterpart to initCache().',
-        'sources': ['cse320/CACHE_HW_ORIGINAL/src/csim.c', 'cse320/CACHE_HW_NEW/src/csim.c'],
-    },
-    'What must transpose_submit() produce, and how do M and N describe the dimensions of A and B?': {
-        'subcategory': 'Transpose correctness',
-        'answer': 'For an N-row, M-column input A, it must fill an M-row, N-column output B so that B[j][i] equals A[i][j]. M is the column count of A and N is its row count.',
-        'explanation': 'The output is written into B; the function has no return value.',
-        'sources': ['cse320/CACHE_HW_ORIGINAL/README.md (Part B Task; Required Function)', 'cse320/CACHE_HW_ORIGINAL/src/trans.c'],
-    },
     'Why can a row-wise transpose cause many cache misses, and how do tiling and read/write order reduce conflicts?': {
         'subcategory': 'Transpose locality',
         'answer': 'Reading across a row of A is contiguous, but writing the corresponding values to B jumps between rows and can displace useful cache lines. Tiling works on a small region while its lines remain useful; delaying conflicting writes lets source values be read before their lines are evicted.',
@@ -1084,11 +1048,5 @@ questions['HW2 · CACHE'] = {
         'answer': 'Matrix dimensions change access patterns, while the three graded cache configurations have different numbers of sets and ways. That changes which A and B lines compete, so one tile shape or access order need not give the fewest misses in every case.',
         'explanation': 'The implementation selects a strategy using matrix dimensions and trans_cache_profile.',
         'sources': ['cse320/CACHE_HW_ORIGINAL/README.md (Cache Configurations; Part B Hints)', 'cse320/CACHE_HW_NEW/src/trans.c'],
-    },
-    'How does transpose_submit() handle a partial tile when the matrix dimensions are not multiples of the tile size?': {
-        'subcategory': 'Transpose edge cases',
-        'answer': 'It limits the last tile in each direction to the remaining rows and columns, then transposes only the valid elements in that smaller region.',
-        'explanation': 'The blocked path uses the matrix bounds for bottom and right edge tiles, preserving B[j][i] = A[i][j] for rectangular sizes.',
-        'sources': ['cse320/CACHE_HW_ORIGINAL/README.md (Part B Task; Test Cases)', 'cse320/CACHE_HW_NEW/src/trans.c'],
     },
 }
