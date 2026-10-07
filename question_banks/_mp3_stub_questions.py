@@ -14,10 +14,6 @@ from question_banks._mp3_source_excerpts import EXCERPTS
 # in student source. Later helper declarations with no matching source function
 # are deliberately absent.
 _STUBS = [
-    ("util.c", "read_u32_be", "buf: four bytes in network (big-endian) order", "Combines four bytes into one unsigned 32-bit big-endian integer.", "It shifts successive bytes by 24, 16, 8, and 0 bits and ORs them. The helper lets ID3v2.3 frame parsing interpret a stored length; a null pointer returns zero in this implementation.", ("<< 24", "return result")),
-    ("util.c", "read_u32_syncsafe", "buf: four bytes of a synchsafe integer", "Decodes a four-byte synchsafe unsigned integer.", "It masks off each byte's high bit and shifts the seven-bit payloads by 21, 14, 7, and 0 bits. ID3v2 tag size and ID3v2.4 frame size use this representation; a null pointer returns zero here.", ("0x7F", "return result")),
-    ("util.c", "util_read_file", "path: file to read; out_data: resulting owned byte buffer; out_size: byte count", "Reads an entire binary file into allocated memory and returns its bytes and size through output pointers.", "It opens in binary mode, seeks to determine length, allocates a buffer, rewinds, reads the bytes, and returns 0 on success or -1 on failure. The caller owns the returned buffer and must free it.", ("fopen(path", "ftell", "malloc", "fread", "*out_data")),
-    ("util.c", "util_write_file", "path: output filename; data: bytes to write; size: byte count", "Writes the supplied bytes to a binary output file.", "It opens the path in binary write mode, writes exactly the requested count, checks the close, and returns 0 or -1. The edit functions use it to save the tag-plus-new-audio buffer.", ("fopen(path", "fwrite", "fclose", "return 0")),
     ("mp3_sections.c", "mp3_mpeg_version_str", "version: encoded MPEG version field", "Maps a version field to a human-readable MPEG version label.", "The code selects MPEG 1, 2, or 2.5 for the supported bit patterns and labels other values reserved. The returned pointer refers to a string literal and is not caller-owned.", ("version == 3", "version == 2", "version == 0", "return \"reserved\"")),
     ("mp3_sections.c", "mp3_layer_str", "layer: encoded MPEG layer field", "Maps a layer field to a readable layer name.", "Layer values 1, 2, and 3 are rendered as Layer III, II, and I respectively; the other value is reserved. The caller uses the returned constant text when printing a parsed header.", ("layer == 1", "layer == 2", "layer == 3", "return \"reserved\"")),
     ("mp3_sections.c", "mp3_channel_mode_str", "mode: encoded channel-mode field", "Maps the two-bit channel-mode value to its label.", "The code distinguishes Stereo, Joint Stereo, Dual Channel, and Mono. It returns constant text for display, not a newly allocated string.", ("mode == 0", "mode == 1", "mode == 2", "mode == 3")),
@@ -62,9 +58,36 @@ def _rename_parameters(code, names):
     return code
 
 
+def _obfuscate_parameter_signature(excerpt, signature, names):
+    return_type_and_name = signature[:signature.index("(")].strip()
+    count = len(names)
+    label = "parameter" if count == 1 else "parameters"
+    body = _rename_parameters(excerpt[excerpt.index("{"):], names)
+    return f"{return_type_and_name}(/* {count} {label} */)\n{body}"
+
+
+_CHOICE_GROUPS = (
+    ("mp3_mpeg_version_str", "mp3_layer_str", "mp3_channel_mode_str", "mp3_emphasis_str"),
+    ("mp3_is_sync", "mp3_parse_frame_header", "mp3_extract_frame_header", "mp3_summary", "mp3_open", "mp3_free_sections"),
+    ("mp3_has_id3v2", "mp3_has_id3v1", "mp3_id3v2_total_size", "mp3_id3v1_offset", "mp3_mpeg_audio_start", "mp3_mpeg_audio_end"),
+    ("mp3_extract_metadata", "mp3_free_metadata", "mp3_id3v1_genre_name", "mp3_summary"),
+    ("mp3_get_duration", "mp3_get_loudest_timestamp", "mp3_trim_audio", "mp3_overlay_audio"),
+    ("main", "mp3_open", "mp3_summary", "mp3_trim_audio"),
+)
+
+
+def _name_choices(name, correct_position):
+    group = next(group for group in _CHOICE_GROUPS if name in group)
+    position = group.index(name)
+    distractors = [group[(position + offset) % len(group)] for offset in range(1, 4)]
+    options = distractors[:]
+    options.insert(correct_position, name)
+    return {letter: f"`{option}()`" for letter, option in zip("ABCD", options)}
+
+
 def build_questions():
     questions = {}
-    for filename, name, parameters, purpose, mechanism, _clues in _STUBS:
+    for index, (filename, name, parameters, purpose, mechanism, _clues) in enumerate(_STUBS):
         excerpt = EXCERPTS[name]
         signature = _signature(excerpt)
         names = _parameter_names(signature)
@@ -74,16 +97,19 @@ def build_questions():
         common = {"subcategory": "Professor stub", "sources": sources}
 
         obfuscated_name = re.sub(r"\b" + re.escape(name) + r"\b", "foo", excerpt)
-        questions[f"What assigned function is shown as `foo`? Explain its purpose and result.\n```c\n{obfuscated_name}\n```"] = {
+        correct_answer = "ABCD"[index % 4]
+        questions[f"Which assigned function is shown as `foo`?\n```c\n{obfuscated_name}\n```"] = {
             **common,
-            "answer": f"`{name}`. {purpose}",
-            "explanation": mechanism,
+            "choices": _name_choices(name, index % 4),
+            "correct_answer": correct_answer,
+            "explanation": f"{purpose} {mechanism}",
         }
 
-        obfuscated_parameters = _rename_parameters(excerpt, names)
-        questions[f"In `{name}`, what does each obfuscated parameter represent, and what result does the function produce?\n```c\n{obfuscated_parameters}\n```"] = {
+        obfuscated_parameters = _obfuscate_parameter_signature(excerpt, signature, names)
+        actual_parameters = " ".join(signature[signature.index("(") + 1:signature.rindex(")")].split())
+        questions[f"In `{name}`, only the number of parameters is shown. What does each numbered parameter represent, what is its type, and what result does the function produce?\n```c\n{obfuscated_parameters}\n```"] = {
             **common,
-            "answer": f"{parameters}. {purpose}",
+            "answer": f"Actual parameters: `{actual_parameters}`. Roles: {parameters}. {purpose}",
             "explanation": mechanism,
         }
 

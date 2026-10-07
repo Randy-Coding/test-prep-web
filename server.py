@@ -47,6 +47,9 @@ def normalize_question(question, answer):
         raise ValueError(f"Invalid choices for question: {question}")
     choices = {letter: str(choices[letter]) for letter in "ABCD"}
     explanation = str(answer.get("explanation", ""))
+    sources = answer.get("sources", [])
+    if sources:
+        explanation += "\n\nInspect: " + "; ".join(str(source) for source in sources)
     record = {
         "question": str(question),
         "answer": f"{correct}. {choices[correct]}\n\n{explanation}".strip(),
