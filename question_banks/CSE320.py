@@ -968,9 +968,9 @@ questions['HW1 · MP3'] = {
         'explanation': 'The range keeps metadata bytes out of frame traversal and audio decoding.',
         'sources': ['cse320/MP3_HW_NEW/README.md (MP3 File Structure and Sections)', 'cse320/MP3_HW_NEW/src/mp3_id3.c'],
     },
-    'What does mp3_extract_metadata() extract, where does it fit in the homework, and how does it work conceptually?': {
+    'Identify this unnamed MP3 homework function and explain what result it produces:\n```c\nint function(const char *filename, mp3_metadata_t *out) {\n    mp3_metadata_t result = {0};\n    /* Read file_data and file_size from filename. */\n    result.has_v2 = mp3_has_id3v2(file_data, file_size);\n    result.has_v1 = mp3_has_id3v1(file_data, file_size);\n    if (result.has_v2) parse_id3v2_tag(file_data, file_size, &result.v2);\n    if (result.has_v1) parse_id3v1_tag(file_data, file_size, &result.v1);\n    *out = result;\n    return 0;\n}\n```\nSimplified excerpt; error handling omitted.': {
         'subcategory': 'Metadata',
-        'answer': 'It fills the metadata result used by the -t feature with both present tag generations: ID3v1 fields and ID3v2 frames such as title, artist, album, year, and comment. It locates the tags, walks valid ID3v2 frames within the declared tag body, decodes their values, and parses the trailing ID3v1 fields.',
+        'answer': 'This is mp3_extract_metadata(). It fills the metadata result used by the -t feature with both present tag generations: ID3v1 fields and ID3v2 frames such as title, artist, album, year, and comment. It locates the tags, walks valid ID3v2 frames within the declared tag body, decodes their values, and parses the trailing ID3v1 fields.',
         'explanation': 'Unknown ID3v2 frames use the assignment’s ASCII fallback rather than being discarded.',
         'sources': ['cse320/MP3_HW_NEW/README.md (ID3 Metadata)', 'cse320/MP3_HW_NEW/src/mp3_id3.c'],
     },
@@ -986,9 +986,9 @@ questions['HW1 · MP3'] = {
         'explanation': 'The ID3v1 tag stores a genre number, so displaying a name requires a separate mapping.',
         'sources': ['cse320/MP3_HW_NEW/ROADMAP.md (Phase 3)', 'cse320/MP3_HW_NEW/src/mp3_id3.c'],
     },
-    'What is mp3_summary() for, and how does it build a section summary conceptually?': {
+    'Identify this unnamed MP3 homework function and explain the purpose of its result:\n```c\nint function(const char *filename, mp3_section_t **out, size_t *count) {\n    /* Read the file and find the MPEG audio boundaries. */\n    if (audio_start != 0) {\n        append_section(&builder, "ID3H", NULL, 0, file_data, 10);\n        mp3_visit_id3v2_frames(file_data, file_size, collect_id3_section, &builder);\n    }\n    collect_mpeg_sections(&builder, file_data, audio_start, audio_end);\n    if (audio_end < file_size)\n        append_section(&builder, "ID3V1", NULL, audio_end, file_data + audio_end, 128);\n    *out = builder.sections;\n    *count = builder.count;\n    return 0;\n}\n```\nSimplified excerpt; error handling omitted.': {
         'subcategory': 'Reader',
-        'answer': 'It lists the file’s logical sections with their offsets and lengths: an optional ID3v2 header and frames, each MPEG frame, and an optional ID3v1 tag. It establishes tag and audio bounds, walks ID3v2 frames, then parses each MPEG header to advance by that frame’s size.',
+        'answer': 'This is mp3_summary(). It lists the file’s logical sections with their offsets and lengths: an optional ID3v2 header and frames, each MPEG frame, and an optional ID3v1 tag. It establishes tag and audio bounds, walks ID3v2 frames, then parses each MPEG header to advance by that frame’s size.',
         'explanation': 'The section list powers the homework’s -s output and shows how the file is laid out.',
         'sources': ['cse320/MP3_HW_NEW/README.md (Section Summary)', 'cse320/MP3_HW_NEW/src/mp3_reader.c'],
     },
@@ -1010,15 +1010,15 @@ questions['HW1 · MP3'] = {
         'explanation': 'For stereo audio, two sample values represent one instant of playback.',
         'sources': ['cse320/MP3_HW_NEW/README.md (Duration)', 'cse320/MP3_HW_NEW/src/mp3_trim.c'],
     },
-    'How does mp3_get_loudest_timestamp() identify audio timestamps, measure loudness at each instant, and select its result?': {
+    'Identify this unnamed MP3 homework function and explain how it obtains its result:\n```c\nint function(const char *path, double *out_seconds) {\n    mp3_pcm_buffer_t pcm = {0};\n    mp3_decode_file_pcm(path, &pcm);\n    int32_t largest = 0;\n    size_t winner = 0;\n    for (size_t i = 0; i < pcm.sample_count; i++) {\n        int32_t sample = pcm.samples[i];\n        int32_t magnitude = sample < 0 ? -sample : sample;\n        if (magnitude > largest) {\n            largest = magnitude;\n            winner = i / pcm.channels;\n        }\n    }\n    *out_seconds = (double)winner / pcm.sample_rate_hz;\n    mp3_codec_free_pcm(&pcm);\n    return 0;\n}\n```\nSimplified excerpt; error handling omitted.': {
         'subcategory': 'Audio analysis',
-        'answer': 'It decodes the file into PCM and groups consecutive channel samples into audio frames. Each frame has a timestamp equal to its index divided by sample rate. Its peak is the greatest absolute sample value among its channels. The function returns the earliest timestamp with the largest peak.',
+        'answer': 'This is mp3_get_loudest_timestamp(). It decodes the file into PCM and groups consecutive channel samples into audio frames. Each frame has a timestamp equal to its index divided by sample rate. Its peak is the greatest absolute sample value among its channels. The function returns the earliest timestamp with the largest peak.',
         'explanation': 'PCM frame indexes are time positions; channel samples at one index describe the same instant.',
         'sources': ['cse320/MP3_HW_NEW/README.md (Loudest timestamp)', 'cse320/MP3_HW_NEW/src/mp3_trim.c'],
     },
-    'How does mp3_trim_audio() select and encode the requested audio interval?': {
+    'Identify this unnamed MP3 homework function and explain how it builds the output file:\n```c\nint function(const char *input, double start, double end, const char *output) {\n    mp3_pcm_buffer_t pcm = {0}, slice = {0};\n    mp3_decode_file_pcm(input, &pcm);\n    size_t first = (size_t)(start * pcm.sample_rate_hz) * pcm.channels;\n    size_t last = (size_t)(end * pcm.sample_rate_hz) * pcm.channels;\n    slice.samples = pcm.samples + first;\n    slice.sample_count = last - first;\n    slice.channels = pcm.channels;\n    slice.sample_rate_hz = pcm.sample_rate_hz;\n    slice.bitrate_kbps = pcm.bitrate_kbps;\n    mp3_codec_encode(&slice, &encoded, &encoded_size);\n    mp3_write_tagged_audio(output, file_data, file_size,\n                           audio_start, audio_end, encoded, encoded_size);\n    return 0;\n}\n```\nSimplified excerpt; validation and cleanup omitted.': {
         'subcategory': 'Audio editing',
-        'answer': 'It decodes the audio to PCM, converts the start and end seconds to frame indexes, copies the half-open [start, end) slice across all channels, encodes that slice, and writes it between the original ID3v2 prefix and ID3v1 suffix.',
+        'answer': 'This is mp3_trim_audio(). It decodes the audio to PCM, converts the start and end seconds to frame indexes, copies the half-open [start, end) slice across all channels, encodes that slice, and writes it between the original ID3v2 prefix and ID3v1 suffix.',
         'explanation': 'Slicing decoded frames selects a time interval; encoding produces the new MPEG stream.',
         'sources': ['cse320/MP3_HW_NEW/README.md (Trim)', 'cse320/MP3_HW_NEW/src/mp3_trim.c'],
     },
