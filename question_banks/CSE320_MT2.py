@@ -13,7 +13,7 @@ def _add(topic, ident, category, prompt, answer, explanation, deck, slides):
         "subcategory": category,
         "answer": answer,
         "explanation": explanation,
-        "sources": [f"cse320/midterm-2/{deck}.pptx, slides {slides}"],
+        "sources": [f"{deck}.pptx, slides {slides}"],
     }
 
 
@@ -36,12 +36,12 @@ def _pc(number, category, prompt, answer, explanation, slides, example=None,
             'supply its particular code and technical answer.'
         )
         record["sources"].append(
-            "cse320/midterm-2/Nov 5 mt2 review (transcribed on 06-Nov-2026 20-15-16).txt, "
+            "Nov 5 mt2 review (transcribed on 06-Nov-2026 20-15-16).txt, "
             "line 85 (priority basis: Processes printout-sequence exercises)"
         )
     if example is not None:
         record["sources"].append(
-            "cse320/midterm-2/midterm-2-code-examples.md, "
+            "midterm-2-code-examples.md, "
             f"8. Processes.pptx section, entry {example}"
         )
     if modification:

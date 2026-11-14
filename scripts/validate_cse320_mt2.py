@@ -24,7 +24,7 @@ assert {r["id"] for r in bank.questions["PROCESSES CUSTOM"].values()} == {
 for ident, (prompt, record) in records.items():
     assert prompt.strip() and record["answer"].strip() and record["subcategory"]
     assert record["sources"] and all(
-        s.startswith("https://") or (ROOT / s.split(", ", 1)[0]).is_file()
+        s.startswith("https://") or (ROOT / "cse320/midterm-2" / s.split(", ", 1)[0]).is_file()
         for s in record["sources"]
     ), ident
     assert prompt.count("```") % 2 == 0, ident
