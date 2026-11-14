@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="650" height="390" viewBox="0 0 650 390" role="img" aria-labelledby="title desc">
+  <title id="title">Direct mapped cache with eight bit addresses</title>
+  <desc id="desc">Four sets, four bytes per block. Address fields have four tag bits, two set bits, and two offset bits. Set zero is valid with tag A. Set one is valid with tag 3. Set two is invalid with stored tag 5. Set three is valid with tag C.</desc>
+  <rect width="650" height="390" fill="#fff"/>
+  <text x="325" y="35" text-anchor="middle" font-family="Arial,sans-serif" font-size="23" font-weight="bold">Direct-mapped cache</text>
+  <text x="325" y="67" text-anchor="middle" font-family="Arial,sans-serif" font-size="17">8-bit byte address: 4 tag bits | 2 set bits | 2 block-offset bits</text>
+  <rect x="40" y="95" width="570" height="46" fill="#e9e6fa" stroke="#333"/>
+  <text x="125" y="125" text-anchor="middle" font-family="Arial,sans-serif" font-size="17">Set</text>
+  <text x="280" y="125" text-anchor="middle" font-family="Arial,sans-serif" font-size="17">Valid</text>
+  <text x="445" y="125" text-anchor="middle" font-family="Arial,sans-serif" font-size="17">Tag (hex)</text>
+  <g font-family="Arial,sans-serif" font-size="20" text-anchor="middle" fill="#111">
+    <rect x="40" y="141" width="570" height="54" fill="#fff" stroke="#333"/><text x="125" y="176">0</text><text x="280" y="176">1</text><text x="445" y="176">A</text>
+    <rect x="40" y="195" width="570" height="54" fill="#f8f7fd" stroke="#333"/><text x="125" y="230">1</text><text x="280" y="230">1</text><text x="445" y="230">3</text>
+    <rect x="40" y="249" width="570" height="54" fill="#fff" stroke="#333"/><text x="125" y="284">2</text><text x="280" y="284">0</text><text x="445" y="284">5</text>
+    <rect x="40" y="303" width="570" height="54" fill="#f8f7fd" stroke="#333"/><text x="125" y="338">3</text><text x="280" y="338">1</text><text x="445" y="338">C</text>
+  </g>
+  <path d="M210 95V357 M350 95V357" stroke="#333"/>
+</svg>

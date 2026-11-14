@@ -4,4 +4,14 @@ dist/
 .vercel/
 CACHE_HW*/
 MP3_HW*/
-cse320/
+/tmp/deployment-*/
+# Keep course source documents local, but deploy the Midterm 1 study diagrams.
+/cse320/*
+!/cse320/midterm-1/
+/cse320/midterm-1/*
+!/cse320/midterm-1/*.png
+!/cse320/midterm-1/*.svg
+!/cse320/midterm-2/
+/cse320/midterm-2/*
+!/cse320/midterm-2/*.png
+!/cse320/midterm-2/*.svg
