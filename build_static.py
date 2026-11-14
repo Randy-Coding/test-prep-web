@@ -5,7 +5,7 @@ import shutil
 from pathlib import Path
 from urllib.parse import unquote
 
-from server import load_banks
+from server import image_path, load_banks
 
 
 root = Path(__file__).resolve().parent
@@ -30,5 +30,5 @@ for image in {
     name = unquote(Path(image).name)
     destination = output / "assets" / "cse320" / name
     destination.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(root / "cse320" / name, destination)
+    shutil.copy2(image_path(name), destination)
 print(f"Built static site in {output}")

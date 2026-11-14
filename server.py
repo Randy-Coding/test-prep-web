@@ -18,9 +18,17 @@ def image_name(value):
     if len(parts) != 2 or parts[0] != "cse320" or parts[1] in ("", ".", ".."):
         raise ValueError(f"Invalid question image path: {value}")
     name = parts[1]
-    if Path(name).suffix.lower() not in IMAGE_TYPES or not (ASSET_ROOT / name).is_file():
+    if Path(name).suffix.lower() not in IMAGE_TYPES or not image_path(name).is_file():
         raise ValueError(f"Missing or unsupported question image: {value}")
     return name
+
+
+def image_path(name):
+    """Resolve legacy image URLs after the Midterm 1 resource folder move."""
+    original = ASSET_ROOT / name
+    if original.is_file():
+        return original
+    return ASSET_ROOT / "midterm-1" / name
 
 
 def normalize_question(question, answer):
@@ -109,7 +117,7 @@ class Handler(BaseHTTPRequestHandler):
             except ValueError:
                 self.send_error(404)
                 return
-            body = (ASSET_ROOT / name).read_bytes()
+            body = image_path(name).read_bytes()
             content_type = IMAGE_TYPES[Path(name).suffix.lower()]
         else:
             self.send_error(404)

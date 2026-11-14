@@ -1,0 +1,1304 @@
+[
+  {
+    "deck": "8. Processes.pptx",
+    "slides": [
+      {
+        "slide": 1,
+        "shapes": [
+          "CSE 320: Processes",
+          "Chapter 8\nProfessor Dan Benz"
+        ]
+      },
+      {
+        "slide": 2,
+        "shapes": [
+          "Control Flow:",
+          "To create useful programs we need “control flow”\nSimplest example is branches (if-else-switch / loop) and jumps (function call/return)\nWe also want to support “control flow” at the system level\nData arrives from a disk/memory\nInvalid instruction (divide by zero, follow a null pointer)\nUser interrupt (Ctrl-C)\nTimeout occurs"
+        ]
+      },
+      {
+        "slide": 3,
+        "shapes": [
+          "Types of system control flow:",
+          "Exceptions\nIn 214/260 you used exceptions for methods that encountered problems they could not solve \nEx. array out of memory, read from empty stack/queue\nThis escalates the problem to the system level\nProcess context switch\nWe will discuss what a process is and how the OS scheduler works\nSignals\nTell us when a system event needs to communicate with a process\nNonlocal jumps: setjmp() and longjmp()\nImplemented by C runtime library"
+        ]
+      },
+      {
+        "slide": 4,
+        "shapes": [
+          "Exceptions (under the hood):",
+          "An exception is a transfer of control to the OS kernel in response to some event  (i.e., change in processor state)\nKernel is the memory-resident part of the OS\nExamples of events: Divide by 0, arithmetic overflow, page fault, I/O request completes, typing Ctrl-C"
+        ]
+      },
+      {
+        "slide": 5,
+        "shapes": [
+          "Exception Tables:"
+        ]
+      },
+      {
+        "slide": 6,
+        "shapes": [
+          "Synchronous vs Asynchronous Exceptions:",
+          "Asynchronous exceptions are called Interrupts\nAsynchronous means they are caused by something that isn’t clocked with the CPU\nGenerally a HW controller (network/disk/global timer) or User (Ctrl-C)\nSynchronous exceptions are caused by the program itself\nTraps:\nIntentional - return to “next” instruction afterwards\nSystem calls, breakpoints, special instructions\nFaults:\nUnintentional - possible to return to “current” instruction (or abort)\nPage/segmentation/protection faults, floating point exceptions\nAborts:\nUnintentional and Unrecoverable (aborts program)\nIllegal instruction, parity error, machine check"
+        ]
+      },
+      {
+        "slide": 7,
+        "shapes": [
+          "System Calls:",
+          "Similar to MIPS from 220\nAllow programs to interact with larger system\nIf a syscall fails it will set global variable errno to indicate cause (and generally return a -1)\nMore on this with the shell example"
+        ]
+      },
+      {
+        "slide": 8,
+        "shapes": [
+          "What is a Process?",
+          "Process: a running  program \nincluding  program counter, registers,  variables, all data/info related to running the program.\nIn 220 we saw memory regions\nWe duplicate this for each process\n“Virtual Memory”\nThen we just need to store registers\nRun a program 2x -> 2 processes\nContext Switch:\nWhen you switch processes in a CPU"
+        ]
+      },
+      {
+        "slide": 9,
+        "shapes": [
+          "Why do we need multiple Processes?",
+          "Hide IO or Memory latency (Improve utilization)\nPrevent long running programs from hogging the computer\nServices and Daemons\nAllow for parallel computation (multicore systems)"
+        ]
+      },
+      {
+        "slide": 10,
+        "shapes": [
+          "How do processes improve performance?",
+          "P = what percentage of time is spent waiting for HW to become available (Mem or IO)\nn = how many different processes are in the queue.\nThat means if processes are LESS IO bound or if they can be broken up into MORE subtasks then utilization is improved.\nCPU utilization = 1 - pn"
+        ]
+      },
+      {
+        "slide": 11,
+        "shapes": [
+          "Context Switching:",
+          "Processes are managed by a shared chunk of memory-resident OS code called the kernel\nImportant: the kernel is not a separate process, but rather runs as part of some existing process.\nControl flow passes from one process to another via a context switch"
+        ]
+      },
+      {
+        "slide": 12,
+        "shapes": [
+          "How to create a process:",
+          "Parent process creates a new running child process by calling fork\nint fork(void)\nReturns 0 to the child process, child’s PID to parent process\nChild is almost identical to parent:\nChild get an identical (but separate) copy of the parent’s virtual address space.\nChild gets identical copies of the parent’s open file descriptors\nChild has a different PID than the parent\nfork is interesting (and often confusing) because it is called once but returns twice"
+        ]
+      },
+      {
+        "slide": 13,
+        "shapes": [
+          "Simple shell:",
+          "int my_system (const char *command)\n{\n  int status;\n  pid_t pid; // The pid_t type keeps track of a process ID\n pid = fork(); //fork() means create a process identical to this one\n  if (pid == 0)\n    {\n      /* This is the child process.  Execute the shell command. */\n      execl (SHELL, SHELL, \"-c\", command, NULL);\n      _exit (EXIT_FAILURE);\n    }\n  else if (pid < 0)\n    /* The fork failed.  Report failure.  */\n    status = -1;\n  else\n    /* This is the parent process.  Wait for the child to complete.  */\n    if (waitpid (pid, &status, 0) != pid)\n      status = -1;\n  return status;\n}"
+        ]
+      },
+      {
+        "slide": 14,
+        "shapes": [
+          "Process intercommunication:",
+          "Unix: process and its descendants form a group\nSignal can be sent to a process group, each\nprocess decides how to handle individually\nAll processes are descendants of init\ncreate a process for each terminal \nWindows: handle to a created process, \ncan be passed to other processes\nno hierarchy"
+        ]
+      },
+      {
+        "slide": 15,
+        "shapes": [
+          "PID:",
+          "Process ID is a number that uniquely identifies you as a process.\nfork() will return the child pid to the parent process\nTo get your pid use \npid_t getpid(void)\nTo get your parent process pid use\npid_t getppid(void)"
+        ]
+      },
+      {
+        "slide": 16,
+        "shapes": [
+          "OS Scheduling",
+          "Three OS states a process may be in:\nRunning (actually using the CPU at that instant).\nReady (runnable; temporarily stopped to let  another process run). E.g., preempted by  scheduling\nBlocked (unable to run until some external event  happens)."
+        ]
+      },
+      {
+        "slide": 17,
+        "shapes": [
+          "Programmer Perspective:",
+          "From a programmer’s perspective, we can think of a process as being in one of three states\nRunning  (Running and Ready)  \nProcess is either executing, or waiting to be executed and will eventually be scheduled (i.e., chosen to execute) by the kernel\nStopped (Blocked)\nProcess execution is suspended and will not be scheduled until further notice (next lecture when we study signals)    \nTerminated (OS stopped tracking it)\nProcess is stopped permanently "
+        ]
+      },
+      {
+        "slide": 18,
+        "shapes": [
+          "Terminating Process:",
+          "Process becomes terminated for one of three reasons:\nReceiving a signal whose default action is to terminate (next lecture)\nReturning from the main routine\nCalling the exit function\nvoid exit(int status)\nTerminates with an exit status of status\nConvention: normal return status is 0, nonzero on error\nAnother way to explicitly set the exit status is to return an integer value from the main routine\nexit is called once but never returns."
+        ]
+      },
+      {
+        "slide": 19,
+        "shapes": [
+          "Modeling fork with Process Graphs",
+          "A process graph is a useful tool for capturing the partial ordering of statements in a concurrent program:\nEach vertex is the execution of a statement\na -> b means a happens before b\nEdges can be labeled with current value of variables\nprintf vertices can be labeled with output\nEach graph begins with a vertex with no inedges \nAny topological sort of the graph corresponds to a feasible total ordering. \nTotal ordering of vertices where all edges point from left to right"
+        ]
+      },
+      {
+        "slide": 20,
+        "shapes": [
+          "Process Graph Example",
+          "This allows us to visualize what sequences of events are possible.\nabecfd?\nabfced?",
+          "int main()\n{\n    pid_t pid;\n    int x = 1;\n    pid = Fork(); \n    if (pid == 0) {  /* Child */\n        printf(\"child : x=%d\\n\", ++x); \n\texit(0);\n    }\n    /* Parent */\n    printf(\"parent: x=%d\\n\", --x); \n    exit(0);\n}"
+        ]
+      },
+      {
+        "slide": 21,
+        "shapes": [
+          "More complex Process Graph:",
+          "What sequence is possible?",
+          "void fork2()\n{\n    printf(\"L0\\n\");\n    fork();\n    printf(\"L1\\n\");\n    fork();\n    printf(\"Bye\\n\");\n}"
+        ]
+      },
+      {
+        "slide": 22,
+        "shapes": [
+          "More Process Graphs:",
+          "void fork4()\n{\n    printf(\"L0\\n\");\n    if (fork() != 0) {\n        printf(\"L1\\n\");\n        if (fork() != 0) {\n            printf(\"L2\\n\");\n\t}\n    }\n    printf(\"Bye\\n\");\n}",
+          "void fork5()\n{\n    printf(\"L0\\n\");\n    if (fork() == 0) {\n        printf(\"L1\\n\");\n        if (fork() == 0) {\n            printf(\"L2\\n\");\n        }\n    }\n    printf(\"Bye\\n\");\n}",
+          "Which graph corresponds to fork4 and which one is fork5?"
+        ]
+      },
+      {
+        "slide": 23,
+        "shapes": [
+          "Reaping Children:",
+          "Idea\nWhen process terminates, it still consumes system resources\nExamples: Exit status, various OS tables\nCalled a “zombie”\nLiving corpse, half alive and half dead\nReaping\nPerformed by parent on terminated child (using wait or waitpid)\nParent is given exit status information\nKernel then deletes zombie child process\nWhat if parent doesn’t reap?\nIf any parent terminates without reaping a child, then the orphaned child will be reaped by init process (pid == 1)\nSo, only need explicit reaping in long-running processes\ne.g., shells and servers"
+        ]
+      },
+      {
+        "slide": 24,
+        "shapes": [
+          "What about children who never terminate?",
+          "void fork8()\n{\n    if (fork() == 0) {\n        /* Child */\n        printf(\"Running Child, PID = %d\\n\",\n               getpid());\n        while (1)\n            ; /* Infinite loop */\n    } else {\n        printf(\"Terminating Parent, PID = %d\\n\",\n               getpid());\n        exit(0);\n    }\n}",
+          "linux> ./forks 8\nTerminating Parent, PID = 6675\nRunning Child, PID = 6676\nlinux> ps\n  PID TTY          TIME CMD\n 6585 ttyp9    00:00:00 tcsh\n 6676 ttyp9    00:00:06 forks\n 6677 ttyp9    00:00:00 ps\nlinux> kill 6676\nlinux> ps\n  PID TTY          TIME CMD\n 6585 ttyp9    00:00:00 tcsh\n 6678 ttyp9    00:00:00 ps"
+        ]
+      },
+      {
+        "slide": 25,
+        "shapes": [
+          "wait: Synchronizing with Children",
+          "int wait(int *child_status)\nSuspends current process until one of its children terminates\nReturn value is the pid of the child process that terminated\nIf child_status != NULL, then the integer it points to will be set to a value that indicates reason the child terminated and the exit status:\nChecked using macros defined in wait.h\nWIFEXITED, WEXITSTATUS, WIFSIGNALED, WTERMSIG, WIFSTOPPED, WSTOPSIG, WIFCONTINUED",
+          "void fork9() {\n    int child_status;\n    if (fork() == 0) {\n        printf(\"HC: hello from child\\n\");\n\texit(0);\n    } else {\n        printf(\"HP: hello from parent\\n\");\n        wait(&child_status);\n        printf(\"CT: child has terminated\\n\");\n    }\n    printf(\"Bye\\n\");\n}"
+        ]
+      },
+      {
+        "slide": 26,
+        "shapes": [
+          "Wait with multiple children:",
+          "The macros WIFEXITED and WEXITSTATUS are used to identify which child exited with which status.",
+          "void fork10() {\n    pid_t pid[N];\n    int i, child_status;\n    for (i = 0; i < N; i++)\n        if ((pid[i] = fork()) == 0)\n            exit(100+i); /* Child */\n    for (i = 0; i < N; i++) { /* Parent */\n        pid_t wpid = wait(&child_status);\n        if (WIFEXITED(child_status))\n            printf(\"Child %d terminated with exit status %d\\n\",\n                   wpid, WEXITSTATUS(child_status));\n        else\n            printf(\"Child %d terminate abnormally\\n\", wpid);}}",
+          "pid_t waitpid(pid_t pid, int &status, int options)\nSuspends process until child with pid “pid” terminates"
+        ]
+      },
+      {
+        "slide": 27,
+        "shapes": [
+          "execve: Loading and Running Programs",
+          "int execve(char *filename, char *argv[], char *envp[])\nLoads and runs in the current process:\nExecutable  file filename\nCan be object file or script file beginning with #! [shebang]  (e.g., #!/bin/bash)\n…with argument list argv\nBy convention argv[0]==filename\n…and  environment variable list envp\n“name=value” strings (e.g., USER=droh)\ngetenv, putenv, printenv\nOverwrites code, data, and stack\nRetains PID, open files and signal context\nCalled once and never returns\n…except if there is an error"
+        ]
+      },
+      {
+        "slide": 28,
+        "shapes": [
+          "Simple shell (again):",
+          "int my_system (const char *command)\n{\n  int status;\n  pid_t pid; // The pid_t type keeps track of a process ID\n pid = fork(); //fork() means create a process identical to this one\n  if (pid == 0)\n    {\n      /* This is the child process.  Execute the shell command. */\n      execl (SHELL, SHELL, \"-c\", command, NULL);\n      _exit (EXIT_FAILURE);\n    }\n  else if (pid < 0)\n    /* The fork failed.  Report failure.  */\n    status = -1;\n  else\n    /* This is the parent process.  Wait for the child to complete.  */\n    if (waitpid (pid, &status, 0) != pid)\n      status = -1;\n  return status;\n}"
+        ]
+      },
+      {
+        "slide": 29,
+        "shapes": [
+          "Summary:",
+          "Exceptions\nEvents that require nonstandard control flow\nGenerated externally (interrupts) or internally (traps and faults)\nProcesses\nAt any given time, system has multiple active processes\nOnly one can execute at a time on a single core, though\nEach process appears to have total control of processor + private memory space\nNew Process: fork\nEnd Process: exit\nReap/wait for Process: wait or waitpid\nRunning a program: execve"
+        ]
+      }
+    ]
+  },
+  {
+    "deck": "8.1 Signals.pptx",
+    "slides": [
+      {
+        "slide": 1,
+        "shapes": [
+          "CSE 320: Signals",
+          "Chapter 8\nProfessor Dan Benz"
+        ]
+      },
+      {
+        "slide": 2,
+        "shapes": [
+          "Shell:",
+          "A shell is an application program that runs programs on behalf of the user.\nsh             Original Unix shell (Stephen Bourne, AT&T Bell Labs, 1977)\ncsh/tcsh     BSD Unix C shell\nbash             “Bourne-Again” Shell (default Linux shell)\nShell Pseudocode:\nRun an infinite loop\nRead user input\nFork a new process\nexecvp the user input in the child process\nWait for the child to end (or don’t)\nForeground execution is the default behavior of shells, background exec is an option"
+        ]
+      },
+      {
+        "slide": 3,
+        "shapes": [
+          "Background Shell jobs:",
+          "Background jobs will become zombies if not reaped\nShell runs “forever” so init never reaps them for us\nThis is another form/cause of memory leaks\nLinux solves this by sending us a signal when background processes completes\nsignal: notification to a process that an event has occurred in the system\nAkin to exceptions and interrupts\nSent from the kernel (sometimes at the request of another process) to a process\nSignal type is identified by small integer ID’s (1-30)\nOnly information in a signal is its ID and the fact that it arrived"
+        ]
+      },
+      {
+        "slide": 4,
+        "shapes": [
+          "Signal Types:",
+          "Kernel sends a signal to a destination process by updating state in the destination\nThis can happen for a few reasons:\nAnother process has invoked the “kill” system call\nKernel has detected a system event that causes a signal",
+          "ID\nName\nDefault Action\nCorresponding Event\n2\nSIGINT\nTerminate\nUser typed ctrl-c \n9\nSIGKILL\nTerminate\nKill program (cannot override or ignore)\n11\nSIGSEGV\nTerminate \nSegmentation violation\n14\nSIGALRM\nTerminate\nTimer signal\n17\nSIGCHLD\nIgnore\nChild stopped or terminated"
+        ]
+      },
+      {
+        "slide": 5,
+        "shapes": [
+          "Receiving a Signal:",
+          "When a destination process receives a signal it must react:\nIgnore the signal (do nothing)\nTerminate the process (optional core dump)\nCatch the signal (and perform a signal handler)\nSimilar to the exception handlers from last lecture\nThen it will resume at the next instruction (that got interrupted)\nA signal is pending if sent but not received\nThere can be at most 1 pending signal of a particular type\nThis means if you would receive two signals of the same type all but the first are discarded\nA process can block the receipt of a signal\nThis means they get delivered but not received until the process unblocks the signal\nA pending signal is received at most once"
+        ]
+      },
+      {
+        "slide": 6,
+        "shapes": [
+          "Signal Maintenance:",
+          "Kernel keeps a vector of pending and block bits for each signal type / process\nPending means sent but not received\nBlocked (also called the “signal mask”) can be set/cleared with sigprocmask\nIn addition to a process ID, each process also has a group (pgid)\ngetpgrp() returns the process group of the current process\nsetpgid() changes the process group of a process"
+        ]
+      },
+      {
+        "slide": 7,
+        "shapes": [
+          "User Signals:",
+          "Ctrl-C (Ctrl-Z) sends the SIGINT (SIGTSTP) to all foreground jobs\nSIGINT – default action is to terminate each process \nSIGTSTP – default action is to stop (suspend) each process\nFun fact: the fg command in bash will bring a background job to the foreground\nbg also exists to send a foreground job to the background\nKill (/bin/kill) is a program that sends arbitrary signals to a pid or pgid\n/bin/kill –9 24818\nSends the SIGKILL to process 24818\n/bin/kill –9 -24818\nSends the SIGKILL to every process in process group 24818"
+        ]
+      },
+      {
+        "slide": 8,
+        "shapes": [
+          "Exception handler returning:",
+          "When the kernel is returning from an exception handler what gets checked?\nKernel computes pnb (pending & ~blocked)\nIf pnb == 0\nreturn to process\nElse\nChoose least non-zero bit in pnb and send that signal\nIf the process ignores the signal send next signal\nEach signal types has a default action (one of the following):\nTerminate process\nStop until SIGCONT signal\nIgnore the signal"
+        ]
+      },
+      {
+        "slide": 9,
+        "shapes": [
+          "Installing Signal Handlers:",
+          "signal function modifies the default action upon receipt of signal signum:\nhandler_t *signal(int signum, handler_t *handler)\nDifferent values for handler:\nSIG_IGN: ignore signals of type signum\nSIG_DFL: revert to the default action on receipt of signals of type signum\nOtherwise, handler is the address of a user-level signal handler\nCalled when process receives signal of type signum\nReferred to as “installing” the handler\nExecuting handler is called “catching” or “handling” the signal\nWhen the handler executes its return statement, control passes back to instruction in the control flow of the process that was interrupted by receipt of the signal"
+        ]
+      },
+      {
+        "slide": 10,
+        "shapes": [
+          "Simple Signal Handler:",
+          "void sigint_handler(int sig) /* SIGINT handler */\n{\n    printf(\"So you think you can stop the bomb with ctrl-c, do you?\\n\");\n    sleep(2);    printf(\"Well...\");    fflush(stdout);    sleep(1);\n    printf(\"OK. :-)\\n\");    exit(0);\n}\nint main()\n{\n    /* Install the SIGINT handler */\n    if (signal(SIGINT, sigint_handler) == SIG_ERR)\n        unix_error(\"signal error\");\n    /* Wait for the receipt of a signal */\n    pause();    return 0;\n}"
+        ]
+      },
+      {
+        "slide": 11,
+        "shapes": [
+          "Timing of Signal Handlers:",
+          "Signal handlers are separate flow but not a separate process.\nMore like a function\nHandlers can be interrupted by other handlers\nImplicit block on current signal type"
+        ]
+      },
+      {
+        "slide": 12,
+        "shapes": [
+          "Blocking Signals",
+          "To explicitly block a signal type use: sigprocmask \nOther useful functions:\nsigemptyset – Create empty set\nsigfillset – Add every signal number to set\nsigaddset – Add signal number to set\nsigdelset – Delete signal number from set",
+          "    sigset_t mask, prev_mask;\n    Sigemptyset(&mask);\n    Sigaddset(&mask, SIGINT);\n    /* Block SIGINT and save previous blocked set */\n    Sigprocmask(SIG_BLOCK, &mask, &prev_mask);\n        /* Code region that will not be interrupted by SIGINT */\n    /* Restore previous blocked set, unblocking SIGINT */\n    Sigprocmask(SIG_SETMASK, &prev_mask, NULL);"
+        ]
+      },
+      {
+        "slide": 13,
+        "shapes": [
+          "Safe Signal Handling:",
+          "Handlers are tricky:\nThey are concurrent with main program \nThey share the same global data structures.\nShared data structures can become corrupted\nWe’ll explore concurrency issues later in the term.\nFor now here are some guidelines to help you avoid trouble:\nG0: Keep your handlers as simple as possible (e.g., Set a global flag and return)\nG1: Call only async-signal-safe functions in your handlers (not printf, malloc, or exit)\nG2: Save and restore errno on entry and exit (don’t want to lose this info)\nG3: Protect accesses to shared data structures by temporarily blocking all signals. \nG4: Declare global variables as volatile (prevents compiler from doing anything “clever”)\nG5: Declare global flags as volatile sig_atomic_t (flags are RO or WO)"
+        ]
+      },
+      {
+        "slide": 14,
+        "shapes": [
+          "Async-Signal-Safety?",
+          "Function is async-signal-safe if it is either reentrant (e.g., all variables stored on stack frame) or non-interruptible by signals.\nPosix guarantees 117 functions to be async-signal-safe \nSource: “man 7 signal”\nPopular functions on the list:\n_exit, write, wait, waitpid, sleep, kill\nPopular functions that are not on the list:\nprintf,  sprintf, malloc, exit \nUnfortunate fact: write is the only async-signal-safe output function"
+        ]
+      },
+      {
+        "slide": 15,
+        "shapes": [
+          "(in)Correct Signal Handling:",
+          "Pending signals are not queued\nFor each signal type, one bit indicates whether or not signal is pending…\n…thus at most one pending signal of any particular type. \n You can’t use signals to count events, such as children terminating.",
+          "int ccount = 0;\nvoid child_handler(int sig) {\n    int olderrno = errno;  pid_t pid;\n    if ((pid = wait(NULL)) < 0)\n        Sio_error(\"wait error\");\n    ccount--;\n    Sio_puts(\"Handler reaped child \");\n    Sio_putl((long)pid);\n    Sio_puts(\" \\n\");\n    sleep(1);  errno = olderrno;\n}\nvoid fork14() {\n    pid_t pid[N];   int i;   ccount = N;\n    Signal(SIGCHLD, child_handler);\n    for (i = 0; i < N; i++) {\n        if ((pid[i] = Fork()) == 0) {\n            Sleep(1);   exit(0);  /* Child exits */\n        }\n    }\n    while (ccount > 0); /* Parent spins */\n}"
+        ]
+      },
+      {
+        "slide": 16,
+        "shapes": [
+          "Correct Signal Handling:",
+          "Because this code reaps multiple children when the handler is called (while instead of if) it will allow all children to be reaped and ccount to go to 0.\nWNOHANG flag to always return immediately (regardless of zombies)",
+          "void child_handler2(int sig)\n{\n    int olderrno = errno;\n    pid_t pid;\n    while ((pid = wait(NULL)) > 0) {\n        ccount--;\n        Sio_puts(\"Handler reaped child \");\n        Sio_putl((long)pid);\n        Sio_puts(\" \\n\");\n    }\n    if (errno != ECHILD)\n        Sio_error(\"wait error\");\n    errno = olderrno;\n}"
+        ]
+      },
+      {
+        "slide": 17,
+        "shapes": [
+          "Portable Signal Handling:",
+          "Ugh! Different versions of Unix can have different signal handling semantics\nSome older systems restore action to default after catching signal\nSome interrupted system calls can return with errno == EINTR\nSome systems don’t block signals of the type being handled \nSolution: sigaction",
+          "handler_t *Signal(int signum, handler_t *handler)\n{\n    struct sigaction action, old_action;\n    action.sa_handler = handler;\n    sigemptyset(&action.sa_mask); /* Block sigs of type being handled */\n    action.sa_flags = SA_RESTART; /* Restart syscalls if possible */\n    if (sigaction(signum, &action, &old_action) < 0)\n        unix_error(\"Signal error\");\n    return (old_action.sa_handler);\n}"
+        ]
+      },
+      {
+        "slide": 18,
+        "shapes": [
+          "Synchronizing Flows to Avoid Races",
+          "int main(int argc, char **argv)\n{\n    int pid;  sigset_t mask_all, prev_all;\n    Sigfillset(&mask_all);\n    Signal(SIGCHLD, handler);\n    initjobs(); /* Initialize the job list */\n    while (1) {\n        if ((pid = Fork()) == 0)  /* Child */\n            Execve(\"/bin/date\", argv, NULL); \n        Sigprocmask(SIG_BLOCK, &mask_all, &prev_all); \n/* Parent */\n        addjob(pid);  /* Add the child to the job list */\n        Sigprocmask(SIG_SETMASK, &prev_all, NULL);\n    }\n    exit(0);}",
+          "Simple shell with a subtle synchronization error because it assumes parent runs before child."
+        ]
+      },
+      {
+        "slide": 19,
+        "shapes": [
+          "Synchronizing Flows to Avoid Races (handler)",
+          "void handler(int sig)\n{\n    int olderrno = errno;\n    sigset_t mask_all, prev_all;\n    pid_t pid;\n    Sigfillset(&mask_all);\n    while ((pid = waitpid(-1, NULL, 0)) > 0) { /* Reap child */\n        Sigprocmask(SIG_BLOCK, &mask_all, &prev_all);\n        deletejob(pid); /* Delete the child from the job list */\n        Sigprocmask(SIG_SETMASK, &prev_all, NULL);\n    }\n    if (errno != ECHILD)\n        Sio_error(\"waitpid error\");\n    errno = olderrno;\n}",
+          "SIGCHLD handler for a simple shell"
+        ]
+      },
+      {
+        "slide": 20,
+        "shapes": [
+          "Corrected Shell Program without Race",
+          "int main(int argc, char **argv)\n{\n    int pid;   sigset_t mask_all, mask_one, prev_one;\n    Sigfillset(&mask_all);  Sigemptyset(&mask_one); Sigaddset(&mask_one, SIGCHLD);\n    Signal(SIGCHLD, handler);  initjobs(); /* Initialize the job list */\n    while (1) {\n        Sigprocmask(SIG_BLOCK, &mask_one, &prev_one); /* Block SIGCHLD */\n        if ((pid = Fork()) == 0) { /* Child process */\n            Sigprocmask(SIG_SETMASK, &prev_one, NULL); /* Unblock SIGCHLD */\n            Execve(\"/bin/date\", argv, NULL);\n        }\n        Sigprocmask(SIG_BLOCK, &mask_all, NULL); /* Parent process */\n\taddjob(pid);  /* Add the child to the job list */\n        Sigprocmask(SIG_SETMASK, &prev_one, NULL);  /* Unblock SIGCHLD */\n    }\n    exit(0);}"
+        ]
+      },
+      {
+        "slide": 21,
+        "shapes": [
+          "Explicitly Waiting for Signals (handler)",
+          "volatile sig_atomic_t pid;\nvoid sigchld_handler(int s)\n{\n    int olderrno = errno;\n    pid = Waitpid(-1, NULL, 0); /* Main is waiting for nonzero pid */\n    errno = olderrno;\n}\nvoid sigint_handler(int s) { }",
+          "Handlers for program explicitly waiting for SIGCHLD to arrive."
+        ]
+      },
+      {
+        "slide": 22,
+        "shapes": [
+          "Explicitly Waiting for Signals",
+          "int main(int argc, char **argv) {\n    sigset_t mask, prev;\n    Signal(SIGCHLD, sigchld_handler);   Signal(SIGINT, sigint_handler);\n    Sigemptyset(&mask);   Sigaddset(&mask, SIGCHLD);\n    while (1) {\n\tSigprocmask(SIG_BLOCK, &mask, &prev); /* Block SIGCHLD */\n\tif (Fork() == 0)  exit(0); /* Child */\n        /* Parent */\n\tpid = 0;\n\tSigprocmask(SIG_SETMASK, &prev, NULL); /* Unblock SIGCHLD */\n\t/* Wait for SIGCHLD to be received (wasteful!) */\n\twhile (!pid) ;\n\t/* Do some work after receiving SIGCHLD */\n        printf(\".\");\n    }\n    exit(0);}",
+          "Similar to a shell waiting\nfor a foreground job to \nterminate. "
+        ]
+      },
+      {
+        "slide": 23,
+        "shapes": [
+          "Explicitly Waiting for Signals (alternatives)",
+          "while (!pid)  /* Race! */\n    pause();",
+          "Program is correct, but very wasteful\nOther options:\nSolution: sigsuspend",
+          "while (!pid) /* Too slow! */\n    sleep(1);"
+        ]
+      },
+      {
+        "slide": 24,
+        "shapes": [
+          "Waiting for Signals with sigsuspend",
+          "sigprocmask(SIG_BLOCK, &mask, &prev);\npause();\nsigprocmask(SIG_SETMASK, &prev, NULL);",
+          "int sigsuspend(const sigset_t *mask)\nEquivalent to atomic (uninterruptible) version of:"
+        ]
+      },
+      {
+        "slide": 25,
+        "shapes": [
+          "sigsuspend Example ",
+          "int main(int argc, char **argv) {\n    sigset_t mask, prev;\n    Signal(SIGCHLD, sigchld_handler); Signal(SIGINT, sigint_handler);\n    Sigemptyset(&mask);  Sigaddset(&mask, SIGCHLD);\n    while (1) {\n        Sigprocmask(SIG_BLOCK, &mask, &prev); /* Block SIGCHLD */\n        if (Fork() == 0) exit(0);/* Child */\n        /* Wait for SIGCHLD to be received */\n        pid = 0; while (!pid) Sigsuspend(&prev);\n       /* Optionally unblock SIGCHLD */\n        Sigprocmask(SIG_SETMASK, &prev, NULL);\n\t/* Do some work after receiving SIGCHLD */\n        printf(\".\");\n    }\n    exit(0);}"
+        ]
+      },
+      {
+        "slide": 26,
+        "shapes": [
+          "Nonlocal Jumps: setjmp",
+          "Powerful (but dangerous) user-level mechanism for transferring control to an arbitrary location\nControlled to way to break the procedure call / return discipline\nUseful for error recovery and signal handling\nint setjmp(jmp_buf j)\nMust be called before longjmp\nIdentifies a return site for a subsequent longjmp\nCalled once, returns one or more times (when longjmp is called, this returns)\nImplementation:\nRemember where you are by storing the current register context (including sp & pc) in jmp_buf\nReturn 0"
+        ]
+      },
+      {
+        "slide": 27,
+        "shapes": [
+          "Nonlocal Jumps: longjmp",
+          "void longjmp(jmp_buf j, int i)\nMeaning:\nreturn from the setjmp remembered by jump buffer j again ... \n… this time returning i instead of 0\nCalled after setjmp\nCalled once, but never returns (its return is at setjmp)\nlongjmp Implementation:\nRestore register context (stack pointer, base pointer, PC value) from jump buffer j\nSet %eax (the return value) to i\nJump to the location indicated by the PC stored in jump buf j"
+        ]
+      },
+      {
+        "slide": 28,
+        "shapes": [
+          "setjmp/longjmp usage:",
+          "/* Deeply nested function foo */\nvoid foo(void)\n{  if (error1)\n\tlongjmp(buf, 1);\n    bar();}\nvoid bar(void)\n{   if (error2)\n        longjmp(buf, 2); }",
+          "jmp_buf buf; int error1 = 0; int error2 = 1;\nvoid foo(void), bar(void);\nint main()\n{  switch(setjmp(buf)) {\n    case 0:  foo();   break;\n    case 1:   printf(\"Detected an error1 condition in foo\\n\"); break;\n    case 2:  printf(\"Detected an error2 condition in foo\\n\"); break;\n    default:  printf(\"Unknown error condition in foo\\n\");  }\n    exit(0);}"
+        ]
+      },
+      {
+        "slide": 29,
+        "shapes": [
+          "Limitations of Nonlocal Jumps:",
+          "Works within stack discipline\nCan only long jump to environment of function that has been called but not yet completed\nYou need to have long-jump destination in a ancestor function that hasn’t returned.\nOnce the long-jump function returns, that long-jump becomes invalid\nThe long-jump destination needs to get set up before being used"
+        ]
+      },
+      {
+        "slide": 30,
+        "shapes": [
+          "Cute program:",
+          "What does this program do?",
+          "sigjmp_buf buf;\nvoid handler(int sig)\n{\n    siglongjmp(buf, 1);\n}\nint main()\n{\n    if (!sigsetjmp(buf, 1)) {\n        Signal(SIGINT, handler);\n\tSio_puts(\"starting\\n\");\n    }\n    else\n        Sio_puts(\"restarting\\n\");\n    while(1) {\n\tSleep(1);\n\tSio_puts(\"processing...\\n\");\n    }\n    exit(0); /* Control never reaches here */\n}"
+        ]
+      },
+      {
+        "slide": 31,
+        "shapes": [
+          "Summary:",
+          "Signals provide process-level exception handling\nCan generate from user programs\nCan define effect by declaring signal handler\nBe very careful when writing signal handlers\nNonlocal jumps provide exceptional control flow within process\nWithin constraints of stack discipline "
+        ]
+      }
+    ]
+  },
+  {
+    "deck": "9. Virtual Memory.pptx",
+    "slides": [
+      {
+        "slide": 1,
+        "shapes": [
+          "CSE 320: Virtual Memory",
+          "Chapter 9\nProfessor Dan Benz"
+        ]
+      },
+      {
+        "slide": 2,
+        "shapes": [
+          "A System Using Physical Addressing",
+          "Used in “bare metal” (no OS) systems like :\nembedded microcontrollers in cars, elevators, and digital picture frames"
+        ]
+      },
+      {
+        "slide": 3,
+        "shapes": [
+          "A System Using Virtual Addressing",
+          "Used in all modern servers, laptops, and smartphones\nOne of the great ideas in computer science"
+        ]
+      },
+      {
+        "slide": 4,
+        "shapes": [
+          "Address Spaces",
+          "Linear address space: \nContiguous non-negative integer addresses:\t{0, 1, 2, 3 … }\nVirtual address space: \nSet of N = 2n virtual addresses\t\t{0, 1, 2, 3, …, N-1}\nPhysical address space: \nSet of M = 2m physical addresses\t\t{0, 1, 2, 3, …, M-1}"
+        ]
+      },
+      {
+        "slide": 5,
+        "shapes": [
+          "Why Virtual Memory (VM)?",
+          "Uses main memory efficiently\nUse DRAM as a cache for parts of a virtual address space\nSimplifies memory management\nEach process gets the same uniform linear address space\nIsolates address spaces\nOne process can’t interfere with another’s memory\t\nUser program cannot access privileged kernel information and code\nHides physical memory constraints\nYou can allocate more virtual memory than you have RAM"
+        ]
+      },
+      {
+        "slide": 6,
+        "shapes": [
+          "VM as a Tool for Caching",
+          "Conceptually, virtual memory is an array of N contiguous bytes stored on disk. \nThe contents of the array on disk are cached in physical memory (DRAM cache)\nThese cache blocks are called pages (size is P = 2p bytes)"
+        ]
+      },
+      {
+        "slide": 7,
+        "shapes": [
+          "DRAM Cache Organization",
+          "DRAM cache organization driven by the enormous miss penalty\nDRAM is about 10x slower than SRAM\nDisk is about 10,000x slower than DRAM\nConsequences\nLarge page (block) size: typically 4 KB, sometimes 4 MB\nFully associative \nAny VP can be placed in any PP\nRequires a “large” mapping function – different from cache memories\nHighly sophisticated, expensive replacement algorithms\nToo complicated and open-ended to be implemented in hardware\nWrite-back rather than write-through"
+        ]
+      },
+      {
+        "slide": 8,
+        "shapes": [
+          "Enabling Data Structure: Page Table",
+          "A page table is an array of page table entries (PTEs) that maps virtual pages to physical pages. \nPer-process kernel data structure in DRAM\nA page-hit is when the virtual address you want has a page table entry that is in physical memory\nA page-fault is when the entry is NOT in physical memory"
+        ]
+      },
+      {
+        "slide": 9,
+        "shapes": [
+          "Page Faults: ",
+          "Page miss causes page fault (an exception)\nPage fault handler selects a victim to be evicted (here VP 4)\nOffending instruction is restarted: page hit!\nKey point: Waiting until the miss to copy the page to DRAM is known as demand paging"
+        ]
+      },
+      {
+        "slide": 10,
+        "shapes": [
+          "Allocating Pages",
+          "Allocating a new page (VP 5) of virtual memory."
+        ]
+      },
+      {
+        "slide": 11,
+        "shapes": [
+          "Locality to the Rescue Again!",
+          "Virtual memory seems terribly inefficient, but it works because of locality. \nAt any point in time, programs tend to access a set of active virtual pages called the working set\nPrograms with better temporal locality will have smaller working sets\nIf (working set size < main memory size) \nGood performance for one process after compulsory misses\nIf ( SUM(working set sizes) > main memory size ) \nThrashing: Performance meltdown where pages are swapped (copied) in and out continuously"
+        ]
+      },
+      {
+        "slide": 12,
+        "shapes": [
+          "VM as a Tool for Memory Management",
+          "Each process has its own virtual address space\nIt can view memory as a simple linear array\nMapping function scatters addresses in physical memory\nWell-chosen mappings can improve locality\nSimplifying memory allocation\nEach virtual page can be mapped to any physical page\nA virtual page can be stored in different physical pages\nSharing code and data among processes\nMap virtual pages to the same physical page (here: PP 6)"
+        ]
+      },
+      {
+        "slide": 13,
+        "shapes": [
+          "Simplifying Linking and Loading",
+          "Linking \nEach program has similar virtual address space\nCode, data, and heap always at the same addresses\nLoading \nexecve allocates virtual pages for .text and .data sections & creates PTEs marked as invalid\nThe .text and .data sections are copied, page by page, on demand by the virtual memory system"
+        ]
+      },
+      {
+        "slide": 14,
+        "shapes": [
+          "VM as a Tool for Memory Protection",
+          "Extend PTEs with permission bits\nMMU checks these bits on each access"
+        ]
+      },
+      {
+        "slide": 15,
+        "shapes": [
+          "VM Address Translation",
+          "Virtual Address Space\nV = {0, 1, …, N–1}\nPhysical Address Space\nP = {0, 1, …, M–1}\nAddress Translation\nMAP:  V →  P  U  {∅}\nFor virtual address a:\nMAP(a)  =  a’  if data at virtual address a is at physical address a’ in P\nMAP(a)  = ∅ if data at virtual address a is not in physical memory\nEither invalid or stored on disk"
+        ]
+      },
+      {
+        "slide": 16,
+        "shapes": [
+          "Summary of Address Translation Symbols",
+          "Basic Parameters\nN = 2n : Number of addresses in virtual address space\nM = 2m : Number of addresses in physical address space\nP = 2p  : Page size (bytes)\nComponents of the virtual address (VA)\nTLBI: TLB index\nTLBT: TLB tag\nVPO: Virtual page offset \nVPN: Virtual page number \nComponents of the physical address (PA)\nPPO: Physical page offset (same as VPO)\nPPN: Physical page number"
+        ]
+      },
+      {
+        "slide": 17,
+        "shapes": [
+          "Address Translation With a Page Table"
+        ]
+      },
+      {
+        "slide": 18,
+        "shapes": [
+          "Address Translation: Page Hit",
+          "1) Processor sends virtual address to MMU \n2-3) MMU fetches PTE from page table in memory\n4) MMU sends physical address to cache/memory\n5) Cache/memory sends data word to processor"
+        ]
+      },
+      {
+        "slide": 19,
+        "shapes": [
+          "Address Translation: Page Fault",
+          "1) Processor sends virtual address to MMU \n2-3) MMU fetches PTE from page table in memory\n4) Valid bit is zero, so MMU triggers page fault exception\n5) Handler identifies victim (and, if dirty, pages it out to disk)\n6) Handler pages in new page and updates PTE in memory\n7) Handler returns to original process, restarting faulting instruction"
+        ]
+      },
+      {
+        "slide": 20,
+        "shapes": [
+          "Integrating VM and Cache",
+          "VA: virtual address, PA: physical address, PTE: page table entry, PTEA = PTE address"
+        ]
+      },
+      {
+        "slide": 21,
+        "shapes": [
+          "Speeding Up Paging",
+          "Major issues faced:\nThe mapping from virtual to physical  address must be fast\n Speed\nIf the virtual address space is large, the page table will be large\n Scalability\nHow can we Cache the Page Table?"
+        ]
+      },
+      {
+        "slide": 22,
+        "shapes": [
+          "Translation Lookaside Buffers",
+          "Locality of page access  \nFrequently used entries in TLB, e.g., 8-256 entries hardware table in MMU\nAll TLB entries compared simultaneously to an incoming virtual address"
+        ]
+      },
+      {
+        "slide": 23,
+        "shapes": [
+          "TLB Hit",
+          "A TLB hit eliminates a memory access"
+        ]
+      },
+      {
+        "slide": 24,
+        "shapes": [
+          "TLB related concepts and mechanisms",
+          "TLB misses cause page table lookup, eviction and  replacement of a TLB entry\nTLB fault handling in hardware vs. software\nSoftware TLB fault handling\n64 entries sufficient to reduce miss rate\nPredict and preload TLB entries\nPages holding page table not in TLB: keep their entries in TLB\nSoft vs. hard miss: page entry not in TLB but page in vs. not in memory\n3-6 orders of magnitude difference in latency\nMinor page fault (page frame in memory but not the process’ page table), major (page on disk), segmentation faults (access invalid address)"
+        ]
+      },
+      {
+        "slide": 25,
+        "shapes": [
+          "Sample Problem with TLB",
+          "I am writing a program that needs to access an array of 1GB of character (1 byte) values sequentially.\nIf I assume that my pages are 4KB in size and I have a TLB with 32 entries, how often will I need to return to the page table to get the next memory location?"
+        ]
+      },
+      {
+        "slide": 26,
+        "shapes": [
+          "Speeding up Translation with a TLB",
+          "Page table entries (PTEs) are cached in L1 like any other memory word\nPTEs may be evicted by other data references\nPTE hit still requires a small L1 delay\nSolution: Translation Lookaside Buffer (TLB)\nSmall set-associative hardware cache in MMU\nMaps virtual page numbers to  physical page numbers\nContains complete page table entries for small number of pages"
+        ]
+      },
+      {
+        "slide": 27,
+        "shapes": [
+          "Accessing the TLB",
+          "MMU uses the VPN portion of the virtual address to access the TLB:"
+        ]
+      },
+      {
+        "slide": 28,
+        "shapes": [
+          "Let’s stop for a minute and think about Page Tables for reasonable systems.\nIf I have a 64-bit virtual address space, even if my pages are 4MB each and each page only uses 4 bytes, how much memory is my page table using?\n2^(64-22) x4B = 2^(42) x 4B = 16 TB. That is clearly unacceptable."
+        ]
+      },
+      {
+        "slide": 29,
+        "shapes": [
+          "Multilevel Page Tables:",
+          "Only pages with actual data need page table entries."
+        ]
+      },
+      {
+        "slide": 30,
+        "shapes": [
+          "A Two-Level Page Table Hierarchy"
+        ]
+      },
+      {
+        "slide": 31,
+        "shapes": [
+          "Sample Problem Multilevel page table:",
+          "‹#›",
+          "Let’s assume we have a 64-bit virtual machine with 4MB pages and 4 Bytes per entry. How would an evenly distributed two level page table be structured?"
+        ]
+      },
+      {
+        "slide": 32,
+        "shapes": [
+          "Suppose:\n4KB (212) page size, 48-bit address space, 8-byte PTE \nProblem:\nWould need a 512 GB page table!\n248 * 2-12  * 23 = 239 bytes\nCommon solution: Multi-level page table\nExample: 2-level page table\nLevel 1 table: each PTE points to a page table (always memory resident)\nLevel 2 table: each PTE points to a page (paged in and out like any other data)",
+          "Multi-Level Page Tables"
+        ]
+      },
+      {
+        "slide": 33,
+        "shapes": [
+          "Translating with a k-level Page Table"
+        ]
+      },
+      {
+        "slide": 34,
+        "shapes": [
+          "Summary",
+          "Programmer’s view of virtual memory\nEach process has its own private linear address space\nCannot be corrupted by other processes\nSystem view of virtual memory\nUses memory efficiently by caching virtual memory pages\nEfficient only because of locality\nSimplifies memory management and programming\nSimplifies protection by providing a convenient interpositioning point to check permissions"
+        ]
+      },
+      {
+        "slide": 35,
+        "shapes": [
+          "Simple Memory System Example",
+          "Addressing\n14-bit virtual addresses\n12-bit physical address\nPage size = 64 bytes"
+        ]
+      },
+      {
+        "slide": 36,
+        "shapes": [
+          "1. Simple Memory System TLB",
+          "16 entries\n4-way associative"
+        ]
+      },
+      {
+        "slide": 37,
+        "shapes": [
+          "2. Simple Memory System Page Table",
+          "Only show first 16 entries (out of 256)"
+        ]
+      },
+      {
+        "slide": 38,
+        "shapes": [
+          "3. Simple Memory System Cache",
+          "16 lines, 4-byte block size\nPhysically addressed\nDirect mapped"
+        ]
+      },
+      {
+        "slide": 39,
+        "shapes": [
+          "Address Translation Examples:",
+          "What about 0x0020?"
+        ]
+      },
+      {
+        "slide": 40,
+        "shapes": [
+          "Intel Core i7 Memory System"
+        ]
+      },
+      {
+        "slide": 41,
+        "shapes": [
+          "Review of Symbols",
+          "Basic Parameters\nN = 2n : Number of addresses in virtual address space\nM = 2m : Number of addresses in physical address space\nP = 2p  : Page size (bytes)\nComponents of the virtual address (VA)\nTLBI: TLB index\nTLBT: TLB tag\nVPO: Virtual page offset \nVPN: Virtual page number \nComponents of the physical address (PA)\nPPO: Physical page offset (same as VPO)\nPPN: Physical page number\nCO: Byte offset within cache line\nCI: Cache index\nCT: Cache tag"
+        ]
+      },
+      {
+        "slide": 42,
+        "shapes": [
+          "End-to-end Core i7 Address Translation"
+        ]
+      },
+      {
+        "slide": 43,
+        "shapes": [
+          "Core i7 Level 1-3 Page Table Entries"
+        ]
+      },
+      {
+        "slide": 44,
+        "shapes": [
+          "Core i7 Level 4 Page Table Entries"
+        ]
+      },
+      {
+        "slide": 45,
+        "shapes": [
+          "Core i7 Page Table Translation"
+        ]
+      },
+      {
+        "slide": 46,
+        "shapes": [
+          "Cute Trick for Speeding Up L1 Access",
+          "Observation\nBits that determine CI identical in virtual and physical address\nCan index into cache while address translation taking place\nGenerally we hit in TLB, so PPN bits (CT bits) available next\n“Virtually indexed, physically tagged”\nCache carefully sized to make this possible"
+        ]
+      },
+      {
+        "slide": 47,
+        "shapes": [
+          "Virtual Address Space of a Linux Process"
+        ]
+      },
+      {
+        "slide": 48,
+        "shapes": [
+          "Linux Organizes VM as Collection of “Areas”  (segments)"
+        ]
+      },
+      {
+        "slide": 49,
+        "shapes": [
+          "Linux Page Fault Handling "
+        ]
+      },
+      {
+        "slide": 50,
+        "shapes": [
+          "Memory Mapping",
+          "VM areas initialized by associating them with disk objects.\nProcess is known as memory mapping. \nArea can be backed by (i.e., get its initial values from) :\nRegular file on disk (e.g., an executable object file)\nInitial page bytes come from a section of a file\nAnonymous file (e.g., nothing)\nFirst fault will allocate a physical page full of 0's (demand-zero page)\nOnce the page is written to (dirtied), it is like any other page\nDirty pages are copied back and forth between memory and a special swap file."
+        ]
+      },
+      {
+        "slide": 51,
+        "shapes": [
+          "Sharing Revisited: Shared Objects",
+          "Process 2 maps the shared object. \nNotice how the virtual addresses can be different."
+        ]
+      },
+      {
+        "slide": 52,
+        "shapes": [
+          "Sharing Revisited: Private Copy-on-write (COW) Objects",
+          "Two processes mapping a private copy-on-write (COW)  object. \nArea flagged as private copy-on-write\nPTEs in private areas are flagged as read-only\nInstruction writing to private page triggers protection fault. \nHandler creates new R/W page. \nInstruction restarts upon handler return. \nCopying deferred as long as possible!"
+        ]
+      },
+      {
+        "slide": 53,
+        "shapes": [
+          "The fork Function Revisited",
+          "VM and memory mapping explain how fork provides private address space for each process. \nTo create virtual address for new new process\nCreate exact copies of current mm_struct, vm_area_struct, and page tables. \nFlag each page in both processes as read-only\nFlag each vm_area_struct in both processes as private COW\nOn return, each process has exact copy of virtual memory\nSubsequent writes create new pages using COW mechanism."
+        ]
+      },
+      {
+        "slide": 54,
+        "shapes": [
+          "The execve Function Revisited",
+          "To load and run a new program a.out in the current process using execve:\nFree vm_area_struct’s and page tables for old areas\nCreate vm_area_struct’s and page tables for new areas\nPrograms and initialized data backed by object files.\n.bss  and stack backed by anonymous files . \nSet PC to entry point in .text\nLinux will fault in code and data pages as needed."
+        ]
+      },
+      {
+        "slide": 55,
+        "shapes": [
+          "User-Level Memory Mapping",
+          "void *mmap(void *start, int len,\n           int prot, int flags, int fd, int offset)\nMap len bytes starting at offset offset of the file specified by file description fd, preferably at address start \nstart: may be 0 for “pick an address”\nprot: PROT_READ, PROT_WRITE, ...\nflags: MAP_ANON, MAP_PRIVATE, MAP_SHARED, ...\nReturn a pointer to start of mapped area (may not be start)"
+        ]
+      },
+      {
+        "slide": 56,
+        "shapes": [
+          "User-Level Memory Mapping diagram",
+          "void *mmap(void *start, int len,int prot, int flags, int fd, int offset)"
+        ]
+      },
+      {
+        "slide": 57,
+        "shapes": [
+          "Example: Using mmap to Copy Files",
+          "/* mmapcopy driver */\nint main(int argc, char **argv)\n{\n    struct stat stat;\n    int fd;\n    /* Check for required cmd line arg */\n    if (argc != 2) {\n        printf(\"usage: %s <filename>\\n\",\n               argv[0]);\n        exit(0);\n    }\n    /* Copy input file to stdout */\n    fd = Open(argv[1], O_RDONLY, 0);\n    Fstat(fd, &stat);\n    mmapcopy(fd, stat.st_size);\n    exit(0);\n}",
+          "#include \"csapp.h\"\nvoid mmapcopy(int fd, int size)\n{\n    /* Ptr to memory mapped area */\n    char *bufp;\n    bufp = Mmap(NULL, size, \n                PROT_READ,\n                MAP_PRIVATE, \n                fd, 0);\n    Write(1, bufp, size);\n    return;\n}",
+          "Copying a file to stdout without transferring data to user space"
+        ]
+      },
+      {
+        "slide": 58,
+        "shapes": [
+          "Practice for Exam:"
+        ]
+      }
+    ]
+  },
+  {
+    "deck": "9.1 (The) Heap.pptx",
+    "slides": [
+      {
+        "slide": 1,
+        "shapes": [
+          "CSE 320: (The) Heap",
+          "Chapter 9\nProfessor Dan Benz"
+        ]
+      },
+      {
+        "slide": 2,
+        "shapes": [
+          "Dynamic Memory",
+          "Dynamic memory allocators (malloc) let programs acquire memory at run time\nFor data structures whose size is only known at runtime\nDynamic memory allocators manage the heap"
+        ]
+      },
+      {
+        "slide": 3,
+        "shapes": [
+          "Dynamic Memory Allocation",
+          "Allocator maintains heap as collection of variable sized blocks\neither allocated or free\nTypes of allocators\nExplicit allocator:  application allocates and frees space \nE.g.,  malloc and free in C\nImplicit allocator: application allocates, but does not free space\nE.g. garbage collection in Java, ML, and Lisp"
+        ]
+      },
+      {
+        "slide": 4,
+        "shapes": [
+          "The malloc Package",
+          "#include <stdlib.h>\nvoid *malloc(size_t size)\nSuccessful:\nReturns a pointer to a memory block of at least size bytes\naligned to an 8-byte (x86) or  16-byte (x86-64) boundary\nIf size == 0, returns NULL\nUnsuccessful: returns NULL (0) and sets errno\nvoid free(void *p)\nReturns the block pointed at by p to pool of available memory\np must come from a previous call to malloc or realloc\nOther functions\ncalloc: Version of malloc that initializes allocated block to zero. \nrealloc: Changes the size of a previously allocated block.\nsbrk: Used internally by allocators to grow or shrink the heap"
+        ]
+      },
+      {
+        "slide": 5,
+        "shapes": [
+          "malloc Example",
+          "#include <stdio.h>\n#include <stdlib.h>\nvoid foo(int n) {\n    int i, *p;\n    /* Allocate a block of n ints */\n    p = (int *) malloc(n * sizeof(int));\n    if (p == NULL) {\n        perror(\"malloc\");\n        exit(0);\n    }\n    /* Initialize allocated block */\n    for (i=0; i<n; i++)\n\tp[i] = i;\n    /* Return allocated block to the heap */\n    free(p);\n}"
+        ]
+      },
+      {
+        "slide": 6,
+        "shapes": [
+          "Assumptions:",
+          "Memory is word addressed.\nWords are sizeof(int)"
+        ]
+      },
+      {
+        "slide": 7,
+        "shapes": [
+          "Allocation Example"
+        ]
+      },
+      {
+        "slide": 8,
+        "shapes": [
+          "Constraints",
+          "Applications\nCan issue arbitrary sequence of malloc and free requests\nfree request must be to a malloc’d  block\nAllocators\nCan’t control number or size of allocated blocks\nMust respond immediately to malloc requests\ni.e., can’t reorder or buffer requests\nMust allocate blocks from free memory\ni.e., can only place allocated blocks in free memory\nMust align blocks so they satisfy all alignment requirements\n8-byte (x86) or 16-byte (x86-64) alignment on Linux boxes\nCan manipulate and modify only free memory\nCan’t move the allocated blocks once they are malloc’d\ni.e., compaction is not allowed"
+        ]
+      },
+      {
+        "slide": 9,
+        "shapes": [
+          "Performance Goal: Throughput",
+          "Given some sequence of malloc and free requests:\n R0, R1, ..., Rk, ... , Rn-1\nGoals: maximize throughput and peak memory utilization\nThese goals are often conflicting\nThroughput:\nNumber of completed requests per unit time\nExample:\n5,000  malloc calls and 5,000 free calls in 10 seconds \nThroughput is 1,000 operations/second"
+        ]
+      },
+      {
+        "slide": 10,
+        "shapes": [
+          "Performance Goal: Peak Memory Utilization",
+          "Given some sequence of malloc and free requests:\n R0, R1, ..., Rk, ... , Rn-1\nDef: Aggregate payload Pk \n malloc(p) results in a block with a payload of p bytes\nAfter Rk has completed, the aggregate payload Pk  is the sum of currently allocated payloads\nDef: Current heap size Hk\nAssume Hk is monotonically nondecreasing\ni.e., heap only grows when allocator uses sbrk\nDef: Peak memory utilization after k+1 requests \nUk = ( maxi<=k Pi )  /  Hk"
+        ]
+      },
+      {
+        "slide": 11,
+        "shapes": [
+          "External Fragmentation",
+          "Occurs when no single free block is large enough\nDepends on the pattern of future requests\nThus, difficult to measure"
+        ]
+      },
+      {
+        "slide": 12,
+        "shapes": [
+          "Internal Fragmentation",
+          "Internal fragmentation:\npayload is smaller than block size (the allocator makes a hole)\nCaused by \nOverhead of maintaining heap data structures\nPadding for alignment purposes\nExplicit policy decisions (e.g., to return a big block to satisfy a small request)\nDepends only on the pattern of previous requests\nThus, easy to measure"
+        ]
+      },
+      {
+        "slide": 13,
+        "shapes": [
+          "Implementation Questions:",
+          "How do we know how much memory to free given just a pointer?\nHow do we keep track of the free blocks?\nHow do we reinsert freed block?\nWhat about the extra space when allocating a small request?\nHow do we pick a block to use for allocation?"
+        ]
+      },
+      {
+        "slide": 14,
+        "shapes": [
+          "Knowing How Much to Free",
+          "Standard method\nKeep the length of a block in the word preceding the block.\nThis word is often called the header field or header\nRequires an extra word for every allocated block"
+        ]
+      },
+      {
+        "slide": 15,
+        "shapes": [
+          "Keeping Track of Free Blocks: Method 1",
+          "Method 1: Implicit list using length—links all blocks\nMethod 2: Explicit list among the free blocks using pointers\nMethod 3: Segregated free list\nDifferent free lists for different size classes\nMethod 4: Blocks sorted by size\nUse a BST (Red-Black tree) with pointers within each free block, and the length used as a key"
+        ]
+      },
+      {
+        "slide": 16,
+        "shapes": [
+          "Method 1: Implicit List",
+          "For each block we need both size and allocation status\nCould store this information in two words: wasteful!\nStandard trick\nIf blocks are aligned, some low-order address bits are always 0\nInstead of storing an always-0 bit, use it as a allocated/free flag\nWhen reading size word, must mask out this bit"
+        ]
+      },
+      {
+        "slide": 17,
+        "shapes": [
+          "Detailed Implicit Free List Example",
+          "Start \nof \nheap",
+          "Double-word\naligned",
+          "Allocated blocks: shaded\nFree blocks: unshaded\nHeaders: labeled with size in bytes/allocated bit"
+        ]
+      },
+      {
+        "slide": 18,
+        "shapes": [
+          "Implicit List: Finding a Free Block",
+          "First fit:\nSearch list from beginning, choose first free block that fits:\nCan take linear time in total number of blocks (allocated and free)\nIn practice it can cause “splinters” at beginning of list\nNext fit:\nLike first fit, but search list starting where previous search finished\nShould often be faster than first fit: avoids re-scanning unhelpful blocks\nSome research suggests that fragmentation is worse\nBest fit:\nSearch the list, choose the best free block: fits, with fewest bytes left over\nKeeps fragments small—usually improves memory utilization\nWill typically run slower than first fit"
+        ]
+      },
+      {
+        "slide": 19,
+        "shapes": [
+          "Implicit List: Allocating in Free Block",
+          "Allocating in a free block: splitting\nSince allocated space might be smaller than free space, we might want to split the block",
+          "void addblock(ptr p, int len) {\n  int newsize = ((len + 1) >> 1) << 1;  // round up to even\n  int oldsize = *p & -2;                // mask out low bit\n  *p = newsize | 1;                     // set new length\n  if (newsize < oldsize)\n    *(p+newsize) = oldsize - newsize;   // set length in remaining\n}                                       //   part of block"
+        ]
+      },
+      {
+        "slide": 20,
+        "shapes": [
+          "Implicit List: Freeing a Block",
+          "Simplest implementation:\nNeed only clear the “allocated” flag\nvoid free_block(ptr p) { *p = *p & -2 }\nBut can lead to “false fragmentation” ",
+          "There is enough free space, but the allocator won’t be able to find it"
+        ]
+      },
+      {
+        "slide": 21,
+        "shapes": [
+          "Implicit List: Coalescing",
+          "Join (coalesce) with next/previous blocks, if they are free\nCoalescing with next block\nBut how do we coalesce with previous block?",
+          "void free_block(ptr p) {    *p = *p & -2;          // clear allocated flag    next = p + *p;         // find next block    if ((*next & 1) == 0)      *p = *p + *next;     // add to this block if}                          //    not allocated"
+        ]
+      },
+      {
+        "slide": 22,
+        "shapes": [
+          "Implicit List: Bidirectional Coalescing ",
+          "Boundary tags\nReplicate size/allocated word at “bottom” (end) of free blocks\nAllows us to traverse the “list” backwards, but requires extra space"
+        ]
+      },
+      {
+        "slide": 23,
+        "shapes": [
+          "Constant Time Coalescing",
+          "How many headers/boundary tags updated in each case?"
+        ]
+      },
+      {
+        "slide": 24,
+        "shapes": [
+          "Disadvantages of Boundary Tags",
+          "Internal fragmentation\nCan it be optimized?\nWhich blocks need the footer tag?\nWhat does that mean?"
+        ]
+      },
+      {
+        "slide": 25,
+        "shapes": [
+          "Summary of Key Allocator Policies",
+          "Placement policy:\nFirst-fit, next-fit, best-fit, etc.\nTrades off lower throughput for less fragmentation\t\nsegregated free lists: approximate a best fit without having to search entire free list\nSplitting policy:\nWhen do we go ahead and split free blocks?\nHow much internal fragmentation are we willing to tolerate?\nCoalescing policy:\nImmediate coalescing: coalesce each time free is called \nDeferred coalescing: try to improve performance of free by deferring coalescing until needed.\nExamples:\nCoalesce as you scan the free list for malloc\nCoalesce when the amount of external fragmentation reaches some threshold"
+        ]
+      },
+      {
+        "slide": 26,
+        "shapes": [
+          "Implicit Lists: Summary",
+          "Implementation: very simple\nAllocate cost: \nlinear time worst case\nFree cost: \nconstant time worst case\neven with coalescing\nMemory usage: \nwill depend on placement policy\nFirst-fit, next-fit or best-fit\nNot used in practice for malloc/free because of linear-time allocation\nused in many special purpose applications\nSplitting and boundary tag coalescing are general to all allocators"
+        ]
+      },
+      {
+        "slide": 27,
+        "shapes": [
+          "Keeping Track of Free Blocks: Method 2",
+          "Method 1: Implicit list using length—links all blocks\nMethod 2: Explicit list among the free blocks using pointers\nMethod 3: Segregated free list\nDifferent free lists for different size classes\nMethod 4: Blocks sorted by size\nUse a BST (Red-Black tree) with pointers within each free block, and the length used as a key"
+        ]
+      },
+      {
+        "slide": 28,
+        "shapes": [
+          "Explicit Free Lists",
+          "Maintain list(s) of free blocks, not all blocks\nThe “next” free block could be anywhere\nSo we need to store forward/back pointers, not just sizes\nStill need boundary tags for coalescing\nLuckily we track only free blocks, so we can use payload area"
+        ]
+      },
+      {
+        "slide": 29,
+        "shapes": [
+          "Explicit Free List Links",
+          "Logically:\nPhysically: blocks can be in any order"
+        ]
+      },
+      {
+        "slide": 30,
+        "shapes": [
+          "Allocating From Explicit Free Lists"
+        ]
+      },
+      {
+        "slide": 31,
+        "shapes": [
+          "Freeing With Explicit Free Lists",
+          "Insertion policy: Where in the free list do you put a newly freed block?\nLIFO (last-in-first-out) policy\nInsert freed block at the beginning of the free list\nPro: simple and constant time\nCon: studies suggest fragmentation is worse than address ordered\nAddress-ordered policy\nInsert freed blocks so that free list blocks are always in address order: \naddr(prev) < addr(curr) < addr(next)\n Con: requires search\n Pro: studies suggest fragmentation is lower than LIFO"
+        ]
+      },
+      {
+        "slide": 32,
+        "shapes": [
+          "Freeing With a LIFO Policy (Case 1)"
+        ]
+      },
+      {
+        "slide": 33,
+        "shapes": [
+          "Freeing With a LIFO Policy (Case 2)"
+        ]
+      },
+      {
+        "slide": 34,
+        "shapes": [
+          "Freeing With a LIFO Policy (Case 3)"
+        ]
+      },
+      {
+        "slide": 35,
+        "shapes": [
+          "Freeing With a LIFO Policy (Case 4)"
+        ]
+      },
+      {
+        "slide": 36,
+        "shapes": [
+          "Explicit List Summary",
+          "Comparison to implicit list:\nAllocate is linear time in number of free blocks instead of all blocks\nMuch faster when most of the memory is full \nSlightly more complicated allocate and free since needs to splice blocks in and out of the list\nSome extra space for the links (2 extra  words needed for each block)\nDoes this increase internal fragmentation?\nMost common use of linked lists is in conjunction with segregated free lists\nKeep multiple linked lists of different size classes, or possibly for different types of objects"
+        ]
+      },
+      {
+        "slide": 37,
+        "shapes": [
+          "Keeping Track of Free Blocks: Method 3",
+          "Method 1: Implicit list using length—links all blocks\nMethod 2: Explicit list among the free blocks using pointers\nMethod 3: Segregated free list\nDifferent free lists for different size classes\nMethod 4: Blocks sorted by size\nUse a BST (Red-Black tree) with pointers within each free block, and the length used as a key"
+        ]
+      },
+      {
+        "slide": 38,
+        "shapes": [
+          "Segregated List (Seglist) Allocators",
+          "Each size class of blocks has its own free list\nOften have separate classes for each small size\nFor larger sizes: One class for each two-power size"
+        ]
+      },
+      {
+        "slide": 39,
+        "shapes": [
+          "Seglist Allocator",
+          "Given an array of free lists, each one for some size class\nTo allocate a block of size n:\nSearch appropriate free list for block of size m > n\nIf an appropriate block is found:\nSplit block and place fragment on appropriate list (optional)\nIf no block is found, try next larger class\nRepeat until block is found\nIf no block is found:\nRequest additional heap memory from OS (using sbrk())\nAllocate block of n bytes from this new memory\nPlace remainder as a single free block in largest size class."
+        ]
+      },
+      {
+        "slide": 40,
+        "shapes": [
+          "Seglist Allocator (cont.)",
+          "To free a block:\nCoalesce and place on appropriate list \nAdvantages of seglist allocators\nHigher throughput\n log time for power-of-two size classes\nBetter memory utilization\nFirst-fit search of segregated free list approximates a best-fit search of entire heap.\nExtreme case: Giving each block its own size class is equivalent to best-fit."
+        ]
+      },
+      {
+        "slide": 41,
+        "shapes": [
+          "More Info on Allocators",
+          "D. Knuth, “The Art of Computer Programming”, 2nd edition, Addison Wesley, 1973\nThe classic reference on dynamic storage allocation\nWilson et al, “Dynamic Storage Allocation: A Survey and Critical Review”, Proc. 1995 Int’l Workshop on Memory Management, Kinross, Scotland, Sept, 1995.\nComprehensive survey"
+        ]
+      },
+      {
+        "slide": 42,
+        "shapes": [
+          "Implicit Memory Management: Garbage Collection",
+          "Garbage collection: automatic free of heap-allocated storage\napplication never has to free\nCommon in many dynamic languages:\nPython, Ruby, Java, Perl, ML, Lisp, Mathematica\nVariants (“conservative” garbage collectors) exist for C and C++\nHowever, cannot necessarily collect all garbage",
+          "void foo() {\n   int *p = malloc(128);\n   return; /* p block is now garbage */\n}"
+        ]
+      },
+      {
+        "slide": 43,
+        "shapes": [
+          "Garbage Collection",
+          "How does the memory manager know when memory can be freed?\nIn general we cannot know what is going to be used in the future \ndepends on conditionals\nBut we can tell that certain blocks cannot be used if there are no pointers to them\nMust make certain assumptions about pointers\nMemory manager can distinguish pointers from non-pointers\nAll pointers point to the start of a block \nCannot hide pointers \n(e.g., by coercing them to an int, and then back again)"
+        ]
+      },
+      {
+        "slide": 44,
+        "shapes": [
+          "Classical GC Algorithms (Tracing)",
+          "Mark-and-sweep collection (McCarthy, 1960)\nDoes not move blocks (unless you also “compact”)\nReference counting (Collins, 1960)\nDoes not move blocks (not discussed)\nCopying collection (Minsky, 1963)\nMoves blocks (not discussed)\nGenerational Collectors (Lieberman and Hewitt, 1983)\nCollection based on lifetimes\nMost allocations become garbage very soon\nSo focus reclamation work on zones of memory recently allocated\nMore Info:\nJones and Lin, “Garbage Collection: Algorithms for Automatic Dynamic Memory”\nJohn Wiley & Sons, 1996."
+        ]
+      },
+      {
+        "slide": 45,
+        "shapes": [
+          "Memory as a Graph",
+          "We view memory as a directed graph\nEach block is a node in the graph \nEach pointer is an edge in the graph\nLocations not in the heap that contain pointers into the heap are called root  nodes  \n(e.g. registers, locations on the stack, global variables)"
+        ]
+      },
+      {
+        "slide": 46,
+        "shapes": [
+          "Mark and Sweep Collecting",
+          "Can build on top of malloc/free package\nAllocate using malloc until you “run out of space”\nWhen out of space:\nUse extra mark bit in the head of each block\nMark: Start at roots and set mark bit on each reachable block\nSweep: Scan all blocks and free blocks that are not marked",
+          "Note: arrows here denote memory refs, not free list ptrs. \nRed boxes are unmarked blocks"
+        ]
+      },
+      {
+        "slide": 47,
+        "shapes": [
+          "Assumptions For a Simple Implementation",
+          "Application\nnew(n):  returns pointer to new block with all locations cleared\nread(b,i): read location i of block b into register\nwrite(b,i,v): write v into location i of block b\nEach block will have a header word\naddressed as b[-1], for a block b\nUsed for different purposes in different collectors\nInstructions used by the Garbage Collector\nis_ptr(p): determines whether p is a pointer\nlength(b):  returns the length of block b, not including the header\nget_roots():  returns all the roots"
+        ]
+      },
+      {
+        "slide": 48,
+        "shapes": [
+          "Mark and Sweep (cont.)",
+          "ptr mark(ptr p) {\n   if (!is_ptr(p)) return;        // do nothing if not pointer\n   if (markBitSet(p)) return;     // check if already marked\n   setMarkBit(p);                 // set the mark bit\n   for (i=0; i < length(p); i++)  // call mark on all words\n     mark(p[i]); \t\t    //   in the block\n   return;\n}      ",
+          "Mark using depth-first traversal of the memory graph ",
+          "Sweep using lengths to find next block",
+          "ptr sweep(ptr p, ptr end) {\n   while (p < end) {\n      if markBitSet(p)         clearMarkBit();\n      else if (allocateBitSet(p)) \n         free(p);\n      p += length(p);\n}     "
+        ]
+      },
+      {
+        "slide": 49,
+        "shapes": [
+          "Conservative Mark & Sweep in C",
+          "A “conservative garbage collector” for C programs\nis_ptr() determines if a word is a pointer by looking at its value\nIf it points to an allocated block of memory it might be a pointer\nIn C pointers can point to the middle of a block\nSo how to find the beginning of the block?\nCan use a balanced binary tree to keep track of all allocated blocks (key is start-of-block)\nBalanced-tree pointers can be stored in header (use two additional words)"
+        ]
+      },
+      {
+        "slide": 50,
+        "shapes": [
+          "Modern Garbage Collection:",
+          "There are two more modern techniques in implicit memory management\nReference counting\nRust and C++ keep a count of how many pointers point to a heap block\nWhen a function returns and its stack frame is discarded the count may go down\nThis also need the system to monitor pointer assignments\nRust Borrow Checker at Compile Time\nC++ Smart pointers at Runtime\nFree the block when count hits 0\nEscape Analysis\nThe Heap gives both dynamic size and dynamic scope\nThe Stack can also give dynamic size if we know the scope to be local"
+        ]
+      },
+      {
+        "slide": 51,
+        "shapes": [
+          "C Pointer Declarations: Test Yourself!",
+          "int *a\t\nint *b[13]\t\nint *(c[13])\t\nint **d\t\nint (*e)[13]\t\t\nint *f()\t\t\nint (*g)()\t\t\nint (*(*h())[13])()\t\nint (*(*i[3])())[5]",
+          "a is a pointer to int",
+          "b is an array[13] of pointer to int",
+          "c is an array[13] of pointer to int",
+          "d is a pointer to a pointer to an int",
+          "e is a pointer to an array[13] of int",
+          "f is a function returning a pointer to int",
+          "g is a pointer to a function returning int",
+          "h is a function returning ptr to an array[13]\nof pointers to functions returning int",
+          "i is an array[3] of pointers  to functions \nreturning pointers to array[5] of ints"
+        ]
+      },
+      {
+        "slide": 52,
+        "shapes": [
+          "Memory-Related Perils and Pitfalls",
+          "Dereferencing bad pointers\nReading uninitialized memory\nOverwriting memory\nReferencing nonexistent variables\nFreeing blocks multiple times\nReferencing freed blocks\nFailing to free blocks"
+        ]
+      },
+      {
+        "slide": 53,
+        "shapes": [
+          "Dereferencing Bad Pointers:",
+          "Value vs Pointer\nBuffer Overflow vulnerability",
+          "int val;\n...\nscanf(“%d”, val);",
+          "char s[8];\nint i;\ngets(s);  /* reads “123456789” from stdin */ "
+        ]
+      },
+      {
+        "slide": 54,
+        "shapes": [
+          "Reading Uninitialized Memory:",
+          "Assuming that heap data is initialized to zero",
+          "/* return y = Ax */\nint *matvec(int **A, int *x) { \n   int *y = malloc(N*sizeof(int));\n   int i, j;\n   for (i=0; i<N; i++)\n      for (j=0; j<N; j++)\n         y[i] += A[i][j]*x[j];\n   return y;\n}"
+        ]
+      },
+      {
+        "slide": 55,
+        "shapes": [
+          "Overwriting Memory",
+          "Wrong allocation size\nWrong allocation count\nWrong pointer stride",
+          "int **p;\np = malloc(N*sizeof(int));\nfor (i=0; i<N; i++)\n   p[i] = malloc(M*sizeof(int));",
+          "int **p;\np = malloc(N*sizeof(int *));\nfor (i=0; i<=N; i++)\n   p[i] = malloc(M*sizeof(int));",
+          "int *search(int *p, int val) {\n   while (*p && *p != val)\n      p += sizeof(int);\n   return p;\n}"
+        ]
+      },
+      {
+        "slide": 56,
+        "shapes": [
+          "Overwriting Memory (pointer access):",
+          "Referencing a pointer instead of the object it points to",
+          "int *BinheapDelete(int **binheap, int *size) {\n   int *packet;\n   packet = binheap[0];\n   binheap[0] = binheap[*size - 1];\n   *size--;\n   Heapify(binheap, *size, 0);\n   return(packet);\n}"
+        ]
+      },
+      {
+        "slide": 57,
+        "shapes": [
+          "Referencing Nonexistent Variables",
+          "Forgetting that local variables disappear when a function returns",
+          "int *foo () {\n   int val;\n   return &val;\n}"
+        ]
+      },
+      {
+        "slide": 58,
+        "shapes": [
+          "Free issues:",
+          "Too many frees\nToo early frees\nToo few frees",
+          "x = malloc(N*sizeof(int));\n        <manipulate x>\nfree(x);\ny = malloc(M*sizeof(int));\n        <manipulate y>\nfree(x);",
+          "x = malloc(N*sizeof(int));\n  <manipulate x>\nfree(x);\n   ...\ny = malloc(M*sizeof(int));\nfor (i=0; i<M; i++)\n   y[i] = x[i]++;",
+          "foo() {\n   int *x = malloc(N*sizeof(int));\n   ...\n   return;\n}"
+        ]
+      },
+      {
+        "slide": 59,
+        "shapes": [
+          "Failing to Free Blocks (Memory Leaks)",
+          "Freeing only part of a data structure",
+          "struct list {\n   int val;\n   struct list *next;\n};\nfoo() {\n   struct list *head = malloc(sizeof(struct list));\n   head->val = 0;\n   head->next = NULL;\n   <create and manipulate the rest of the list>\n    ...\n   free(head);\n   return;\n}"
+        ]
+      },
+      {
+        "slide": 60,
+        "shapes": [
+          "Dealing With Memory Bugs",
+          "Debugger: gdb\nGood for finding  bad pointer dereferences\nHard to detect the other memory bugs\nData structure consistency checker\nRuns silently, prints message only on error\nUse as a probe to zero in on error\nBinary translator:  valgrind \nPowerful debugging and analysis technique\nRewrites text section of executable object file\nChecks each individual reference at runtime\nBad pointers, overwrites, refs outside of allocated block\nglibc malloc contains checking code\nsetenv MALLOC_CHECK_ 3 "
+        ]
+      }
+    ]
+  }
+]
