@@ -28,16 +28,9 @@ def _pc(number, category, prompt, answer, explanation, slides, example=None,
          "8. Processes", slides)
     record = questions[topic][prompt]
     if prompt.startswith("⭐ "):
-        record["explanation"] += (
-            '\n\nPriority basis: In the November 5 review, the instructor explicitly '
-            'identifies Processes exercises asking: "here\'s a program. It has a bunch '
-            'of printouts. What are valid sequences of those printouts?" '
-            'This supports prioritizing this output-tracing exercise; the slides '
-            'supply its particular code and technical answer.'
-        )
         record["sources"].append(
             "Nov 5 mt2 review (transcribed on 06-Nov-2026 20-15-16).txt, "
-            "line 85 (priority basis: Processes printout-sequence exercises)"
+            "line 85"
         )
     if example is not None:
         record["sources"].append(
@@ -82,9 +75,12 @@ _pc(12, "General", "After fork, does the child start with the same variable valu
 _pc(16, "General", "Give the three termination mechanisms listed in the Processes lecture. What does an exit status of zero conventionally mean?",
     "Returning from main, calling exit, or receiving a signal whose action terminates the process. Zero conventionally indicates normal/successful completion.",
     "exit terminates with a status and never returns. Returning an integer from main also supplies a status; nonzero conventionally indicates an error.", "18")
-_pc(17, "General", "A long-running server creates children but never calls wait or waitpid. After those children terminate, what remains, why is that a problem, and what should the server do? Why doesn't adoption after parent exit solve this while the server remains alive?",
-    "The children become zombies: their termination status and process bookkeeping remain. These resources can accumulate while the server stays alive. The server should reap terminated children with wait or waitpid. Adoption after parent exit does not help while the server continues running.",
-    "Termination stops execution, but reaping collects the child's status and releases the remaining bookkeeping. A server may remain alive indefinitely, so it cannot rely on its own eventual termination to clean up unreaped children.", "23, 25-26")
+_pc(17, "General", "What are zombie and orphan processes? How does each one happen, how are they related, and what happens to each afterward?",
+    "A zombie is a child that has terminated but has not yet been reaped, so its exit status and process bookkeeping remain. An orphan is a child whose parent terminates before it does; the orphan may still be running and is adopted by init in the lecture's model. They are related through the parent-child lifecycle, but neither condition implies the other: zombie describes a terminated, unreaped child, while orphan describes a child that has lost its parent. A parent reaps a zombie with wait or waitpid; init adopts an orphan and eventually reaps it after it terminates.",
+    "The distinction is whether the child has terminated and whether its original parent is still present. A long-running parent must reap its own terminated children so zombies do not accumulate. If the parent terminates first, the child becomes an orphan and is handled through adoption by init in the lecture's Unix model.", "23-26")
+_pc(18, "General", "A long-running server creates children but never calls wait or waitpid. After those children terminate, what remains, why is that a problem, and what should the server do? Why doesn't adoption after parent exit solve this while the server remains alive?",
+    "The children become zombies: their exit status and process bookkeeping remain. These resources can accumulate while the server stays alive. The server should reap terminated children with wait or waitpid. Adoption after parent exit does not help while the server continues running.",
+    "Termination stops a child from executing, but reaping collects its status and releases the remaining bookkeeping. Adoption applies when the parent terminates; a long-running server remains the parent and must reap its own terminated children.", "23-26")
 _pc(20, "General", "After wait(&status) succeeds, what do its return value and status represent? Explain how WIFEXITED/WEXITSTATUS and WIFSIGNALED/WTERMSIG distinguish and decode the termination cases.",
     "The return value is the reaped child's PID; status contains encoded termination information. If WIFEXITED(status) is true, WEXITSTATUS(status) extracts the normal exit status. If WIFSIGNALED(status) is true, WTERMSIG(status) identifies the terminating signal.",
     "The stored status is neither the returned PID nor a plain exit code. Test the termination case before using its corresponding decoder: a signal-terminated child does not supply a normal exit status through WEXITSTATUS.", "25-26")
@@ -95,8 +91,8 @@ _pc(24, "General", "What is a process graph, and what must a printed output sequ
     "A graph of statement executions and happens-before edges. A feasible sequence must respect every ordering edge, including per-process execution order and synchronization dependencies.",
     "The lecture describes feasible executions as topological orderings. Independent branches may interleave, but a scheduler cannot reverse a required dependency.", "19-22, 25")
 _pc(25, "General", "What is exec, and what becomes of the calling process's old code, data, stack, and PID after it succeeds?",
-    "exec replaces the current program image. The old code, data, and stack are replaced; the PID is retained.",
-    "The operation runs another program inside the existing process. It does not create an additional process or preserve the old program as another executing branch.", "27")
+    "exec loads and runs another program in the current process. It overwrites the old code, data, and stack, and retains the PID.",
+    "Loading and running in the current process means exec does not create another process. The slide states that code, data, and stack are overwritten while the PID is retained.", "27")
 _pc(26, "General", "For execve(filename, argv, envp), what does each argument supply? What is argv[0] conventionally used for?",
     "filename identifies the executable; argv supplies its argument list; envp supplies environment strings of the form name=value. argv[0] conventionally names the program.",
     "The new image starts with the supplied arguments and environment. The slide gives the filename/program name as the convention for argv[0].",
@@ -139,7 +135,7 @@ _pc_code(32, "Output", "⭐ Give the number of times each line is printed. Then 
 }''',
     "L0 once, L1 twice, Bye four times. A and C are possible; B is impossible.",
     "Each of the two processes from the first fork prints L1 before creating its second-fork child. One L1 can enable at most two Bye prints. B places three Bye prints before the second L1, violating that dependency. A runs one branch through both Bye prints first; C delays all Bye prints until both L1 prints occur.", "19, 21", 6)
-_pc_code(33, "Output", "⭐ For each function, give the process ancestry and line counts. Is a Bye before L1 possible? Does reversing the fork comparison change the total number of processes?",
+_pc_code(33, "Output", "⭐ For each function, give the process ancestry and line counts. Is a Bye before L1 possible? Does changing the conditions from fork() != 0 to fork() == 0 change the total number of processes?",
     '''void fork4()
 {
     printf("L0\\n");
@@ -163,7 +159,11 @@ void fork5()
     }
     printf("Bye\\n");
 }''',
-    "fork4: the original parent creates two children (siblings). fork5: the original parent creates a child that creates a grandchild. Each function prints L0, L1, and L2 once and Bye three times. A Bye before L1 is possible in both. Both create three total processes.",
+    "fork4 ancestry: the original parent creates two children (siblings).\n"
+    "fork5 ancestry: the original parent creates a child, which creates a grandchild.\n"
+    "Line counts for each function: L0 once, L1 once, L2 once, and Bye three times.\n"
+    "Can Bye appear before L1? Yes, in both functions.\n"
+    "Does changing the conditions from fork() != 0 to fork() == 0 change the total number of processes? No. Both functions create three total processes; only the ancestry changes.",
     "In fork4 only the original parent enters the nonzero branches; its first child can print Bye immediately. In fork5 only children enter the zero branches; the original parent can print Bye immediately. Both require L0 before all other output and L1 before L2, even though their ancestry differs.", "19, 22", "7-8")
 _pc_code(34, "Output", "⭐ List every possible output order. Which process prints Bye?",
     '''void fork9()
@@ -200,7 +200,7 @@ _pc_code(35, "Output", "⭐ Let N = 3. What exit-status values can be printed, a
 }''',
     "Three lines report statuses 100, 101, and 102, each paired with the PID of the child created at its corresponding i. Their printed order is not fixed. With several already-terminated children, neither creation order nor termination order is guaranteed to determine which is reaped first.",
     "Each child exits inside the creation loop and therefore never creates later children. Only the original parent completes the loop and performs the three waits. wpid and child_status come from the same wait, so that pair, not the parent's current loop index, identifies the result. wait selects an eligible child; it does not sort the results by creation or termination time.", "26", 13)
-_pc_code(36, "Output", "Must the parent line print first? After that parent exits, can the child continue to consume CPU? Define orphan and zombie to classify it, and identify its adopter in the lecture's Unix hierarchy model.",
+_pc_code(36, "Output", "Must the parent line print first? After the parent exits, can the child continue to consume CPU? Classify the child's resulting process state and explain why.",
     '''void fork8()
 {
     if (fork() == 0) {
@@ -213,8 +213,8 @@ _pc_code(36, "Output", "Must the parent line print first? After that parent exit
         exit(0);
     }
 }''',
-    "Either line can print first. The child continues its infinite loop after the parent exits. An orphan has lost its parent; a zombie has terminated but has not been reaped. This child is a running orphan, adopted by init in the lecture model, not a zombie.",
-    "There is no synchronization ordering the initial prints. Parent termination does not terminate this child. In the lecture's hierarchy, processes descend from init and orphaned children are adopted by init; adoption does not mean the child has stopped executing.", "14, 23-24", 9)
+    "Either line can print first. The child continues its infinite loop after the parent exits. It is an ORPHAN, adopted by init in the lecture model. It is not a ZOMBIE because it has not terminated.",
+    "There is no synchronization ordering the initial prints. Parent termination does not terminate this child. Orphan describes a child whose parent has terminated; zombie describes a child that has itself terminated but has not been reaped.", "14, 23-24", 9)
 _pc_code(37, "Output", "⭐ Why does this shell fork and wait in the parent? The command's new program prints NEW and then exits: what is printed when execl succeeds, and what does the child do if execl fails? If fork returns a negative value, what does the function return and is there a new child?",
     '''int my_system(const char *command)
 {
@@ -230,7 +230,7 @@ _pc_code(37, "Output", "⭐ Why does this shell fork and wait in the parent? The
         status = -1;
     return status;
 }''',
-    "fork lets the child run the command while the parent remains the shell; waiting synchronizes the parent with command completion. Successful execl prints NEW once through the replacement program; the shell function adds no lines. Failed exec reaches _exit(EXIT_FAILURE). A negative fork result creates no child, and my_system returns -1.",
+    "fork lets the child run the command while the parent remains the shell; waiting synchronizes the parent with command completion. Successful execl loads and runs the new program in the child and never returns to this shell code. The new program prints NEW once; the shell function itself prints nothing. If execl fails, it returns to the next statement, _exit(EXIT_FAILURE), which terminates the child with failure. A negative fork result creates no child, and my_system returns -1.",
     "Successful exec replaces the calling process's program and never returns to its old next statement. Running it in a child preserves the parent shell. Exec failure returns to the failure-exit line; fork failure instead takes the parent's pid < 0 branch. The parent waits for the child only after successful creation.", "13, 27-28", "2, 16")
 _pc_code(38,
     'Code diagnosis',
