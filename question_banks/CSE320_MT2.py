@@ -19,13 +19,26 @@ def _add(topic, ident, category, prompt, answer, explanation, deck, slides):
 
 # PROCESSES CUSTOM: prepared from processes_topic.txt and the November 5 review.
 # Code is embedded below so the bank remains independent of local source files.
-# All source references support the answer explanation as well as the prompt.
+# Technical sources support the answers. Starred questions separately cite
+# the transcript passage that establishes their study priority.
 def _pc(number, category, prompt, answer, explanation, slides, example=None,
         modification=None):
     topic = "PROCESSES CUSTOM"
     _add(topic, f"PC{number:02}", category, prompt, answer, explanation,
          "8. Processes", slides)
     record = questions[topic][prompt]
+    if prompt.startswith("⭐ "):
+        record["explanation"] += (
+            '\n\nPriority basis: In the November 5 review, the instructor explicitly '
+            'identifies Processes exercises asking: "here\'s a program. It has a bunch '
+            'of printouts. What are valid sequences of those printouts?" '
+            'This supports prioritizing this output-tracing exercise; the slides '
+            'supply its particular code and technical answer.'
+        )
+        record["sources"].append(
+            "cse320/midterm-2/Nov 5 mt2 review (transcribed on 06-Nov-2026 20-15-16).txt, "
+            "line 85 (priority basis: Processes printout-sequence exercises)"
+        )
     if example is not None:
         record["sources"].append(
             "cse320/midterm-2/midterm-2-code-examples.md, "
@@ -45,9 +58,6 @@ _pc(3, "General", "Besides hiding I/O latency, give three reasons an operating s
 _pc(4, "General", "A process is preempted while it could still execute. Another process is waiting for disk input. Classify each using the OS scheduling states and explain the difference.",
     "The preempted process is ready; the process waiting for disk input is blocked.",
     "Ready means eligible to execute when scheduled. Blocked means an external event must occur before the process can become runnable.", "16")
-_pc(5, "General", "What must the kernel preserve when switching away from a process so that the process can later resume correctly?",
-    "Its execution context, including the program counter and registers, while retaining its process memory/state.",
-    "Resuming requires returning to the correct instruction with the correct machine state. The kernel manages the transfer of execution between processes through a context switch.", "8, 11")
 _pc(6, "General", "In the utilization model U = 1 - p^n, what do p and n represent? Calculate U when p = 0.5 and n = 3, then explain the effect of increasing n.",
     "p is the fraction of time a process waits for hardware; n is the number of processes. U = 1 - 0.5^3 = 0.875, or 87.5%. Increasing n increases modeled utilization for 0 < p < 1.",
     "The modeled idle fraction is p^n: all n processes are waiting. More processes reduce that idle fraction. This is the lecture's utilization model, not a guarantee for every real workload.", "10")
@@ -63,28 +73,28 @@ _pc(9, "General", "How do a trap, a recoverable fault, and an abort differ in wh
 _pc(10, "General", "What is the purpose of a system call, and what role does errno play when a call fails?",
     "A system call requests an operating-system service. On failure, errno indicates the cause; many calls also return -1.",
     "The call's return value reports success or failure according to that API. errno supplies error information after a reported failure; it is not the normal result of the requested service.", "7, 13")
-_pc(11, "General", "⭐ A process with PID 410 calls fork and creates child 725. Explain what fork creates and why it returns twice. Give its return value in each process and the child's getpid and getppid values.",
+_pc(11, "General", "A process with PID 410 calls fork and creates child 725. Explain what fork creates and why it returns twice. Give its return value in each process and the child's getpid and getppid values.",
     "fork creates a child process. The single call returns in both processes: 725 in the parent and 0 in the child. In the child, getpid returns 725 and getppid returns 410.",
     "Both processes continue after the same call site. The distinct fork return values select the parent and child paths; zero is the child's fork return value, not its PID. getpid identifies the caller, while getppid identifies its parent.", "12, 15")
-_pc(12, "General", "Immediately after fork, which of these are initially copied from the parent: virtual-address-space contents, open file descriptors, and PID? Which copy has separate variable storage?",
-    "The child initially gets matching address-space contents and copies of open file descriptors, but a different PID. Its variables occupy a separate virtual address space.",
-    "Matching initial contents do not make ordinary parent and child variables shared. Process identity differs even though execution state is initially very similar.", "12, 15")
+_pc(12, "General", "After fork, does the child start with the same variable values as the parent? If the child changes an ordinary local variable, does the parent's value change too? Does the child inherit the parent's open file descriptors and PID?",
+    "The child starts with the same variable values, but changing its ordinary local variables does not change the parent's values. It inherits the parent's open file descriptors, but receives a different PID.",
+    "fork gives the child a separate virtual address space whose initial contents match the parent's. The variables start with equal values but belong to independent process memory. Inheriting open file descriptors lets the child access files already open in the parent; it does not give the child the parent's process identity.", "12, 15")
 _pc(16, "General", "Give the three termination mechanisms listed in the Processes lecture. What does an exit status of zero conventionally mean?",
     "Returning from main, calling exit, or receiving a signal whose action terminates the process. Zero conventionally indicates normal/successful completion.",
     "exit terminates with a status and never returns. Returning an integer from main also supplies a status; nonzero conventionally indicates an error.", "18")
-_pc(17, "General", "⭐ A long-running server creates children but never calls wait or waitpid. After those children terminate, what remains, why is that a problem, and what should the server do? Why doesn't adoption after parent exit solve this while the server remains alive?",
+_pc(17, "General", "A long-running server creates children but never calls wait or waitpid. After those children terminate, what remains, why is that a problem, and what should the server do? Why doesn't adoption after parent exit solve this while the server remains alive?",
     "The children become zombies: their termination status and process bookkeeping remain. These resources can accumulate while the server stays alive. The server should reap terminated children with wait or waitpid. Adoption after parent exit does not help while the server continues running.",
     "Termination stops execution, but reaping collects the child's status and releases the remaining bookkeeping. A server may remain alive indefinitely, so it cannot rely on its own eventual termination to clean up unreaped children.", "23, 25-26")
 _pc(20, "General", "After wait(&status) succeeds, what do its return value and status represent? Explain how WIFEXITED/WEXITSTATUS and WIFSIGNALED/WTERMSIG distinguish and decode the termination cases.",
     "The return value is the reaped child's PID; status contains encoded termination information. If WIFEXITED(status) is true, WEXITSTATUS(status) extracts the normal exit status. If WIFSIGNALED(status) is true, WTERMSIG(status) identifies the terminating signal.",
     "The stored status is neither the returned PID nor a plain exit code. Test the termination case before using its corresponding decoder: a signal-terminated child does not supply a normal exit status through WEXITSTATUS.", "25-26")
-_pc(22, "General", "⭐ A parent has children A and B. Compare wait(NULL) with waitpid(A, NULL, 0). Can B's termination alone satisfy the second call? What does the NULL status pointer discard, and does either successful call still reap its selected child?",
+_pc(22, "General", "A parent has children A and B. Compare wait(NULL) with waitpid(A, NULL, 0). Can B's termination alone satisfy the second call? What does the NULL status pointer discard, and does either successful call still reap its selected child?",
     "wait can collect an available terminated child; waitpid with positive PID A selects A, so B's termination alone does not satisfy it. NULL discards the encoded termination-status output. Both successful calls still reap their selected terminated child and return its PID.",
     "Selecting a child controls which termination the parent waits for. Requesting status storage is separate from reaping: a NULL pointer declines the status information without preventing collection of the child.", "23, 25-26")
 _pc(24, "General", "What is a process graph, and what must a printed output sequence respect to be feasible?",
     "A graph of statement executions and happens-before edges. A feasible sequence must respect every ordering edge, including per-process execution order and synchronization dependencies.",
     "The lecture describes feasible executions as topological orderings. Independent branches may interleave, but a scheduler cannot reverse a required dependency.", "19-22, 25")
-_pc(25, "General", "⭐ What is exec, and what becomes of the calling process's old code, data, stack, and PID after it succeeds?",
+_pc(25, "General", "What is exec, and what becomes of the calling process's old code, data, stack, and PID after it succeeds?",
     "exec replaces the current program image. The old code, data, and stack are replaced; the PID is retained.",
     "The operation runs another program inside the existing process. It does not create an additional process or preserve the old program as another executing branch.", "27")
 _pc(26, "General", "For execve(filename, argv, envp), what does each argument supply? What is argv[0] conventionally used for?",

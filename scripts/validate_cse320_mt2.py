@@ -12,13 +12,13 @@ spec = importlib.util.spec_from_file_location("mt2", ROOT / "question_banks/CSE3
 bank = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(bank)
 records = {a["id"]: (q, a) for entries in bank.questions.values() for q, a in entries.items()}
-assert len(records) == sum(map(len, bank.questions.values())) == 29
+assert len(records) == sum(map(len, bank.questions.values())) == 28
 assert {topic: len(entries) for topic, entries in bank.questions.items()} == {
-    "PROCESSES CUSTOM": 29,
+    "PROCESSES CUSTOM": 28,
 }
 # Retain stable IDs after consolidation; gaps are intentional.
 assert {r["id"] for r in bank.questions["PROCESSES CUSTOM"].values()} == {
-    f"PC{i:02}" for i in (1,3,4,5,6,7,8,9,10,11,12,16,17,20,22,24,25,26,27,
+    f"PC{i:02}" for i in (1,3,4,6,7,8,9,10,11,12,16,17,20,22,24,25,26,27,
                           31,32,33,34,35,36,37,38,39,40)
 }
 for ident, (prompt, record) in records.items():
@@ -28,6 +28,10 @@ for ident, (prompt, record) in records.items():
         for s in record["sources"]
     ), ident
     assert prompt.count("```") % 2 == 0, ident
+    if prompt.startswith("⭐ "):
+        assert "Priority basis:" in record["explanation"], ident
+        assert any("Nov 5 mt2 review" in s and "priority basis:" in s
+                   for s in record["sources"]), ident
     if ident.startswith("PC"):
         assert record["explanation"].strip(), ident
         assert any("8. Processes.pptx, slides " in s for s in record["sources"]), ident
@@ -73,4 +77,4 @@ answer_has("PC06", "87.5%")
 assert 2**3 == 8
 answer_has("PC39", "8 total processes")
 
-print("PASS: 29 PROCESSES CUSTOM questions; unique IDs, source files, explanations and code fences; process output ordering and counts.")
+print("PASS: 28 PROCESSES CUSTOM questions; unique IDs, source files, explanations and code fences; process output ordering and counts.")
