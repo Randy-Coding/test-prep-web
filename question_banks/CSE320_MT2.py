@@ -42,54 +42,74 @@ def _pc(number, category, prompt, answer, explanation, slides, example=None,
         record["explanation"] += f"\n\nCode adaptation: {modification}"
 
 
-_pc(1, "General", "What execution state makes a process more than an executable file? If two users launch that executable, must their processes have the same PID, variable values, and current instruction?",
-    "A process includes its program counter, registers, variables, memory, and other execution state. The two instances have distinct PIDs and independent state, so their variable values and current instructions can differ.",
+_pc(1, "General", "How does a process differ from an executable file? Compare the PIDs, variable values, and current instructions of two processes created when two users launch the same executable.",
+    "An executable is a file containing program code and initial data that the operating system can load. A process is a running instance of that program, not a type of executable. It includes the loaded code and data along with a program counter, registers, variables, memory, PID, and other execution state. Two processes running the same executable have distinct PIDs and independent state, so their variable values and current instructions can differ.",
     "The executable describes the program; each process is a running instance with its own identity and virtual address space. Sharing an executable does not make those instances share their changing execution state.", "8, 12, 15")
-_pc(3, "General", "Besides hiding I/O latency, give three reasons an operating system supports multiple processes.",
-    "Keeping long-running programs from monopolizing the machine, running services/daemons, and performing parallel computation on multiple cores.",
-    "The Processes lecture lists responsiveness, services, and multicore computation as distinct benefits of supporting multiple processes.", "9")
-_pc(4, "General", "A process is preempted while it could still execute. Another process is waiting for disk input. Classify each using the OS scheduling states and explain the difference.",
-    "The preempted process is ready; the process waiting for disk input is blocked.",
-    "Ready means eligible to execute when scheduled. Blocked means an external event must occur before the process can become runnable.", "16")
-_pc(6, "General", "In the utilization model U = 1 - p^n, what do p and n represent? Calculate U when p = 0.5 and n = 3, then explain the effect of increasing n.",
-    "p is the fraction of time a process waits for hardware; n is the number of processes. U = 1 - 0.5^3 = 0.875, or 87.5%. Increasing n increases modeled utilization for 0 < p < 1.",
+_pc(3, "General", "Why do we need multiple processes?",
+    "- Hide I/O or memory latency (improve utilization).\n"
+    "- Prevent long-running programs from hogging the computer.\n"
+    "- Run services and daemons.\n"
+    "- Allow parallel computation on multicore systems.",
+    "The Processes slide lists all four as reasons for supporting multiple processes: better utilization while work waits, fair access to the computer, background services, and parallel execution across cores.", "9")
+_pc(4, "General", "What are the three OS states a process can be in?",
+    "- Running: currently executing on the CPU.\n"
+    "- Ready: runnable but not currently executing. A running process enters the ready state when the scheduler preempts it, and it waits to be scheduled again.\n"
+    "- Blocked: unable to run until an external event occurs, such as completion of an I/O operation.",
+    "The scheduler chooses a ready process to run. Preemption moves a process from running to ready even though it can still execute. A blocked process is not runnable yet because it is waiting for an event such as disk input.", "16")
+_pc(6, "General", "In the utilization model U = 1 - p^n, what do p and n represent, and what is the effect of increasing n?",
+    "p is the fraction of time a process waits for hardware, and n is the number of processes. Increasing n increases modeled utilization for 0 < p < 1.",
     "The modeled idle fraction is p^n: all n processes are waiting. More processes reduce that idle fraction. This is the lecture's utilization model, not a guarantee for every real workload.", "10")
 _pc(7, "General", "What is an exception in the system-control-flow sense, and how does it differ from a context switch?",
     "An exception transfers control to the kernel in response to an event. A context switch transfers execution from one process to another.",
     "An exception describes entry into kernel handling; a context switch describes changing the running process. Kernel handling can return to the same process, so the two terms are not interchangeable.", "3-4, 8, 11")
-_pc(8, "General", "Classify a disk-completion notification and a system-call instruction as synchronous or asynchronous exceptions. Explain the distinction.",
-    "Disk completion is asynchronous (an interrupt). A system-call instruction is synchronous (an intentional trap).",
+_pc(8, "General", "Classify a disk-completion notification and a system-call instruction as synchronous or asynchronous exceptions. Explain the distinction, and state what an asynchronous exception is called.",
+    "Disk completion is asynchronous, while a system-call instruction is synchronous and is an intentional trap. An asynchronous exception is called an interrupt.",
     "An interrupt is caused by an external event rather than the current instruction. A system call is deliberately requested by the executing program and enters the kernel through a trap.", "6-7")
-_pc(9, "General", "How do a trap, a recoverable fault, and an abort differ in where execution continues after kernel handling?",
-    "A trap normally continues at the next instruction; a recoverable fault can restart the faulting instruction; an abort does not resume the interrupted program.",
-    "Traps implement intentional transfers such as system calls. Fault handling can repair a condition such as a missing page before retrying. An abort is unrecoverable.", "6")
+_pc(9, "General", "What are the three kinds of synchronous exceptions? Are they intentional or unintentional, and when do they happen?",
+    "Traps:\n"
+    "Intentional — return to the next instruction afterward.\n"
+    "Examples: system calls, breakpoints, and special instructions.\n\n"
+    "Faults:\n"
+    "Unintentional — may return to the current instruction or abort.\n"
+    "Examples: page, segmentation, and protection faults; floating-point exceptions.\n\n"
+    "Aborts:\n"
+    "Unintentional and unrecoverable — abort the program.\n"
+    "Examples: illegal instructions and parity errors.",
+    "Traps are deliberate exceptions that resume at the next instruction. Faults arise unintentionally and may be recoverable by retrying the current instruction. Aborts are unintentional, unrecoverable exceptions that terminate the program.", "6")
 _pc(10, "General", "What is the purpose of a system call, and what role does errno play when a call fails?",
-    "A system call requests an operating-system service. On failure, errno indicates the cause; many calls also return -1.",
+    "A system call requests an operating-system service. On failure, the global variable errno indicates the cause; many calls also return -1.",
     "The call's return value reports success or failure according to that API. errno supplies error information after a reported failure; it is not the normal result of the requested service.", "7, 13")
 _pc(11, "General", "A process with PID 410 calls fork and creates child 725. Explain what fork creates and why it returns twice. Give its return value in each process and the child's getpid and getppid values.",
     "fork creates a child process. The single call returns in both processes: 725 in the parent and 0 in the child. In the child, getpid returns 725 and getppid returns 410.",
     "Both processes continue after the same call site. The distinct fork return values select the parent and child paths; zero is the child's fork return value, not its PID. getpid identifies the caller, while getppid identifies its parent.", "12, 15")
-_pc(12, "General", "After fork, does the child start with the same variable values as the parent? If the child changes an ordinary local variable, does the parent's value change too? Does the child inherit the parent's open file descriptors and PID?",
+_pc(12, "General", "Describe the child's variable values immediately after fork and the effect of later changes to an ordinary local variable. Also state what happens to the parent's open file descriptors and PID in the child.",
     "The child starts with the same variable values, but changing its ordinary local variables does not change the parent's values. It inherits the parent's open file descriptors, but receives a different PID.",
     "fork gives the child a separate virtual address space whose initial contents match the parent's. The variables start with equal values but belong to independent process memory. Inheriting open file descriptors lets the child access files already open in the parent; it does not give the child the parent's process identity.", "12, 15")
-_pc(16, "General", "Give the three termination mechanisms listed in the Processes lecture. What does an exit status of zero conventionally mean?",
-    "Returning from main, calling exit, or receiving a signal whose action terminates the process. Zero conventionally indicates normal/successful completion.",
-    "exit terminates with a status and never returns. Returning an integer from main also supplies a status; nonzero conventionally indicates an error.", "18")
+_pc(13, "General", "What is the purpose of calling exit(status) in a child process? What does exit do, and how can the parent use the supplied status?",
+    "exit(status) immediately terminates the calling child and does not return. It prevents the child from continuing into later or parent-only code. The child's status remains available for the parent to collect with wait or waitpid; the parent can use WIFEXITED to confirm normal termination and WEXITSTATUS to extract the status value.",
+    "Calling exit in a child ends only that process. In a child-creation loop, it also prevents the child from continuing the loop and creating unintended descendants. The parent later reaps the terminated child and inspects its encoded termination status.", "18, 25-26")
+_pc(14, "General", "How does Unix differ from Windows in how their processes communicate?",
+    "Unix organizes a process and its descendants into a process group. A signal can be sent to the group, and each process decides how to handle it individually; all processes belong to the hierarchy descending from init. Windows gives the creator a handle to the new process. That handle can be passed to other processes, and Windows does not use the same process hierarchy.",
+    "The slide contrasts Unix communication through hierarchical process groups and group-directed signals with Windows communication through transferable process handles and no equivalent hierarchy.", "14")
+_pc(16, "General", "Give the three termination mechanisms listed in the Processes lecture. Which exit status indicates normal execution?",
+    "A process terminates by returning from main, calling exit, or receiving a signal whose action terminates the process. An exit status of 0 indicates normal, successful execution.",
+    "Returning from main and calling exit both supply an exit status. A terminating signal is the third mechanism. By convention, status 0 reports successful completion, while a nonzero status reports an error or another unsuccessful outcome.", "18")
 _pc(17, "General", "What are zombie and orphan processes? How does each one happen, how are they related, and what happens to each afterward?",
     "A zombie is a child that has terminated but has not yet been reaped, so its exit status and process bookkeeping remain. An orphan is a child whose parent terminates before it does; the orphan may still be running and is adopted by init in the lecture's model. They are related through the parent-child lifecycle, but neither condition implies the other: zombie describes a terminated, unreaped child, while orphan describes a child that has lost its parent. A parent reaps a zombie with wait or waitpid; init adopts an orphan and eventually reaps it after it terminates.",
     "The distinction is whether the child has terminated and whether its original parent is still present. A long-running parent must reap its own terminated children so zombies do not accumulate. If the parent terminates first, the child becomes an orphan and is handled through adoption by init in the lecture's Unix model.", "23-26")
-_pc(18, "General", "A long-running server creates children but never calls wait or waitpid. After those children terminate, what remains, why is that a problem, and what should the server do? Why doesn't adoption after parent exit solve this while the server remains alive?",
-    "The children become zombies: their exit status and process bookkeeping remain. These resources can accumulate while the server stays alive. The server should reap terminated children with wait or waitpid. Adoption after parent exit does not help while the server continues running.",
-    "Termination stops a child from executing, but reaping collects its status and releases the remaining bookkeeping. Adoption applies when the parent terminates; a long-running server remains the parent and must reap its own terminated children.", "23-26")
+_pc(18, "General", "What is the name of a terminated child whose parent has not reaped it? What happens to it, and how does the parent reap these children?",
+    "It is a zombie. The child has stopped executing, but its exit status and process-table entry remain until it is reaped. The parent reaps terminated children by calling wait or waitpid, which collects their termination information and releases the remaining process bookkeeping.",
+    "Termination ends the child's execution, while reaping removes the record retained so the parent can collect its status. Until the parent successfully calls wait or waitpid, that terminated child remains a zombie.", "23, 25-26")
 _pc(20, "General", "After wait(&status) succeeds, what do its return value and status represent? Explain how WIFEXITED/WEXITSTATUS and WIFSIGNALED/WTERMSIG distinguish and decode the termination cases.",
     "The return value is the reaped child's PID; status contains encoded termination information. If WIFEXITED(status) is true, WEXITSTATUS(status) extracts the normal exit status. If WIFSIGNALED(status) is true, WTERMSIG(status) identifies the terminating signal.",
     "The stored status is neither the returned PID nor a plain exit code. Test the termination case before using its corresponding decoder: a signal-terminated child does not supply a normal exit status through WEXITSTATUS.", "25-26")
-_pc(22, "General", "A parent has children A and B. Compare wait(NULL) with waitpid(A, NULL, 0). Can B's termination alone satisfy the second call? What does the NULL status pointer discard, and does either successful call still reap its selected child?",
-    "wait can collect an available terminated child; waitpid with positive PID A selects A, so B's termination alone does not satisfy it. NULL discards the encoded termination-status output. Both successful calls still reap their selected terminated child and return its PID.",
+_pc(22, "General", "A parent has children A and B. Compare wait(NULL) with waitpid(A, NULL, 0): identify which child's termination satisfies each call, explain what the NULL status pointer discards, and describe what a successful call does to the selected child.",
+    "- wait(NULL) waits for any child to terminate. Either child A or child B can satisfy it.\n"
+    "- waitpid(A, NULL, 0) waits specifically for child A. Child B terminating does not cause that call to return.\n"
+    "- NULL means the parent does not keep information about how the child terminated, such as its exit status.\n"
+    "- Even with NULL, the terminated child is still reaped: the operating system removes its remaining process record, so it does not remain a zombie.\n"
+    "- A successful call returns the PID of the child it reaped.",
     "Selecting a child controls which termination the parent waits for. Requesting status storage is separate from reaping: a NULL pointer declines the status information without preventing collection of the child.", "23, 25-26")
-_pc(24, "General", "What is a process graph, and what must a printed output sequence respect to be feasible?",
-    "A graph of statement executions and happens-before edges. A feasible sequence must respect every ordering edge, including per-process execution order and synchronization dependencies.",
-    "The lecture describes feasible executions as topological orderings. Independent branches may interleave, but a scheduler cannot reverse a required dependency.", "19-22, 25")
 _pc(25, "General", "What is exec, and what becomes of the calling process's old code, data, stack, and PID after it succeeds?",
     "exec loads and runs another program in the current process. It overwrites the old code, data, and stack, and retains the PID.",
     "Loading and running in the current process means exec does not create another process. The slide states that code, data, and stack are overwritten while the PID is retained.", "27")
@@ -97,8 +117,8 @@ _pc(26, "General", "For execve(filename, argv, envp), what does each argument su
     "filename identifies the executable; argv supplies its argument list; envp supplies environment strings of the form name=value. argv[0] conventionally names the program.",
     "The new image starts with the supplied arguments and environment. The slide gives the filename/program name as the convention for argv[0].",
     "27", example=15)
-_pc(27, "General", "Must execve's filename always identify a compiled object executable, or can it identify a script? What script feature does the slide describe?",
-    "It can identify a script beginning with a #! shebang that names its interpreter, such as #!/bin/bash.",
+_pc(27, "General", "What can execve's filename identify?",
+    "An object file or a script file beginning with a #! (shebang), such as #!/bin/bash.",
     "The execve slide explicitly includes interpreter scripts as well as object executables among the programs that can be loaded.", "27")
 
 
@@ -135,7 +155,7 @@ _pc_code(32, "Output", "⭐ Give the number of times each line is printed. Then 
 }''',
     "L0 once, L1 twice, Bye four times. A and C are possible; B is impossible.",
     "Each of the two processes from the first fork prints L1 before creating its second-fork child. One L1 can enable at most two Bye prints. B places three Bye prints before the second L1, violating that dependency. A runs one branch through both Bye prints first; C delays all Bye prints until both L1 prints occur.", "19, 21", 6)
-_pc_code(33, "Output", "⭐ For each function, give the process ancestry and line counts. Is a Bye before L1 possible? Does changing the conditions from fork() != 0 to fork() == 0 change the total number of processes?",
+_pc_code(33, "Output", "⭐ For each function, give the process ancestry and line counts. Give an output prefix in which Bye appears before L1, or explain which ordering constraint prevents it. State how changing the conditions from fork() != 0 to fork() == 0 affects the total number of processes.",
     '''void fork4()
 {
     printf("L0\\n");
@@ -162,8 +182,8 @@ void fork5()
     "fork4 ancestry: the original parent creates two children (siblings).\n"
     "fork5 ancestry: the original parent creates a child, which creates a grandchild.\n"
     "Line counts for each function: L0 once, L1 once, L2 once, and Bye three times.\n"
-    "Can Bye appear before L1? Yes, in both functions.\n"
-    "Does changing the conditions from fork() != 0 to fork() == 0 change the total number of processes? No. Both functions create three total processes; only the ancestry changes.",
+    "Bye-before-L1 prefix: L0, Bye, L1 in both functions.\n"
+    "Effect of changing fork() != 0 to fork() == 0: the total remains three processes; only the ancestry changes.",
     "In fork4 only the original parent enters the nonzero branches; its first child can print Bye immediately. In fork5 only children enter the zero branches; the original parent can print Bye immediately. Both require L0 before all other output and L1 before L2, even though their ancestry differs.", "19, 22", "7-8")
 _pc_code(34, "Output", "⭐ List every possible output order. Which process prints Bye?",
     '''void fork9()
@@ -181,7 +201,7 @@ _pc_code(34, "Output", "⭐ List every possible output order. Which process prin
 }''',
     "HC, HP, CT, Bye; or HP, HC, CT, Bye. Only the parent prints Bye.",
     "HC precedes child exit, which precedes the parent's return from wait and CT. HP precedes wait; CT precedes the parent's Bye. The child exits inside its branch and cannot reach the final print.", "18, 19, 25", 11)
-_pc_code(35, "Output", "⭐ Let N = 3. What exit-status values can be printed, and how are they associated with PIDs? Must their order be 100, 101, 102? If all children have already terminated before the first wait, must it reap the one created first or the one that terminated first?",
+_pc_code(35, "Output", "⭐ Let N = 3. What values are passed to exit by the children? What does wait return, and how does the program obtain and associate each child's exit status with its PID? If multiple children have already terminated when wait is called, what determines which child is reaped?",
     '''void fork10()
 {
     pid_t pid[N];
@@ -198,9 +218,9 @@ _pc_code(35, "Output", "⭐ Let N = 3. What exit-status values can be printed, a
             printf("Child %d terminate abnormally\\n", wpid);
     }
 }''',
-    "Three lines report statuses 100, 101, and 102, each paired with the PID of the child created at its corresponding i. Their printed order is not fixed. With several already-terminated children, neither creation order nor termination order is guaranteed to determine which is reaped first.",
+    "The children pass 100, 101, and 102 to exit. Each wait returns the PID of the child it reaped in wpid and stores that child's encoded termination information in child_status. WEXITSTATUS(child_status) extracts the exit status, so each printed PID is paired with the status from that same child. If multiple children are already eligible to be reaped, wait may select any of them; neither creation order nor termination order is guaranteed.",
     "Each child exits inside the creation loop and therefore never creates later children. Only the original parent completes the loop and performs the three waits. wpid and child_status come from the same wait, so that pair, not the parent's current loop index, identifies the result. wait selects an eligible child; it does not sort the results by creation or termination time.", "26", 13)
-_pc_code(36, "Output", "Must the parent line print first? After the parent exits, can the child continue to consume CPU? Classify the child's resulting process state and explain why.",
+_pc_code(36, "Output", "What are the possible orders of the parent and child lines? Describe what happens to the child's execution after the parent exits, then classify the child's resulting process state and explain why.",
     '''void fork8()
 {
     if (fork() == 0) {
@@ -215,7 +235,7 @@ _pc_code(36, "Output", "Must the parent line print first? After the parent exits
 }''',
     "Either line can print first. The child continues its infinite loop after the parent exits. It is an ORPHAN, adopted by init in the lecture model. It is not a ZOMBIE because it has not terminated.",
     "There is no synchronization ordering the initial prints. Parent termination does not terminate this child. Orphan describes a child whose parent has terminated; zombie describes a child that has itself terminated but has not been reaped.", "14, 23-24", 9)
-_pc_code(37, "Output", "⭐ Why does this shell fork and wait in the parent? The command's new program prints NEW and then exits: what is printed when execl succeeds, and what does the child do if execl fails? If fork returns a negative value, what does the function return and is there a new child?",
+_pc_code(37, "Output", "⭐ Why does this shell fork and wait in the parent? The command's new program prints NEW and then exits: what is printed when execl succeeds, and what does the child do if execl fails? If fork returns a negative value, state the function's return value and the number of new child processes.",
     '''int my_system(const char *command)
 {
     int status;
@@ -241,6 +261,24 @@ _pc_code(38,
     '18, 25',
     11,
     "Removed exit(0) from slide 25's child branch to introduce a fall-through bug.")
+_pc_code(41,
+    "Code diagnosis",
+    "The code below has a synchronization bug. Explain why its printed messages may be inaccurate, give an output order that demonstrates the problem, and identify the operation and location needed to fix it.",
+    '''void fork9()
+{
+    int child_status;
+    if (fork() == 0) {
+        printf("HC: hello from child\\n");
+        exit(0);
+    } else {
+        printf("HP: hello from parent\\n");
+        printf("CT: child has terminated\\n");
+    }
+    printf("Bye\\n");
+}''',
+    "Without wait, nothing tells the parent that the child has terminated before CT is printed. For example, HP, CT, Bye, HC is possible, so the parent may announce termination before the child even prints HC. Add wait(&child_status) after HP and before CT.",
+    "fork creates independently scheduled parent and child processes. wait blocks the parent until a child terminates, creating the ordering needed for the CT message to be accurate. Without that synchronization, the scheduler may run the parent through CT and Bye before running the child.",
+    "18, 19, 25", 11)
 _pc_code(39, "Code diagnosis", "The intent is to create N children of the original parent, with child i exiting with status 100+i. What is wrong with the child branch below? For N = 3, how many total processes reach the end of the loop?",
     '''pid_t pid[N];
 for (int i = 0; i < N; i++) {
@@ -249,8 +287,7 @@ for (int i = 0; i < N; i++) {
     }
 }''',
     "The child no longer exits, so it also performs subsequent loop iterations and forks. For N = 3 there are 8 total processes (the original plus 7 descendants), rather than 4. Restore exit(100+i) in the child branch.",
-    "Every surviving process now reaches every remaining fork, doubling the count at each iteration: 1 -> 2 -> 4 -> 8. The slide's exit is what keeps each child from continuing the creation loop.", "21, 26", 13,
-    "Shortened slide 26 to its creation loop, scoped i inside the loop, and removed the child's exit(100+i) to introduce unintended descendant creation.")
+    "Every surviving process now reaches every remaining fork, doubling the count at each iteration: 1 -> 2 -> 4 -> 8. The slide's exit is what keeps each child from continuing the creation loop.", "21, 26", 13)
 _pc_code(40, "Code diagnosis", "If execl fails, what is wrong with this shortened shell function's control flow? Repair the child branch.",
     '''int my_system(const char *command)
 {

@@ -12,14 +12,14 @@ spec = importlib.util.spec_from_file_location("mt2", ROOT / "question_banks/CSE3
 bank = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(bank)
 records = {a["id"]: (q, a) for entries in bank.questions.values() for q, a in entries.items()}
-assert len(records) == sum(map(len, bank.questions.values())) == 29
+assert len(records) == sum(map(len, bank.questions.values())) == 31
 assert {topic: len(entries) for topic, entries in bank.questions.items()} == {
-    "PROCESSES CUSTOM": 29,
+    "PROCESSES CUSTOM": 31,
 }
 # Retain stable IDs after consolidation; gaps are intentional.
 assert {r["id"] for r in bank.questions["PROCESSES CUSTOM"].values()} == {
-    f"PC{i:02}" for i in (1,3,4,6,7,8,9,10,11,12,16,17,18,20,22,24,25,26,27,
-                          31,32,33,34,35,36,37,38,39,40)
+    f"PC{i:02}" for i in (1,3,4,6,7,8,9,10,11,12,13,14,16,17,18,20,22,25,26,27,
+                          31,32,33,34,35,36,37,38,39,40,41)
 }
 for ident, (prompt, record) in records.items():
     assert prompt.strip() and record["answer"].strip() and record["subcategory"]
@@ -71,9 +71,9 @@ wait_orders = [p for p in itertools.permutations(("HC", "HP", "CT", "Bye"))
                and p.index("HP") < p.index("CT") < p.index("Bye")]
 assert set(wait_orders) == {("HC", "HP", "CT", "Bye"), ("HP", "HC", "CT", "Bye")}
 answer_has("PC34", "HC, HP, CT, Bye", "HP, HC, CT, Bye")
-assert 1 - 0.5**3 == 0.875
-answer_has("PC06", "87.5%")
+answer_has("PC06", "Increasing n increases modeled utilization")
 assert 2**3 == 8
 answer_has("PC39", "8 total processes")
+answer_has("PC41", "HP, CT, Bye, HC", "wait(&child_status)")
 
-print("PASS: 29 PROCESSES CUSTOM questions; unique IDs, source files, explanations and code fences; process output ordering and counts.")
+print("PASS: 31 PROCESSES CUSTOM questions; unique IDs, source files, explanations and code fences; process output ordering and counts.")
