@@ -12,9 +12,10 @@ spec = importlib.util.spec_from_file_location("mt2", ROOT / "question_banks/CSE3
 bank = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(bank)
 records = {a["id"]: (q, a) for entries in bank.questions.values() for q, a in entries.items()}
-assert len(records) == sum(map(len, bank.questions.values())) == 31
+assert len(records) == sum(map(len, bank.questions.values())) == 61
 assert {topic: len(entries) for topic, entries in bank.questions.items()} == {
     "PROCESSES CUSTOM": 31,
+    "SIGNALS": 30,
 }
 # Retain stable IDs after consolidation; gaps are intentional.
 assert {r["id"] for r in bank.questions["PROCESSES CUSTOM"].values()} == {
@@ -41,7 +42,7 @@ for ident, (prompt, record) in records.items():
 tree = ast.parse((ROOT / "question_banks/CSE320_MT2.py").read_text(encoding="utf-8"))
 prompts = [n.args[2].value for n in ast.walk(tree)
            if isinstance(n, ast.Call) and isinstance(n.func, ast.Name)
-           and n.func.id in {"_pc", "_pc_code"}
+           and n.func.id in {"_pc", "_pc_code", "_sg"}
            and isinstance(n.args[2], ast.Constant)]
 assert len(prompts) == len(set(prompts))
 
@@ -76,4 +77,31 @@ assert 2**3 == 8
 answer_has("PC39", "8 total processes")
 answer_has("PC41", "HP, CT, Bye, HC", "wait(&child_status)")
 
-print("PASS: 31 PROCESSES CUSTOM questions; unique IDs, source files, explanations and code fences; process output ordering and counts.")
+assert {r["id"] for r in bank.questions["SIGNALS"].values()} == {
+    f"SG{i:02}" for i in range(1, 31)
+}
+signals = bank.questions["SIGNALS"]
+assert sum(r["subcategory"] == "General" for r in signals.values()) == 17
+assert sum("```c" in q for q in signals) == 13
+for prompt, record in signals.items():
+    assert record["explanation"].strip(), record["id"]
+    assert any("8.1 Signals.pptx, slides " in s for s in record["sources"])
+    if "```c" in prompt:
+        assert any("midterm-2-code-examples.md" in s for s in record["sources"])
+for ident, quote in {
+    "SG01": "Tell me what I'm doing wrong",
+    "SG02": "generic signal theory stuff",
+    "SG19": "Tell me what you expect to happen",
+    "SG20": "does it leave zombies behind?",
+}.items():
+    prompt, record = records[ident]
+    assert prompt.startswith("⭐ "), ident
+    assert any(quote in s and "line 85" in s for s in record["sources"]), ident
+signal_prompt, signal_record = records["SG01"]
+assert signal_prompt.startswith("⭐ ")
+assert "sigprocmask(SIG_BLOCK, &mask, &prev);" in signal_prompt
+assert "SIG_SETMASK" in signal_record["answer"]
+assert "sigsuspend(&mask)" in signal_record["answer"]
+assert signal_record["explanation"].strip()
+assert any("entries 34-36" in source for source in signal_record["sources"])
+print("PASS: 31 PROCESSES CUSTOM and 30 SIGNALS; unique IDs, sources, explanations, code references, four starred Signals forms; process ordering and counts.")

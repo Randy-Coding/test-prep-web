@@ -1,10 +1,55 @@
-"""Reviewed Midterm 2 practice: PROCESSES CUSTOM.
+"""Reviewed Midterm 2 practice: PROCESSES CUSTOM and SIGNALS.
 
 Stable IDs and source references are recorded in the coverage notes.
-Other Midterm 2 topics await preparation and review.
+Signals coverage follows signals_topic.txt and QUESTION GUIDELINES.txt.
 """
 
 questions = {}
+
+
+# User-approved slide 24 correction; remaining Signals questions follow below.
+questions["SIGNALS"] = {
+    "⭐ This sequence is proposed as an implementation of sigsuspend(&mask), "
+    "where mask and prev are sigset_t objects. What is wrong with it? "
+    "Explain how the wait could fail and give the correct replacement.\n\n"
+    "```c\n"
+    "sigprocmask(SIG_BLOCK, &mask, &prev);\n"
+    "pause();\n"
+    "sigprocmask(SIG_SETMASK, &prev, NULL);\n"
+    "```": {
+        "id": "SG01",
+        "subcategory": "Code diagnosis",
+        "answer":
+            "- SIG_BLOCK adds mask's signals to the existing blocked set. "
+            "sigsuspend instead temporarily replaces the blocked set with mask. "
+            "For example, a signal blocked before this sequence stays blocked "
+            "even if mask excludes it, so it cannot wake pause by running its handler.\n"
+            "- Separate mask-setting and pause calls leave a race: an unblocked "
+            "signal can run its handler after the mask change but before pause. "
+            "pause then waits for another signal, even though the event being "
+            "awaited has already been handled.\n"
+            "- Replace the sequence with sigsuspend(&mask). It atomically installs "
+            "mask and suspends execution, then restores the previous mask when "
+            "it returns after a handler. Changing SIG_BLOCK to SIG_SETMASK alone "
+            "does not remove the race.",
+        "explanation":
+            "Slide 24 intends to describe an atomic mask/wait/restore operation, "
+            "but its SIG_BLOCK operation does not express mask replacement. "
+            "Slide 25 demonstrates the intended use: block SIGCHLD before "
+            "checking the flag, then call Sigsuspend(&prev) to temporarily "
+            "restore the previous mask while waiting. Slide 23 shows the "
+            "test/pause race. The user accepted the slide 24 correction. "
+            "Here mask is a sigset_t object, so &mask is the pointer passed "
+            "to sigsuspend; in its declaration, const sigset_t *mask already "
+            "names a pointer parameter.",
+        "sources": [
+            "8.1 Signals.pptx, slides 12, 23-25 (slide 24 mask-operation correction accepted by user)",
+            "midterm-2-code-examples.md, 8.1 Signals.pptx section, entries 34-36",
+            "Nov 5 mt2 review (transcribed on 06-Nov-2026 20-15-16).txt, line 85: "
+            '"Tell me what I\'m doing wrong."',
+        ],
+    },
+}
 
 
 def _add(topic, ident, category, prompt, answer, explanation, deck, slides):
@@ -310,3 +355,141 @@ _pc_code(40, "Code diagnosis", "If execl fails, what is wrong with this shortene
     "The child returns 0 from my_system into its caller after failed exec, instead of terminating with failure. Restore _exit(EXIT_FAILURE) immediately after execl.",
     "Only exec failure returns to the old code. Without the slide's failure exit, the child leaves the branch and returns from the function, potentially continuing the shell's caller and incorrectly reporting success.", "13, 27-28", "2, 16",
     "Initialized status to zero and removed _exit(EXIT_FAILURE) from the slide's shell example to isolate failure-path fall-through without using an uninitialized result.")
+
+
+# SIGNALS: source-mapped in signals_topic.txt. Code excerpts derive from
+# midterm-2-code-examples.md; meaningful adaptations are recorded per question.
+def _sg(number, category, prompt, answer, explanation, slides, example=None,
+        code=None, modification=None, quote=None, extra_sources=()):
+    if quote:
+        prompt = "⭐ " + prompt
+    if code:
+        prompt += "\n\n```c\n" + code.strip() + "\n```"
+    _add("SIGNALS", f"SG{number:02}", category, prompt, answer, explanation,
+         "8.1 Signals", slides)
+    record = questions["SIGNALS"][prompt]
+    if example:
+        record["sources"].append(
+            "midterm-2-code-examples.md, 8.1 Signals.pptx section, "
+            f"entries {example}")
+    if modification:
+        record["code_modification"] = modification
+        record["explanation"] += "\n\nCode adaptation: " + modification
+    if quote:
+        record["sources"].append(
+            'Nov 5 mt2 review (transcribed on 06-Nov-2026 20-15-16).txt, '
+            f'line 85: "{quote}"')
+    record["sources"].extend(extra_sources)
+
+
+_sg(2, "General", "What is a signal? Describe where it comes from, what information it carries, and the three ways a receiving process can react.",
+    "- A signal notifies a process that a system event occurred.\n- The kernel sends it, sometimes at another process's request through kill.\n- It carries its signal-type ID and the fact that it arrived.\n- The process can ignore it, terminate, or catch it with a handler, subject to the signal's permitted actions.",
+    "Signals provide process-level event notification. Their limited information does not provide a separate record of each event; SIGKILL's action cannot be overridden or ignored.", "3-5, 9", quote="generic signal theory stuff")
+_sg(3, "General", "Compare foreground and background execution in a shell. Why does a long-running shell need to reap its completed background children?",
+    "- Foreground: the shell waits for the job before accepting the next command.\n- Background: the shell continues without waiting for that job to finish.\n- Completed children remain zombies until reaped. A shell that keeps running cannot rely on its own termination and init adoption to clean them up; it must reap them, commonly in response to SIGCHLD.",
+    "Slides 2-3 introduce signals through the problem of background-child cleanup. Receiving a notification is distinct from collecting the child's termination status with wait or waitpid.", "2-3, 15-16")
+_sg(4, "General", "Give the signal name, numeric ID, and default action for each event: Ctrl-C, forced uncatchable kill, segmentation violation, timer expiration, and a child stopping or terminating.",
+    "- Ctrl-C: SIGINT, 2, terminate.\n- Forced uncatchable kill: SIGKILL, 9, terminate.\n- Segmentation violation: SIGSEGV, 11, terminate.\n- Timer expiration: SIGALRM, 14, terminate.\n- Child stopped or terminated: SIGCHLD, 17, ignore.",
+    "This is the course's signal table. SIGKILL cannot be caught or ignored. SIGCHLD's default Ignore action does not itself perform the shell's wait/waitpid reaping work.", "3-4, 15-16")
+_sg(5, "General", "Distinguish a pending signal, a blocked signal, and an ignored signal. What state does the kernel keep for pending and blocked signals?",
+    "- Pending: sent but not yet received.\n- Blocked: receipt is postponed by the process's signal mask; a signal sent while blocked can remain pending.\n- Ignored: the signal's disposition is to take no action when it is received.\n- The kernel keeps per-process pending and blocked bit vectors, with one bit per signal type.",
+    "Blocking postpones receipt; it does not select the Ignore disposition. The pending bits record types awaiting receipt, while blocked bits determine which types are currently withheld.", "5-6, 8-9")
+_sg(6, "General", "SIGINT is blocked with no SIGINT initially pending. Three SIGINT signals are sent before it is unblocked. How many pending SIGINT notifications are represented, and how many handler invocations result from those sends after unblocking?",
+    "One pending SIGINT is represented, producing one handler invocation after unblocking if a handler is installed. The other sends do not create extra queued notifications.",
+    "These ordinary signals have one pending bit per type. Multiple occurrences while that bit is set coalesce; this is why signals cannot count child terminations.", "5-6, 15")
+_sg(7, "General", "A shell has one foreground process group and a separate background process group. Describe the recipients and default effects of Ctrl-C and Ctrl-Z. How does fg change the job's role?",
+    "- Ctrl-C sends SIGINT to processes in the foreground group; its default action terminates them.\n- Ctrl-Z sends SIGTSTP to processes in the foreground group; its default action stops them.\n- The separate background group is not the target of those terminal keystrokes.\n- fg brings a background job into the foreground.",
+    "The terminal directs these signals to the foreground job's process group. Stopping suspends a process rather than terminating it; the default actions differ.", "7-8")
+_sg(8, "General", "Compare /bin/kill -9 24818 and /bin/kill -9 -24818. What do getpgrp and setpgid do? For a catchable group-directed signal, how are the individual processes' responses determined?",
+    "- /bin/kill -9 24818 targets PID 24818 with SIGKILL.\n- /bin/kill -9 -24818 targets every process in process group 24818 with SIGKILL.\n- getpgrp returns the calling process's group ID; setpgid changes a process's group.\n- Each recipient of a catchable signal uses its own disposition or handler; shared group membership does not require identical responses.",
+    "The negative target denotes a process group. SIGKILL itself forces termination, while the deferred Processes learning point concerns the independent dispositions used for catchable signals.", "6-7, 9", extra_sources=("8. Processes.pptx, slide 14",))
+_sg(9, "General", "The pending types are SIGINT, SIGALRM, and SIGCHLD; the blocked types are SIGINT and SIGSEGV. Which pending types are eligible for receipt, and what bit-vector expression determines this?",
+    "SIGALRM and SIGCHLD are eligible. SIGINT remains pending but blocked. The expression is pending & ~blocked.",
+    "The kernel masks out blocked types from the pending vector when checking for signals before returning to the process. No cross-type delivery-order prediction is needed here.", "8")
+_sg(10, "General", "What actions do signal(signum, SIG_IGN), signal(signum, SIG_DFL), and signal(signum, handler) select? Where does execution continue after a handler returns normally?",
+    "- SIG_IGN selects ignoring that signal type.\n- SIG_DFL restores that type's default action.\n- A handler address installs a user-level handler.\n- After a normal handler return, execution resumes in the interrupted control flow.",
+    "Installing a handler changes the signal disposition; catching is executing that handler. Normal return resumes the interrupted process, whereas a handler that exits or performs a nonlocal jump does not follow that normal return path.", "9-10, 30")
+_sg(11, "General", "In slide 11's diagram, process A is sent a signal, process B runs, and A later executes its handler. Explain the difference between delivery and receipt here, which process executes the handler, and the blocking rule while that handler runs.",
+    "- Delivery records the signal for A; receipt is when A reacts to it by executing its handler. Scheduling can put B's execution between those events.\n- The handler executes in process A and shares A's data; it is a separate control flow within A.\n- The handled signal type is implicitly blocked during the handler under the course's normal handling semantics. Other unblocked signal types can interrupt it.",
+    "The figure places both the handler and resumed main flow in A, with context switches to and from B before receipt. Slide 17 explains why the sigaction-based wrapper is used for consistent handling semantics.", "11, 13, 17")
+_sg(12, "General", "What makes a function async-signal-safe? Classify write, waitpid, sleep, _exit, printf, malloc, and exit for use in a handler.",
+    "An async-signal-safe function is reentrant or cannot be interrupted by signals.\n- Safe: write, waitpid, sleep, _exit.\n- Unsafe: printf, malloc, exit.",
+    "Slides 13-14 distinguish functions suitable for handlers from functions whose internal state can be disrupted by asynchronous interruption. The simple introductory handler on slide 10 is not a model of these later safety rules.", "13-14")
+_sg(13, "General", "Explain the purpose of these handler guidelines: keep handlers simple, save and restore errno, block signals around shared structures, and use volatile sig_atomic_t for a shared flag.",
+    "- Simplicity limits work and opportunities to corrupt shared state; setting a flag and returning is a common design.\n- Saving and restoring errno preserves the interrupted code's error information.\n- Temporary blocking protects shared structures from conflicting handler accesses.\n- volatile prevents inappropriate compiler assumptions about a flag changing asynchronously; sig_atomic_t supports indivisible flag reads and writes.",
+    "Handlers and main share global state. The flag rule concerns simple reads and writes, not making compound operations or arbitrary data structures safe merely by adding volatile.", "13-14, 21")
+_sg(14, "General", "After a successful exec, what happens to the blocked-signal mask, ignored-signal dispositions, and installed custom handlers? Why does the corrected shell restore the child's previous mask before Execve?",
+    "- The blocked-signal mask is preserved.\n- Ignored-signal dispositions remain ignored.\n- Installed custom handlers reset to default dispositions.\n- The child restores the previous mask so the new program does not inherit the shell's temporary SIGCHLD block.",
+    "The user previously accepted this distinction when deferring the Processes exec question to Signals. The shell's pre-exec mask restoration follows slide 20; the signal manual documents the disposition distinctions. Processes slide 27's broad 'retains signal context' wording should not imply custom handler preservation.", "20", extra_sources=("8. Processes.pptx, slide 27", "https://man7.org/linux/man-pages/man7/signal.7.html"))
+_sg(15, "General", "What problems with older signal-handling semantics motivate the sigaction-based Signal wrapper? What does SA_RESTART request?",
+    "- Some older systems reset the disposition after catching a signal.\n- Some interrupted system calls return with errno equal to EINTR.\n- Some systems do not implicitly block the type being handled.\n- The wrapper uses sigaction for consistent semantics and SA_RESTART to request restarting interrupted system calls when possible.",
+    "Slide 17 lists these portability issues. 'When possible' matters: SA_RESTART is not a guarantee that every interrupted call restarts.", "17")
+_sg(16, "General", "Compare busy waiting, sleep(1) polling, and sigsuspend for waiting on a flag set by a signal handler.",
+    "- Busy waiting repeatedly tests the flag and wastes CPU.\n- sleep(1) polling gives up CPU between checks but can delay noticing a change until the next poll.\n- sigsuspend atomically installs a temporary signal mask and sleeps until a caught signal returns; used with a protected flag check, it avoids the check/pause race.",
+    "Slides 22-25 move from spinning to slower polling and then to an atomic masked wait. The wait condition still needs to be checked after waking.", "22-25")
+_sg(17, "General", "Describe setjmp and longjmp: what context is recorded, what does setjmp return initially and after longjmp(buf, 2), and which saved environments remain valid jump destinations?",
+    "- setjmp records a register context, including stack and program-counter information, in the jump buffer.\n- It initially returns 0; longjmp(buf, 2) restores that environment and makes setjmp return 2.\n- The destination must have been established and its function invocation must still be active, such as an ancestor that has not returned. A saved environment from a returned invocation is invalid.",
+    "Nonlocal jumps bypass ordinary call/return flow by restoring a saved execution environment. They remain constrained by stack discipline; saving a buffer does not keep a completed function invocation alive.", "26-29")
+_sg(30, "General", "What does each function do to a signal set: sigemptyset, sigfillset, sigaddset, and sigdelset? How does changing that set differ from changing the process's blocked-signal mask?",
+    "- sigemptyset initializes an empty set.\n- sigfillset initializes a set containing all signal numbers.\n- sigaddset adds a specified signal to a set.\n- sigdelset removes a specified signal from a set.\n- These functions manipulate a set object. sigprocmask uses such a set to change the process's blocked-signal mask.",
+    "Slide 12 separates constructing a signal set from applying it with sigprocmask. Merely adding SIGINT to a local set does not block SIGINT for the process.", "6, 12")
+
+_sg(18, 'Code diagnosis', 'What is wrong with this SIGINT handler under the safe-handler guidelines? Identify the unsafe calls and suggest a safer design.',
+    '- printf and fflush use the unsafe stdio interface; exit is also unsafe in a handler.\n- Use async-signal-safe output such as write if output is necessary, and _exit if terminating directly. Alternatively, have the handler set a volatile sig_atomic_t flag and return so main performs the stdio work and normal exit.\n- sleep is listed as async-signal-safe, though keeping the handler short is preferable.',
+    'The introductory bomb handler illustrates catching SIGINT, but slides 13-14 later restrict which functions handlers should call. Predicting guaranteed stdio output would ignore that safety issue.', '10, 13-14', '22',
+    code='void sigint_handler(int sig) /* SIGINT handler */\n{\n    printf("So you think you can stop the bomb with ctrl-c, do you?\\n");\n    sleep(2);    printf("Well...");    fflush(stdout);    sleep(1);\n    printf("OK. :-)\\n");    exit(0);\n}', modification='Excerpted the complete handler; omitted main and its installation code.', quote=None)
+
+_sg(19, 'Handler behavior', 'A SIGINT is sent during the protected region below. Describe its effect during the region and after the last call. Explain why prev_mask is used instead of clearing the entire blocked set.',
+    '- SIGINT is blocked during the region and remains pending rather than interrupting it.\n- Restoring prev_mask permits receipt if SIGINT was previously unblocked. If it was already blocked before the region, it stays blocked.\n- Restoring the saved mask preserves all preexisting blocked signals instead of inadvertently unblocking them.',
+    'SIG_BLOCK adds SIGINT to the blocked set and saves the previous set; SIG_SETMASK restores exactly that set. The slide comment about unblocking SIGINT depends on its prior state.', '5-6, 12', '23',
+    code='sigset_t mask, prev_mask;\n    Sigemptyset(&mask);\n    Sigaddset(&mask, SIGINT);\n    /* Block SIGINT and save previous blocked set */\n    Sigprocmask(SIG_BLOCK, &mask, &prev_mask);\n        /* Code region that will not be interrupted by SIGINT */\n    /* Restore previous blocked set, unblocking SIGINT */\n    Sigprocmask(SIG_SETMASK, &prev_mask, NULL);', modification=None, quote='Tell me what you expect to happen.')
+
+_sg(20, 'Code diagnosis', 'For N > 2, explain how this program can leave zombie children and fail to finish waiting. Show a sequence of child terminations and handler executions that demonstrates the problem, and describe the reaping repair.',
+    "- The handler reaps only one child per invocation, while multiple SIGCHLD occurrences can coalesce.\n- For example, the first child triggers the handler and is reaped. While that handler sleeps, several other children terminate. SIGCHLD is implicitly blocked, so their notifications become one pending signal. The next handler invocation reaps only one more child, leaving other terminated children unreaped and ccount positive.\n- Drain available terminated children in a loop. In a responsive shell use waitpid(-1, NULL, WNOHANG) while its return is positive; handle 0 as no terminated child currently available and ECHILD as no remaining children.\n- The plain int shared counter also does not follow the slides' volatile flag guidance; fixing reaping alone is not a general shared-state safety guarantee.",
+    'Slide 15 explicitly warns that pending signals are not queued; slide 16 changes one wait to a loop and mentions WNOHANG. One SIGCHLD is notification to check child state, not proof that exactly one child terminated. The example schedule demonstrates a failure rather than claiming every execution fails.', '11, 13, 15-16', '24',
+    code='int ccount = 0;\nvoid child_handler(int sig) {\n    int olderrno = errno;  pid_t pid;\n    if ((pid = wait(NULL)) < 0)\n        Sio_error("wait error");\n    ccount--;\n    Sio_puts("Handler reaped child ");\n    Sio_putl((long)pid);\n    Sio_puts(" \\n");\n    sleep(1);  errno = olderrno;\n}\nvoid fork14() {\n    pid_t pid[N];   int i;   ccount = N;\n    Signal(SIGCHLD, child_handler);\n    for (i = 0; i < N; i++) {\n        if ((pid[i] = Fork()) == 0) {\n            Sleep(1);   exit(0);  /* Child exits */\n        }\n    }\n    while (ccount > 0); /* Parent spins */\n}', modification=None, quote='does it leave zombies behind?')
+
+_sg(21, 'Handler behavior', 'In this handler, one child has terminated and another child is still running. Explain what happens after the first child is reaped. How would you change the loop to let the main program continue without waiting for the running child?',
+    '- The next wait(NULL) blocks until another child terminates; the handler has not returned to main.\n- Use while ((pid = waitpid(-1, NULL, WNOHANG)) > 0) to reap currently available children without waiting for running ones.\n- A return of 0 ends that drain because children exist but none is currently waitable. A return of -1 with ECHILD means no children remain. Update the error test so it does not treat the 0 case as a wait error based on stale errno.',
+    'The printed slide 16 loop uses blocking wait. Its accompanying WNOHANG note describes a nonblocking alternative, not a property of the printed wait call. The loop fixes one-reap-per-signal but may keep control in the handler while other children run.', '16, 19', '25',
+    code='void child_handler2(int sig)\n{\n    int olderrno = errno;\n    pid_t pid;\n    while ((pid = wait(NULL)) > 0) {\n        ccount--;\n        Sio_puts("Handler reaped child ");\n        Sio_putl((long)pid);\n        Sio_puts(" \\n");\n    }\n    if (errno != ECHILD)\n        Sio_error("wait error");\n    errno = olderrno;\n}', modification=None, quote=None)
+
+_sg(22, 'Handler behavior', 'Explain sa_handler, sa_mask, and sa_flags in this Signal wrapper. Which signals does the empty sa_mask add to the blocked set during handling, what happens to the handled type, and what does the wrapper return?',
+    '- sa_handler selects the function to invoke.\n- The empty sa_mask adds no other signal types to those blocked during handling. The currently handled signal type is still implicitly blocked under these flags.\n- SA_RESTART requests restarting interrupted system calls when possible.\n- The wrapper returns the previous handler address/disposition.',
+    'The empty additional mask does not itself cause the implicit block on the handled type. The wrapper uses sigaction without an option disabling that implicit block and returns old_action.sa_handler.', '11, 17', '26',
+    code='handler_t *Signal(int signum, handler_t *handler)\n{\n    struct sigaction action, old_action;\n    action.sa_handler = handler;\n    sigemptyset(&action.sa_mask); /* Block sigs of type being handled */\n    action.sa_flags = SA_RESTART; /* Restart syscalls if possible */\n    if (sigaction(signum, &action, &old_action) < 0)\n        unix_error("Signal error");\n    return (old_action.sa_handler);\n}', modification=None, quote=None)
+
+_sg(23, 'Code diagnosis', 'These excerpts use handler for SIGCHLD. Identify the job-list error, give an execution order that produces it, and describe the repair in both parent and child.',
+    '- The child can exec and terminate before the parent blocks SIGCHLD and calls addjob.\n- A schedule is: fork; child runs and terminates; handler reaps it and tries deletejob before an entry exists; parent then adds the already-reaped PID. The job list can contain a stale entry.\n- Block SIGCHLD before fork. In the parent keep it blocked until after addjob, then restore the prior mask. In the child restore the inherited prior mask before exec.\n- In this schedule the child has already been reaped: a stale job entry is not itself a zombie process.',
+    "Slides 18-20 identify the assumption that the parent runs before the child. Blocking only around addjob is too late to establish the required add-before-delete order. The handler's waitpid options are 0, so this printed handler can also block while other children remain running; that does not explain away the demonstrated job-list race.", '18-20', '27, 28',
+    code='int main(int argc, char **argv)\n{\n    int pid;  sigset_t mask_all, prev_all;\n    Sigfillset(&mask_all);\n    Signal(SIGCHLD, handler);\n    initjobs(); /* Initialize the job list */\n    while (1) {\n        if ((pid = Fork()) == 0)  /* Child */\n            Execve("/bin/date", argv, NULL); \n        Sigprocmask(SIG_BLOCK, &mask_all, &prev_all); \n/* Parent */\n        addjob(pid);  /* Add the child to the job list */\n        Sigprocmask(SIG_SETMASK, &prev_all, NULL);\n    }\n    exit(0);}\n\nvoid handler(int sig)\n{\n    int olderrno = errno;\n    sigset_t mask_all, prev_all;\n    pid_t pid;\n    Sigfillset(&mask_all);\n    while ((pid = waitpid(-1, NULL, 0)) > 0) { /* Reap child */\n        Sigprocmask(SIG_BLOCK, &mask_all, &prev_all);\n        deletejob(pid); /* Delete the child from the job list */\n        Sigprocmask(SIG_SETMASK, &prev_all, NULL);\n    }\n    if (errno != ECHILD)\n        Sio_error("waitpid error");\n    errno = olderrno;\n}', modification=None, quote=None)
+
+_sg(24, 'Handler behavior', 'Explain the ordering enforced by the masks in this corrected shell. Why are signals blocked at two different points, and why is the child mask restored before Execve?',
+    "- Blocking SIGCHLD before fork prevents child-exit handling before the new job is registered.\n- The parent additionally blocks signals while changing the shared job list, then restores prev_one after addjob so pending SIGCHLD can be handled.\n- The child inherits the blocked mask and restores prev_one before Execve so the executed program does not retain the shell's temporary block.",
+    'Slide 20 fixes the add/delete race while preserving the earlier shared-data protection rule. Mask restoration in the child matters because exec preserves the blocked-signal mask.', '13, 18-20', '29',
+    code='int main(int argc, char **argv)\n{\n    int pid;   sigset_t mask_all, mask_one, prev_one;\n    Sigfillset(&mask_all);  Sigemptyset(&mask_one); Sigaddset(&mask_one, SIGCHLD);\n    Signal(SIGCHLD, handler);  initjobs(); /* Initialize the job list */\n    while (1) {\n        Sigprocmask(SIG_BLOCK, &mask_one, &prev_one); /* Block SIGCHLD */\n        if ((pid = Fork()) == 0) { /* Child process */\n            Sigprocmask(SIG_SETMASK, &prev_one, NULL); /* Unblock SIGCHLD */\n            Execve("/bin/date", argv, NULL);\n        }\n        Sigprocmask(SIG_BLOCK, &mask_all, NULL); /* Parent process */\n\taddjob(pid);  /* Add the child to the job list */\n        Sigprocmask(SIG_SETMASK, &prev_one, NULL);  /* Unblock SIGCHLD */\n    }\n    exit(0);}', modification=None, quote=None)
+
+_sg(25, 'Code diagnosis', "These excerpts explicitly wait for child completion. If pid = 0 is moved below the parent's SIG_SETMASK call, what goes wrong? Give the relevant execution order and explain the original placement.",
+    "- Restoring the mask can let a pending SIGCHLD handler run and store the reaped child's PID.\n- The moved pid = 0 then overwrites that notification. The parent may spin indefinitely with no child completion left to set it again.\n- The original code clears pid while SIGCHLD is blocked, then restores the mask; the handler's update therefore follows the reset.",
+    'The handler and main share the flag. Blocking protects the order of reset and notification; volatile sig_atomic_t alone does not order those actions. The empty SIGINT handler returns without changing pid.', '13, 21-22', '30, 31',
+    code='volatile sig_atomic_t pid;\nvoid sigchld_handler(int s)\n{\n    int olderrno = errno;\n    pid = Waitpid(-1, NULL, 0); /* Main is waiting for nonzero pid */\n    errno = olderrno;\n}\nvoid sigint_handler(int s) { }\n\nint main(int argc, char **argv) {\n    sigset_t mask, prev;\n    Signal(SIGCHLD, sigchld_handler);   Signal(SIGINT, sigint_handler);\n    Sigemptyset(&mask);   Sigaddset(&mask, SIGCHLD);\n    while (1) {\n\tSigprocmask(SIG_BLOCK, &mask, &prev); /* Block SIGCHLD */\n\tif (Fork() == 0)  exit(0); /* Child */\n        /* Parent */\n\tpid = 0;\n\tSigprocmask(SIG_SETMASK, &prev, NULL); /* Unblock SIGCHLD */\n\t/* Wait for SIGCHLD to be received (wasteful!) */\n\twhile (!pid) ;\n\t/* Do some work after receiving SIGCHLD */\n        printf(".");\n    }\n    exit(0);}', modification=None, quote=None)
+
+_sg(26, 'Code diagnosis', 'This loop replaces the busy wait on pid set by the SIGCHLD handler. Identify the problem, show an execution order that demonstrates it, and describe a repair.',
+    '- Main tests pid and finds zero. Before pause, SIGCHLD arrives, the handler reaps the child and sets pid nonzero, then returns. Main calls pause anyway and can wait indefinitely for another caught signal.\n- Keep SIGCHLD blocked while testing pid, then use sigsuspend with a temporary mask that permits SIGCHLD; recheck pid in a loop and restore the original mask after waiting.',
+    "Slide 23 labels the test/pause race; slide 25 supplies the protected test and atomic wait pattern. This is distinct from SG01's erroneous proposed mask/wait/restore implementation.", '21, 23-25', '32',
+    code='while (!pid)\n    pause();', modification='Removed the slide comment naming the diagnosis; retained the loop unchanged.', quote=None)
+
+_sg(27, 'Handler behavior', 'Using these handlers and main, explain why SIGCHLD is blocked before pid is cleared, why Sigsuspend receives &prev, why the wait uses a loop, and which mask is active after Sigsuspend returns.',
+    '- Blocking prevents child-exit handling before main has cleared pid.\n- &prev temporarily reinstalls the saved mask, allowing SIGCHLD through if it was originally unblocked, while atomically beginning the wait.\n- SIGINT can wake the wait through its empty handler without changing pid, so the loop must test the condition again.\n- After Sigsuspend returns, the mask from immediately before that call is restored: SIGCHLD is blocked again. The later SIG_SETMASK restores prev for the following main-program work.',
+    'The example coordinates a condition check with signal receipt without spinning or leaving a check/pause window. Mask replacement while sleeping is temporary, and a wakeup is not by itself proof the child-completion condition holds.', '21, 24-25', '30, 36',
+    code='volatile sig_atomic_t pid;\nvoid sigchld_handler(int s)\n{\n    int olderrno = errno;\n    pid = Waitpid(-1, NULL, 0); /* Main is waiting for nonzero pid */\n    errno = olderrno;\n}\nvoid sigint_handler(int s) { }\n\nint main(int argc, char **argv) {\n    sigset_t mask, prev;\n    Signal(SIGCHLD, sigchld_handler); Signal(SIGINT, sigint_handler);\n    Sigemptyset(&mask);  Sigaddset(&mask, SIGCHLD);\n    while (1) {\n        Sigprocmask(SIG_BLOCK, &mask, &prev); /* Block SIGCHLD */\n        if (Fork() == 0) exit(0);/* Child */\n        /* Wait for SIGCHLD to be received */\n        pid = 0; while (!pid) Sigsuspend(&prev);\n       /* Optionally unblock SIGCHLD */\n        Sigprocmask(SIG_SETMASK, &prev, NULL);\n\t/* Do some work after receiving SIGCHLD */\n        printf(".");\n    }\n    exit(0);}', modification=None, quote=None)
+
+_sg(28, 'Code trace', 'What does this program print with the shown error flags? Explain the returns from setjmp and the path through foo and bar. Then give the output if error1 is changed to 1.',
+    '- As shown: Detected an error2 condition in foo.\n- setjmp initially returns 0, so main calls foo. error1 is 0, so foo calls bar; error2 is 1, so bar calls longjmp(buf, 2). Execution resumes at setjmp with return value 2 and selects case 2.\n- With error1 set to 1: Detected an error1 condition in foo. foo jumps with value 1 before bar is called.',
+    "The saved main invocation is still active, so both functions can jump to its recovery point. The jump bypasses ordinary returns from bar and foo; the printed error2 message uses the slide's exact wording even though bar detects that condition.", '26-29', '39, 40',
+    code='jmp_buf buf; int error1 = 0; int error2 = 1;\nvoid foo(void), bar(void);\nint main()\n{  switch(setjmp(buf)) {\n    case 0:  foo();   break;\n    case 1:   printf("Detected an error1 condition in foo\\n"); break;\n    case 2:  printf("Detected an error2 condition in foo\\n"); break;\n    default:  printf("Unknown error condition in foo\\n");  }\n    exit(0);}\n\n/* Deeply nested function foo */\nvoid foo(void)\n{  if (error1)\n\tlongjmp(buf, 1);\n    bar();}\nvoid bar(void)\n{   if (error2)\n        longjmp(buf, 2); }', modification='Placed the globals, prototypes, and main from entry 40 before the function definitions from entry 39; code otherwise unchanged.', quote=None)
+
+_sg(29, 'Handler behavior', 'What does this program do initially and when Ctrl-C invokes its handler after setup? Explain where execution resumes and whether exit(0) is reached.',
+    '- Initially it prints starting, then repeatedly sleeps and prints processing....\n- Ctrl-C invokes the handler, which calls siglongjmp(buf, 1). The saved sigsetjmp returns 1, selecting the else branch and printing restarting. Execution enters the processing loop again.\n- The saved signal mask is restored because sigsetjmp was called with second argument 1.\n- exit(0) is not reached through this flow because the loop has no exit.',
+    'Slide 30 shows signal-aware nonlocal control flow within the same process. It restarts the processing loop rather than creating a new process or terminating through the default SIGINT action. Exact numbers of processing messages depend on signal timing.', '26-30', '41',
+    code='sigjmp_buf buf;\nvoid handler(int sig)\n{\n    siglongjmp(buf, 1);\n}\nint main()\n{\n    if (!sigsetjmp(buf, 1)) {\n        Signal(SIGINT, handler);\n\tSio_puts("starting\\n");\n    }\n    else\n        Sio_puts("restarting\\n");\n    while(1) {\n\tSleep(1);\n\tSio_puts("processing...\\n");\n    }\n    exit(0); /* Control never reaches here */\n}', modification=None, quote=None)
