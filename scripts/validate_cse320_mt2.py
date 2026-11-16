@@ -16,10 +16,11 @@ review_topics = {topic: entries for topic, entries in bank.questions.items()
 core_topics = {topic: entries for topic, entries in bank.questions.items()
                if topic not in review_topics}
 records = {a["id"]: (q, a) for entries in core_topics.values() for q, a in entries.items()}
-assert len(records) == sum(map(len, core_topics.values())) == 57
+assert len(records) == sum(map(len, core_topics.values())) == 79
 assert {topic: len(entries) for topic, entries in core_topics.items()} == {
     "PROCESSES CUSTOM": 31,
     "SIGNALS": 26,
+    "HW5 [Shell]": 22,
 }
 # Retain stable IDs after consolidation; gaps are intentional.
 assert {r["id"] for r in bank.questions["PROCESSES CUSTOM"].values()} == {
@@ -28,6 +29,7 @@ assert {r["id"] for r in bank.questions["PROCESSES CUSTOM"].values()} == {
 }
 for ident, (prompt, record) in records.items():
     assert prompt.strip() and record["answer"].strip() and record["subcategory"]
+    assert record["explanation"].strip(), ident
     assert record["sources"] and all(
         s.startswith("https://") or (ROOT / "cse320/midterm-2" / s.split(", ", 1)[0]).is_file()
         for s in record["sources"]
@@ -46,7 +48,7 @@ for ident, (prompt, record) in records.items():
 tree = ast.parse((ROOT / "question_banks/CSE320_MT2.py").read_text(encoding="utf-8"))
 prompts = [n.args[2].value for n in ast.walk(tree)
            if isinstance(n, ast.Call) and isinstance(n.func, ast.Name)
-           and n.func.id in {"_pc", "_pc_code", "_sg"}
+           and n.func.id in {"_pc", "_pc_code", "_sg", "_shell"}
            and isinstance(n.args[2], ast.Constant)]
 assert len(prompts) == len(set(prompts))
 
@@ -96,11 +98,14 @@ for ident, quote in {
     "SG01": "Tell me what I'm doing wrong",
     "SG02": "generic signal theory stuff",
     "SG20": "does it leave zombies behind?",
+    "SG21": "Tell me what you expect to happen",
+    "SG27": "Tell me what you expect to happen",
+    "SG29": "Tell me what you expect to happen",
 }.items():
     prompt, record = records[ident]
     assert prompt.startswith("⭐ "), ident
     assert any(quote in s and "line 85" in s for s in record["sources"]), ident
-assert not records["SG19"][0].startswith("? ")
+assert not records["SG19"][0].startswith("⭐ ")
 assert not any("Nov 5 mt2 review" in source for source in records["SG19"][1]["sources"])
 signal_prompt, signal_record = records["SG01"]
 assert signal_prompt.startswith("⭐ ")
@@ -109,7 +114,10 @@ assert "SIG_SETMASK" in signal_record["answer"]
 assert "sigsuspend(&mask)" in signal_record["answer"]
 assert signal_record["explanation"].strip()
 assert any("entries 34-36" in source for source in signal_record["sources"])
-print("PASS: 31 PROCESSES CUSTOM and 26 SIGNALS; unique IDs, sources, explanations, code references, three retained Signals stars; process ordering and counts.")
+assert {r["id"] for r in bank.questions["HW5 [Shell]"].values()} == {
+    f"SH{i:02}" for i in range(1, 23)
+}
+print("PASS: 31 PROCESSES CUSTOM, 26 SIGNALS, and 22 HW5 [Shell]; unique IDs, sources, explanations, code references, six Signals stars covering four required forms; process ordering and counts.")
 
 # Review deck: 54 numbered questions, including multipart prompts and answers.
 assert {topic: len(entries) for topic, entries in review_topics.items()} == {
@@ -128,7 +136,7 @@ assert set(review) == set(range(1, 55))
 assert {r["id"] for q, r in review.values()} == {f"RS{i:02}" for i in range(1, 55)}
 assert not ({r["id"] for q, r in review.values()} & records.keys())
 for number, (prompt, record) in review.items():
-    assert prompt.startswith(f"Question {number}: ")
+    assert prompt.startswith(record["subcategory"] + "\n\n")
     assert all(f"\n{letter}. " in prompt for letter in "ABC")
     assert record["answer"][0] in "ABC" and record["answer"][1:3] == ". "
     assert record["question_slides"] and record["answer_slides"]
