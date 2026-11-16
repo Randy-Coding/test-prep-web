@@ -51,11 +51,16 @@ _pc(3, "General", "Why do we need multiple processes?",
     "- Run services and daemons.\n"
     "- Allow parallel computation on multicore systems.",
     "The Processes slide lists all four as reasons for supporting multiple processes: better utilization while work waits, fair access to the computer, background services, and parallel execution across cores.", "9")
-_pc(4, "General", "What are the three OS states a process can be in?",
+_pc(4, "General", "What are the three OS states a process can be in? How does the programmer perspective describe process states, and what is distinctive about that perspective?",
     "- Running: currently executing on the CPU.\n"
     "- Ready: runnable but not currently executing. A running process enters the ready state when the scheduler preempts it, and it waits to be scheduled again.\n"
-    "- Blocked: unable to run until an external event occurs, such as completion of an I/O operation.",
-    "The scheduler chooses a ready process to run. Preemption moves a process from running to ready even though it can still execute. A blocked process is not runnable yet because it is waiting for an event such as disk input.", "16")
+    "- Blocked: unable to run until an external event occurs, such as completion of an I/O operation.\n\n"
+    "From the programmer perspective:\n"
+    "- Running combines the OS Running and Ready states: the process is executing or waiting to be scheduled.\n"
+    "- Stopped corresponds to a suspended/blocked process that will not be scheduled until further notice.\n"
+    "- Terminated means the process has stopped permanently and the OS has stopped tracking it.\n\n"
+    "The distinctive feature of the programmer perspective is that it combines OS Running and Ready into one Running category and describes the process in terms of whether its execution can continue.",
+    "The OS model distinguishes the process currently using the CPU from runnable processes waiting for CPU time. The programmer model hides that scheduling distinction: both are Running from the program's perspective. It separately describes processes that are Stopped and those that are permanently Terminated.", "16-17")
 _pc(6, "General", "In the utilization model U = 1 - p^n, what do p and n represent, and what is the effect of increasing n?",
     "p is the fraction of time a process waits for hardware, and n is the number of processes. Increasing n increases modeled utilization for 0 < p < 1.",
     "The modeled idle fraction is p^n: all n processes are waiting. More processes reduce that idle fraction. This is the lecture's utilization model, not a guarantee for every real workload.", "10")
