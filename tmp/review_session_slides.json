@@ -1,0 +1,4301 @@
+[
+  {
+    "slide": 1,
+    "lines": [
+      "Question 1: Replacing a program",
+      "A worker successfully calls exec to run a different program. Which",
+      "description is correct?",
+      "A. The call creates a second process with a new PID.",
+      "B. The old and new programs continue in the same process together.",
+      "C. The process keeps its PID, but its program image is replaced."
+    ]
+  },
+  {
+    "slide": 2,
+    "lines": [
+      "Answer 1  |  Correct: C",
+      "exec replaces the program",
+      "A process is a running instance of a program. Its PID identifies that",
+      "process. A successful exec keeps the PID and replaces the program’s",
+      "code, stack, and heap.",
+      "Execution begins in the new program. The old program does not",
+      "continue after the successful exec call.",
+      "A describes creating another process, which fork does. B is wrong",
+      "because the old program is replaced, so the two programs do not",
+      "continue together."
+    ]
+  },
+  {
+    "slide": 3,
+    "lines": [
+      "Question 2: Zombie or orphan?",
+      "Worker X has exited, but its parent has not collected its status. Worker Y",
+      "is still running when its parent exits. What are X and Y, respectively?",
+      "A. Orphan; zombie.",
+      "B. Zombie; orphan.",
+      "C. Background; foreground."
+    ]
+  },
+  {
+    "slide": 4,
+    "lines": [
+      "Answer 2  |  Correct: B",
+      "X is a zombie; Y is an orphan",
+      "X is a zombie: the child has exited, but its parent has not collected its",
+      "termination status. The child is no longer running.",
+      "Y is an orphan: its parent has exited while the child is still alive. Losing its",
+      "parent does not mean that the child has terminated.",
+      "The question asks for X, then Y, so B is correct. A swaps their meanings.",
+      "Foreground and background describe shell job control."
+    ]
+  },
+  {
+    "slide": 5,
+    "lines": [
+      "Question 3: Separate memory after fork",
+      "What does the parent print?",
+      "int *p = malloc(sizeof(*p)); *p = 7;",
+      "pid_t c = fork();",
+      "if (c == 0) { *p = 21; exit(0); }",
+      "waitpid(c, NULL, 0);",
+      "printf(\"%d\", *p);",
+      "A. 7",
+      "B. 21",
+      "C. Either 7 or 21."
+    ]
+  },
+  {
+    "slide": 6,
+    "lines": [
+      "Answer 3 (1/7)  |  Correct: A",
+      "p and *p mean different things",
+      "int *p = malloc(sizeof(*p));",
+      "*p = 7;",
+      "int *p declares p as a pointer to an int. p holds an address; *p refers to",
+      "the int at that address.",
+      "sizeof(p) measures the pointer. sizeof(*p) measures an int, because the",
+      "expression *p has type int. The actual sizes depend on the machine."
+    ]
+  },
+  {
+    "slide": 7,
+    "lines": [
+      "Answer 3 (2/7)  |  Correct: A",
+      "The allocation and initial value",
+      "For this int pointer, sizeof(*p) uses the type of *p; it does not read",
+      "through p. It is valid to use it in the malloc expression.",
+      "malloc reserves enough heap space for one int and returns its address.",
+      "We assume allocation succeeds. *p = 7 writes 7 into that int."
+    ]
+  },
+  {
+    "slide": 8,
+    "lines": [
+      "Answer 3 (3/7)  |  Correct: A",
+      "What fork returns",
+      "pid_t c = fork();",
+      "fork creates a child. Both processes continue at the statement after fork,",
+      "but each gets a different return value.",
+      "In the child, c is 0. In the parent, c is the child’s positive PID. A return of",
+      "-1 would mean failure; failure is excluded here."
+    ]
+  },
+  {
+    "slide": 9,
+    "lines": [
+      "Answer 3 (4/7)  |  Correct: A",
+      "Which process enters the if?",
+      "if (c == 0) { *p = 21; exit(0); }",
+      "The condition c == 0 is true only in the child. The child writes 21 into its",
+      "own copy of the allocated int.",
+      "exit(0) terminates that child. It does not exit the parent, and the child",
+      "does not reach the later printf."
+    ]
+  },
+  {
+    "slide": 10,
+    "lines": [
+      "Answer 3 (5/7)  |  Correct: A",
+      "Why the parent still has 7",
+      "After fork, the processes have separate address spaces. Copy-on-write",
+      "may initially share physical storage, but ordinary writes are private to",
+      "each process.",
+      "The same pointer value in both processes does not make this malloc",
+      "block shared memory. The child’s write changes its value to 21; the",
+      "parent’s value remains 7."
+    ]
+  },
+  {
+    "slide": 11,
+    "lines": [
+      "Answer 3 (6/7)  |  Correct: A",
+      "What waitpid changes",
+      "waitpid(c, NULL, 0);",
+      "printf(\"%d\", *p);",
+      "In the parent, c is the child’s PID. waitpid(c, NULL, 0) waits for that",
+      "specific child to terminate and reaps it.",
+      "NULL means no exit-status value is requested. The final 0 gives ordinary",
+      "blocking behavior. Waiting synchronizes termination; it does not copy",
+      "the child’s heap changes back."
+    ]
+  },
+  {
+    "slide": 12,
+    "lines": [
+      "Answer 3 (7/7)  |  Correct: A",
+      "Finish the trace",
+      "Only the parent reaches printf, and its own *p is still 7. Therefore A is",
+      "correct.",
+      "B assumes the child’s private write changes the parent’s memory. C",
+      "assumes scheduling can change which memory value the parent sees.",
+      "Neither is true for this private allocation."
+    ]
+  },
+  {
+    "slide": 13,
+    "lines": [
+      "Question 4: Waiting for one child",
+      "Which printout is IMPOSSIBLE? Output appears immediately.",
+      "pid_t a = fork();",
+      "if (a == 0) { printf(\"A\"); exit(0); }",
+      "pid_t b = fork();",
+      "if (b == 0) { printf(\"B\"); exit(0); }",
+      "waitpid(b, NULL, 0);",
+      "printf(\"P\");",
+      "A. ABP",
+      "B. BPA",
+      "C. PAB"
+    ]
+  },
+  {
+    "slide": 14,
+    "lines": [
+      "Answer 4 (1/5)  |  Correct: C",
+      "The first child",
+      "pid_t a = fork();",
+      "if (a == 0) { printf(\"A\"); exit(0); }",
+      "The original process calls the first fork. In that child, a == 0 is true, so it",
+      "prints A and exits.",
+      "Because this child exits inside the if, it never reaches the second fork.",
+      "The original parent continues."
+    ]
+  },
+  {
+    "slide": 15,
+    "lines": [
+      "Answer 4 (2/5)  |  Correct: C",
+      "The second child",
+      "pid_t b = fork();",
+      "if (b == 0) { printf(\"B\"); exit(0); }",
+      "Only the original parent calls the second fork. Its new child has b == 0,",
+      "prints B, and exits.",
+      "We now have three processes in total: the original parent, the child that",
+      "prints A, and the child that prints B."
+    ]
+  },
+  {
+    "slide": 16,
+    "lines": [
+      "Answer 4 (3/5)  |  Correct: C",
+      "The required ordering",
+      "waitpid(b, NULL, 0);",
+      "printf(\"P\");",
+      "In the parent, b is the PID of the B child. waitpid(b, NULL, 0) returns after",
+      "that child terminates.",
+      "The B child prints before it exits. The parent prints P only after its wait",
+      "returns. Therefore B must appear before P."
+    ]
+  },
+  {
+    "slide": 17,
+    "lines": [
+      "Answer 4 (4/5)  |  Correct: C",
+      "Test all three choices",
+      "A: ABP is possible. Let the A child print, then the B child print and exit,",
+      "then let the parent print P.",
+      "B: BPA is possible. Let the B child finish first, then the parent print P, and",
+      "finally let the A child run.",
+      "C: PAB is impossible: it puts P before B, violating the wait for the B child."
+    ]
+  },
+  {
+    "slide": 18,
+    "lines": [
+      "Answer 4 (5/5)  |  Correct: C",
+      "The rule to remember",
+      "fork creates possible concurrent execution; it does not guarantee which",
+      "process runs first. A child created earlier can print later.",
+      "waitpid with a positive PID waits for the selected child. It does not",
+      "necessarily wait for all children, and it does not impose an order",
+      "between the two child printouts."
+    ]
+  },
+  {
+    "slide": 19,
+    "lines": [
+      "Question 5: fork followed by exec",
+      "Assume execl succeeds. Counting both processes, what is printed?",
+      "pid_t c = fork();",
+      "if (c == 0) {",
+      "  execl(\"/bin/echo\", \"echo\", \"new\",",
+      "        (char *)0);",
+      "}",
+      "puts(\"old\");",
+      "A. old twice; new once.",
+      "B. old once; new once.",
+      "C. Only new once."
+    ]
+  },
+  {
+    "slide": 20,
+    "lines": [
+      "Answer 5 (1/4)  |  Correct: B",
+      "Follow the return values",
+      "pid_t c = fork();",
+      "if (c == 0) {",
+      "    execl(\"/bin/echo\", \"echo\", \"new\",",
+      "        (char *)0);",
+      "}",
+      "puts(\"old\");",
+      "The original process calls fork once, so there are two processes. The",
+      "child receives c == 0; the parent receives c > 0."
+    ]
+  },
+  {
+    "slide": 21,
+    "lines": [
+      "Answer 5 (2/4)  |  Correct: B",
+      "Follow the return values",
+      "Only the child enters the if. The parent skips that block and reaches",
+      "puts(\"old\"), printing old once."
+    ]
+  },
+  {
+    "slide": 22,
+    "lines": [
+      "Answer 5 (3/4)  |  Correct: B",
+      "Follow the successful exec",
+      "execl is a member of the exec family. Here it replaces the child’s program",
+      "with /bin/echo and passes new as its argument.",
+      "echo prints new. Because exec succeeds, the child does not return to",
+      "this old code and does not execute puts(\"old\")."
+    ]
+  },
+  {
+    "slide": 23,
+    "lines": [
+      "Answer 5 (4/4)  |  Correct: B",
+      "Count and check the choices",
+      "The parent prints old once. The new program running in the child prints",
+      "new once. This gives B.",
+      "A incorrectly lets the child return from successful exec. C forgets that",
+      "replacing the child’s program leaves the parent running its original code.",
+      "The order of old and new is not fixed because no wait imposes an order",
+      "here."
+    ]
+  },
+  {
+    "slide": 24,
+    "lines": [
+      "Question 6: Build the fork graph",
+      "How many times does each letter print? Output appears immediately.",
+      "printf(\"S\");",
+      "pid_t c = fork();",
+      "if (c == 0) {",
+      "  printf(\"C\");",
+      "  fork();",
+      "} else printf(\"P\");",
+      "printf(\"E\");",
+      "A. S: 1, C: 1, P: 1, E: 2",
+      "B. S: 1, C: 1, P: 1, E: 3",
+      "C. S: 1, C: 2, P: 2, E: 4"
+    ]
+  },
+  {
+    "slide": 25,
+    "lines": [
+      "Answer 6 (1/4)  |  Correct: B",
+      "Start with one process",
+      "Before any fork, only the original process exists. It executes printf(\"S\"),",
+      "so S prints exactly once.",
+      "The first fork then creates one child. Both processes continue after that",
+      "fork; neither restarts the function from the beginning."
+    ]
+  },
+  {
+    "slide": 26,
+    "lines": [
+      "Answer 6 (2/4)  |  Correct: B",
+      "Separate the first two paths",
+      "In the original parent, c > 0. It takes the else branch, prints P, then",
+      "reaches the final printf(\"E\").",
+      "In the first child, c == 0. It enters the if, prints C, then executes the",
+      "second fork. The parent never executes that second fork."
+    ]
+  },
+  {
+    "slide": 27,
+    "lines": [
+      "Answer 6 (3/4)  |  Correct: B",
+      "The second fork is inside the child",
+      "The first child calls fork after printing C. That fork creates a grandchild of",
+      "the original process.",
+      "Both of these processes continue after the second fork, leave the if",
+      "block, and print E. The grandchild does not go backward and print C",
+      "again."
+    ]
+  },
+  {
+    "slide": 28,
+    "lines": [
+      "Answer 6 (4/4)  |  Correct: B",
+      "Trace the process graph",
+      "Original P",
+      "prints S; fork #1",
+      "P: c > 0",
+      "prints P, then E",
+      "C1: c == 0",
+      "prints C; fork #2",
+      "C1: prints E",
+      "C2: prints E"
+    ]
+  },
+  {
+    "slide": 29,
+    "lines": [
+      "Question 7: Which signal cannot be handled?",
+      "A program tries to install a handler that runs instead of terminating",
+      "when it receives a signal. Which signal cannot be caught, blocked, or",
+      "ignored?",
+      "A. SIGALRM",
+      "B. SIGKILL",
+      "C. SIGINT"
+    ]
+  },
+  {
+    "slide": 30,
+    "lines": [
+      "Answer 7  |  Correct: B",
+      ""
+    ]
+  },
+  {
+    "slide": 31,
+    "lines": [
+      "Question 8: Counting child events",
+      "Several children terminate while SIGCHLD is blocked. Why is “increment",
+      "a counter once whenever the handler runs” unreliable for counting all",
+      "terminated children?",
+      "A. Several standard SIGCHLD events can share one pending notification.",
+      "B. The kernel always delivers one handler call per terminated child.",
+      "C. A handler cannot call any wait-family function."
+    ]
+  },
+  {
+    "slide": 32,
+    "lines": [
+      "Answer 8 (1/3)  |  Correct: A",
+      "Pending does not mean queued once each",
+      "SIGCHLD is a standard signal. Repeated occurrences while that signal is",
+      "pending can be combined into one pending indication.",
+      "Blocking delays delivery; it does not create a queue containing one",
+      "ordinary SIGCHLD notification for every child event."
+    ]
+  },
+  {
+    "slide": 33,
+    "lines": [
+      "Answer 8 (2/3)  |  Correct: A",
+      "Separate notification from child status",
+      "A handler invocation tells the parent to check for child state changes. It",
+      "does not tell us that exactly one child has exited.",
+      "The child statuses still exist for the parent to collect. A wait-family loop",
+      "can collect several statuses during one handler invocation."
+    ]
+  },
+  {
+    "slide": 34,
+    "lines": [
+      "Answer 8 (3/3)  |  Correct: A",
+      "Choose the counting operation",
+      "Count successful reaps, not just entries into the handler. Each positive",
+      "return from waitpid identifies one child whose status was collected.",
+      "A gives the reason the one-increment approach fails. B wrongly",
+      "promises one delivery per child. C is false: wait and waitpid are among",
+      "the functions usable in a signal handler."
+    ]
+  },
+  {
+    "slide": 35,
+    "lines": [
+      "Question 9: Blocking a signal",
+      "A program installs a custom SIGINT handler, then blocks SIGINT. One",
+      "SIGINT arrives while it is blocked. What happens before the program",
+      "unblocks it?",
+      "A. The handler runs immediately.",
+      "B. The signal is permanently discarded.",
+      "C. The signal stays pending, and the handler waits."
+    ]
+  },
+  {
+    "slide": 36,
+    "lines": [
+      "Answer 9 (1/4)  |  Correct: C",
+      "What the handler and mask control",
+      "The installed handler specifies which function will run when the process",
+      "handles SIGINT.",
+      "The signal mask controls whether SIGINT may be delivered now.",
+      "Blocking the signal delays its delivery. It does not remove the installed",
+      "handler."
+    ]
+  },
+  {
+    "slide": 37,
+    "lines": [
+      "Answer 9 (2/4)  |  Correct: C",
+      "While SIGINT is blocked",
+      "SIGINT has arrived, but the process has blocked it. The operating system",
+      "records that SIGINT is pending.",
+      "The custom handler has not run yet. The process can continue executing",
+      "other instructions while SIGINT remains blocked."
+    ]
+  },
+  {
+    "slide": 38,
+    "lines": [
+      "Answer 9 (3/4)  |  Correct: C",
+      "After SIGINT is unblocked",
+      "Unblocking SIGINT allows the pending signal to be delivered. The",
+      "process then runs its installed SIGINT handler.",
+      "The question asks about the time before unblocking. During that time,",
+      "the correct description is pending, so C is correct."
+    ]
+  },
+  {
+    "slide": 39,
+    "lines": [
+      "Answer 9 (4/4)  |  Correct: C",
+      "Why the other choices fail",
+      "A ignores the blocked signal mask. A blocked SIGINT cannot",
+      "immediately invoke the handler.",
+      "B confuses blocking with ignoring. Blocking postpones delivery.",
+      "Ignoring a signal discards it instead."
+    ]
+  },
+  {
+    "slide": 40,
+    "lines": [
+      "Question 10: One handler, several reaps",
+      "All four children have exited and are unreaped. There are no other",
+      "children. After ONE complete call to h, what value does reaped contain?",
+      "volatile sig_atomic_t reaped = 0;",
+      "void h(int sig) {",
+      "  int saved = errno;",
+      "  while (waitpid(-1, NULL, WNOHANG) > 0)",
+      "    reaped++;",
+      "  errno = saved;",
+      "}",
+      "A. 1",
+      "B. 4",
+      "C. 0"
+    ]
+  },
+  {
+    "slide": 41,
+    "lines": [
+      "Answer 10 (1/5)  |  Correct: B",
+      "What the setup guarantees",
+      "All four children have already terminated. Their termination statuses",
+      "have not been collected, so all four are ready to be reaped.",
+      "We are analyzing one complete execution of h, not guessing how many",
+      "SIGCHLD notifications are delivered. The counter starts at 0."
+    ]
+  },
+  {
+    "slide": 42,
+    "lines": [
+      "Answer 10 (2/5)  |  Correct: B",
+      "Read the waitpid arguments",
+      "while (waitpid(-1, NULL, WNOHANG) > 0)",
+      "    reaped++;",
+      "The first argument -1 means any child. NULL means we do not need the",
+      "detailed status value. WNOHANG means do not block if no child status is",
+      "immediately available.",
+      "A positive return value is a child PID. That means one child’s status was",
+      "collected, so the test > 0 succeeds."
+    ]
+  },
+  {
+    "slide": 43,
+    "lines": [
+      "Answer 10 (3/5)  |  Correct: B",
+      "Trace all four successes",
+      "First successful waitpid: collect one child, counter becomes 1. Second",
+      "success: another child, counter becomes 2.",
+      "Third success: counter becomes 3. Fourth success: counter becomes 4.",
+      "The loop retests after every successful reap."
+    ]
+  },
+  {
+    "slide": 44,
+    "lines": [
+      "Answer 10 (4/5)  |  Correct: B",
+      "Why the loop stops",
+      "After the fourth reap, this process has no children left to wait for. waitpid",
+      "returns -1 with ECHILD, so > 0 is false.",
+      "If living children existed but none had an available status, WNOHANG",
+      "could instead produce 0. Either 0 or -1 fails the > 0 test."
+    ]
+  },
+  {
+    "slide": 45,
+    "lines": [
+      "Answer 10 (5/5)  |  Correct: B",
+      "The other handler details",
+      "volatile sig_atomic_t is a type commonly used for a small value shared",
+      "with a signal handler. In this example only this handler changes reaped.",
+      "The same signal is not nested during this handler under the stated",
+      "ordinary setup. Saving and restoring errno avoids leaving the",
+      "interrupted code with an errno value changed by waitpid.",
+      "The handler uses waitpid and a counter instead of printf. Printing",
+      "through stdio inside an asynchronous handler is not generally safe."
+    ]
+  },
+  {
+    "slide": 46,
+    "lines": [
+      "Question 11: The check-then-sleep race",
+      "The SIGINT handler h runs after the loop tests ready but before pause",
+      "starts. No later signal arrives. What can happen?",
+      "volatile sig_atomic_t ready = 0;",
+      "void h(int sig) { ready = 1; }",
+      "",
+      "/* in main */",
+      "while (!ready) pause();",
+      "A. pause can sleep",
+      "indefinitely.",
+      "B. pause detects that",
+      "ready became 1.",
+      "C. volatile makes the",
+      "loop atomic."
+    ]
+  },
+  {
+    "slide": 47,
+    "lines": [
+      "Answer 11 (1/6)  |  Correct: A",
+      "What the code is trying to do",
+      "volatile sig_atomic_t ready = 0;",
+      "void h(int sig) { ready = 1; }",
+      "",
+      "/* in main */",
+      "while (!ready) pause();",
+      "ready starts at 0. The handler sets it to 1 when SIGINT is delivered. The",
+      "loop intends to wait until that has happened."
+    ]
+  },
+  {
+    "slide": 48,
+    "lines": [
+      "Answer 11 (2/6)  |  Correct: A",
+      "What the code is trying to do",
+      "!ready is true when ready is 0. pause suspends the process until a signal",
+      "is caught; it does not inspect ready."
+    ]
+  },
+  {
+    "slide": 49,
+    "lines": [
+      "Answer 11 (3/6)  |  Correct: A",
+      "The exact unlucky timing",
+      "1. main reads ready == 0, so !ready is true and it decides to execute the",
+      "loop body.",
+      "2. Before pause begins, SIGINT is delivered. The handler sets ready = 1",
+      "and returns to the interrupted main code.",
+      "3. main continues with the already-chosen loop body and calls pause. It",
+      "has not tested ready again."
+    ]
+  },
+  {
+    "slide": 50,
+    "lines": [
+      "Answer 11 (4/6)  |  Correct: A",
+      "Why it can remain asleep",
+      "The signal has already been handled. It is not waiting to wake the",
+      "upcoming pause. With no later signal, pause can remain asleep",
+      "indefinitely.",
+      "The program cannot reach the next loop test while stuck inside pause. A",
+      "is correct, even though ready is now 1."
+    ]
+  },
+  {
+    "slide": 51,
+    "lines": [
+      "Answer 11 (5/6)  |  Correct: A",
+      "What volatile does not promise",
+      "volatile sig_atomic_t is appropriate for this simple handler flag, but it",
+      "does not merge separate operations into one indivisible action.",
+      "There is still a gap between reading the flag and entering pause. B",
+      "incorrectly gives pause knowledge of the flag; C incorrectly makes the",
+      "entire check-and-sleep sequence atomic."
+    ]
+  },
+  {
+    "slide": 52,
+    "lines": [
+      "Answer 11 (6/6)  |  Correct: A",
+      "How sigsuspend closes the gap",
+      "Block SIGINT before checking the flag. Then use sigsuspend with a mask",
+      "that unblocks SIGINT while waiting.",
+      "sigsuspend changes the mask and waits atomically. A signal that",
+      "became pending while blocked can then be delivered without falling into",
+      "the check-then-pause gap.",
+      "After the handler returns, sigsuspend returns with the prior mask",
+      "restored. Check the flag again in a loop, and restore the original mask",
+      "when finished."
+    ]
+  },
+  {
+    "slide": 53,
+    "lines": [
+      "Single level and top",
+      "Page Table 1",
+      "(pages are 16 bytes)",
+      "Table Index",
+      "Table Contents",
+      "Present",
+      "7",
+      "0",
+      "1",
+      "6",
+      "1",
+      "0",
+      "5",
+      "2",
+      "0",
+      "4",
+      "3",
+      "1",
+      "3",
+      "0",
+      "0",
+      "2",
+      "1",
+      "1",
+      "1",
+      "2",
+      "1",
+      "0",
+      "3",
+      "0",
+      "Page Table 2 (top)",
+      "(pages are 16 bytes)",
+      "Table Index",
+      "Table Contents",
+      "Present",
+      "7",
+      "0",
+      "0",
+      "6",
+      "1",
+      "1",
+      "5",
+      "2",
+      "0",
+      "4",
+      "3",
+      "1",
+      "3",
+      "0",
+      "1",
+      "2",
+      "1",
+      "0",
+      "1",
+      "2",
+      "1",
+      "0",
+      "3",
+      "0"
+    ]
+  },
+  {
+    "slide": 54,
+    "lines": [
+      "Page Table 2: bottom tables 0 and 1",
+      "Page Table 2 (bottom #0)",
+      "(pages are 16 bytes)",
+      "Table Index",
+      "Table Contents",
+      "Present",
+      "7",
+      "1",
+      "1",
+      "6",
+      "2",
+      "0",
+      "5",
+      "3",
+      "0",
+      "4",
+      "4",
+      "1",
+      "3",
+      "5",
+      "1",
+      "2",
+      "6",
+      "0",
+      "1",
+      "7",
+      "1",
+      "0",
+      "8",
+      "0",
+      "Page Table 2 (bottom #1)",
+      "(pages are 16 bytes)",
+      "Table Index",
+      "Table Contents",
+      "Present",
+      "7",
+      "9",
+      "1",
+      "6",
+      "A",
+      "1",
+      "5",
+      "B",
+      "0",
+      "4",
+      "C",
+      "0",
+      "3",
+      "D",
+      "1",
+      "2",
+      "E",
+      "1",
+      "1",
+      "F",
+      "0",
+      "0",
+      "0",
+      "0"
+    ]
+  },
+  {
+    "slide": 55,
+    "lines": [
+      "Page Table 2: bottom tables 2 and 3",
+      "Page Table 2 (bottom #2)",
+      "(pages are 16 bytes)",
+      "Table Index",
+      "Table Contents",
+      "Present",
+      "7",
+      "0",
+      "1",
+      "6",
+      "1",
+      "0",
+      "5",
+      "2",
+      "1",
+      "4",
+      "3",
+      "1",
+      "3",
+      "4",
+      "0",
+      "2",
+      "5",
+      "0",
+      "1",
+      "A",
+      "0",
+      "0",
+      "B",
+      "1",
+      "Page Table 2 (bottom #3)",
+      "(pages are 16 bytes)",
+      "Table Index",
+      "Table Contents",
+      "Present",
+      "7",
+      "C",
+      "1",
+      "6",
+      "D",
+      "0",
+      "5",
+      "E",
+      "0",
+      "4",
+      "F",
+      "1",
+      "3",
+      "6",
+      "1",
+      "2",
+      "7",
+      "0",
+      "1",
+      "8",
+      "1",
+      "0",
+      "9",
+      "0"
+    ]
+  },
+  {
+    "slide": 56,
+    "lines": [
+      "Question 12: Page Table 1 translation",
+      "Use Page Table 1. Pages are 16",
+      "bytes. What physical address",
+      "corresponds to virtual address",
+      "0x2D?",
+      "A. 0x2D",
+      "B. 0x1D",
+      "C. Not in RAM.",
+      "Page Table 1",
+      "(pages are 16 bytes)",
+      "Table Index",
+      "Table Contents",
+      "Present",
+      "7",
+      "0",
+      "1",
+      "6",
+      "1",
+      "0",
+      "5",
+      "2",
+      "0",
+      "4",
+      "3",
+      "1",
+      "3",
+      "0",
+      "0",
+      "2",
+      "1",
+      "1",
+      "1",
+      "2",
+      "1",
+      "0",
+      "3",
+      "0"
+    ]
+  },
+  {
+    "slide": 57,
+    "lines": [
+      "Answer 12 (1/4)  |  Correct: B",
+      "Start at the right: the offset",
+      "A page contains 16 bytes. Since 16 = 2^4, four bits identify a byte within",
+      "the page.",
+      "The rightmost 4 bits are the page offset. The bits to their left identify the",
+      "virtual page. We separate those fields before looking in the table."
+    ]
+  },
+  {
+    "slide": 58,
+    "lines": [
+      "Answer 12 (2/4)  |  Correct: B",
+      "Split the virtual address",
+      "The prefix 0x means hexadecimal. Convert each hex digit to four bits:",
+      "0x2D = 0010 1101.",
+      "Starting on the right, take 4 bits for the offset: 1101 = 0xD. Then take 3",
+      "bits for the page-table index: 010 = 2.",
+      "The address fields are 010 | 1101. Look up index 2 and keep offset 0xD",
+      "unchanged."
+    ]
+  },
+  {
+    "slide": 59,
+    "lines": [
+      "Answer 12 (3/4)  |  Correct: B",
+      "Look up virtual page 2",
+      "Go to Table Index 2, not row D. The",
+      "page number selects the row; the",
+      "offset selects a byte inside the",
+      "eventual frame.",
+      "At index 2, Present = 1, so this",
+      "virtual page is resident. Table",
+      "Contents = 1 gives its physical",
+      "frame number.",
+      "Page Table 1",
+      "(pages are 16 bytes)",
+      "Table Index",
+      "Table Contents",
+      "Present",
+      "7",
+      "0",
+      "1",
+      "6",
+      "1",
+      "0",
+      "5",
+      "2",
+      "0",
+      "4",
+      "3",
+      "1",
+      "3",
+      "0",
+      "0",
+      "2",
+      "1",
+      "1",
+      "1",
+      "2",
+      "1",
+      "0",
+      "3",
+      "0"
+    ]
+  },
+  {
+    "slide": 60,
+    "lines": [
+      "Answer 12 (4/4)  |  Correct: B",
+      "Build the physical address",
+      "Physical address = frame number × page size + offset. The frame is 0x1,",
+      "the page size is 0x10 bytes, and the offset is 0xD.",
+      "0x1 × 0x10 + 0xD = 0x10 + 0xD = 0x1D.",
+      "B is correct. A leaves the virtual page number unchanged. C ignores the",
+      "Present = 1 entry."
+    ]
+  },
+  {
+    "slide": 61,
+    "lines": [
+      "Question 13: Page Table 1: another address",
+      "Use Page Table 1. Pages are 16",
+      "bytes. What physical address",
+      "corresponds to virtual address",
+      "0x5A?",
+      "A. 0x2A",
+      "B. 0x5A",
+      "C. Not in RAM.",
+      "Page Table 1",
+      "(pages are 16 bytes)",
+      "Table Index",
+      "Table Contents",
+      "Present",
+      "7",
+      "0",
+      "1",
+      "6",
+      "1",
+      "0",
+      "5",
+      "2",
+      "0",
+      "4",
+      "3",
+      "1",
+      "3",
+      "0",
+      "0",
+      "2",
+      "1",
+      "1",
+      "1",
+      "2",
+      "1",
+      "0",
+      "3",
+      "0"
+    ]
+  },
+  {
+    "slide": 62,
+    "lines": [
+      "Answer 13 (1/3)  |  Correct: C",
+      "Split before using the table",
+      "Sixteen bytes per page means 4 offset bits. Convert 0x5A to binary: 0101",
+      "1010. The rightmost 4 bits, 1010, give offset 0xA.",
+      "The next 3 bits, 101, give table index 5. The address fields are 101 |",
+      "1010. Look up index 5 and keep offset 0xA unchanged."
+    ]
+  },
+  {
+    "slide": 63,
+    "lines": [
+      "Answer 13 (2/3)  |  Correct: C",
+      "Check Present first",
+      "Find Table Index 5. Its Table",
+      "Contents value is 2, but its Present",
+      "bit is 0.",
+      "Present = 0 says this page is not",
+      "currently resident in RAM. The",
+      "contents field cannot be used as a",
+      "valid current frame mapping.",
+      "Page Table 1",
+      "(pages are 16 bytes)",
+      "Table Index",
+      "Table Contents",
+      "Present",
+      "7",
+      "0",
+      "1",
+      "6",
+      "1",
+      "0",
+      "5",
+      "2",
+      "0",
+      "4",
+      "3",
+      "1",
+      "3",
+      "0",
+      "0",
+      "2",
+      "1",
+      "1",
+      "1",
+      "2",
+      "1",
+      "0",
+      "3",
+      "0"
+    ]
+  },
+  {
+    "slide": 64,
+    "lines": [
+      "Answer 13 (3/3)  |  Correct: C",
+      "Stop the translation",
+      "C is correct: Not in RAM. Present = 0 means this page is not currently",
+      "resident. Accessing it causes a page fault that must be handled before",
+      "the data can be read.",
+      "A incorrectly turns the inactive contents value 2 into frame 2. B",
+      "incorrectly treats the virtual address as a physical address.",
+      "The table does not say which frame a future fault handler will choose, so",
+      "we cannot predict a later physical address."
+    ]
+  },
+  {
+    "slide": 65,
+    "lines": [
+      "Question 14 (1/3): Two-level translation",
+      "Use Page Table 2. Pages are 16 bytes. What physical address corresponds to virtual address 0x1B9?",
+      "Page Table 2 (top)",
+      "(pages are 16 bytes)",
+      "Table Index",
+      "Table Contents",
+      "Present",
+      "7",
+      "0",
+      "0",
+      "6",
+      "1",
+      "1",
+      "5",
+      "2",
+      "0",
+      "4",
+      "3",
+      "1",
+      "3",
+      "0",
+      "1",
+      "2",
+      "1",
+      "0",
+      "1",
+      "2",
+      "1",
+      "0",
+      "3",
+      "0",
+      "A. 0x59",
+      "B. 0x39",
+      "C. Not in RAM.",
+      "Bottom tables 0–3 follow on the next two slides."
+    ]
+  },
+  {
+    "slide": 66,
+    "lines": [
+      "Question 14 (2/3): Bottom tables 0 and 1",
+      "Use Page Table 2. Pages are 16 bytes. What physical address corresponds to virtual address 0x1B9?",
+      "Page Table 2 (bottom #0)",
+      "(pages are 16 bytes)",
+      "Table Index",
+      "Table Contents",
+      "Present",
+      "7",
+      "1",
+      "1",
+      "6",
+      "2",
+      "0",
+      "5",
+      "3",
+      "0",
+      "4",
+      "4",
+      "1",
+      "3",
+      "5",
+      "1",
+      "2",
+      "6",
+      "0",
+      "1",
+      "7",
+      "1",
+      "0",
+      "8",
+      "0",
+      "Page Table 2 (bottom #1)",
+      "(pages are 16 bytes)",
+      "Table Index",
+      "Table Contents",
+      "Present",
+      "7",
+      "9",
+      "1",
+      "6",
+      "A",
+      "1",
+      "5",
+      "B",
+      "0",
+      "4",
+      "C",
+      "0",
+      "3",
+      "D",
+      "1",
+      "2",
+      "E",
+      "1",
+      "1",
+      "F",
+      "0",
+      "0",
+      "0",
+      "0",
+      "A. 0x59",
+      "B. 0x39",
+      "C. Not in RAM."
+    ]
+  },
+  {
+    "slide": 67,
+    "lines": [
+      "Question 14 (3/3): Bottom tables 2 and 3",
+      "Use Page Table 2. Pages are 16 bytes. What physical address corresponds to virtual address 0x1B9?",
+      "Page Table 2 (bottom #2)",
+      "(pages are 16 bytes)",
+      "Table Index",
+      "Table Contents",
+      "Present",
+      "7",
+      "0",
+      "1",
+      "6",
+      "1",
+      "0",
+      "5",
+      "2",
+      "1",
+      "4",
+      "3",
+      "1",
+      "3",
+      "4",
+      "0",
+      "2",
+      "5",
+      "0",
+      "1",
+      "A",
+      "0",
+      "0",
+      "B",
+      "1",
+      "Page Table 2 (bottom #3)",
+      "(pages are 16 bytes)",
+      "Table Index",
+      "Table Contents",
+      "Present",
+      "7",
+      "C",
+      "1",
+      "6",
+      "D",
+      "0",
+      "5",
+      "E",
+      "0",
+      "4",
+      "F",
+      "1",
+      "3",
+      "6",
+      "1",
+      "2",
+      "7",
+      "0",
+      "1",
+      "8",
+      "1",
+      "0",
+      "9",
+      "0",
+      "A. 0x59",
+      "B. 0x39",
+      "C. Not in RAM."
+    ]
+  },
+  {
+    "slide": 68,
+    "lines": [
+      "Answer 14 (1/5)  |  Correct: A",
+      "Know the three field widths",
+      "Each page has 16 bytes, so the rightmost 4 bits are the offset. Each table",
+      "has 8 entries, so each table index uses 3 bits.",
+      "A two-level virtual address therefore has: top index (3 bits), bottom index",
+      "(3 bits), offset (4 bits). Start splitting from the right."
+    ]
+  },
+  {
+    "slide": 69,
+    "lines": [
+      "Answer 14 (2/5)  |  Correct: A",
+      "Convert and split from the right",
+      "0x1B9 is binary 0001 1011 1001. Leading zeros do not change the value.",
+      "Rightmost 4 bits: 1001 = 9, the offset. Next 3 bits: 011 = 3, the bottom",
+      "index. Next 3 bits: 011 = 3, the top index.",
+      "The useful 10-bit split is 011 | 011 | 1001. The top and bottom indexes",
+      "are both 3."
+    ]
+  },
+  {
+    "slide": 70,
+    "lines": [
+      "Answer 14 (3/5)  |  Correct: A",
+      "First lookup: the top table",
+      "Use the top index 3. Top row 3 has",
+      "Present = 1 and Table Contents = 0.",
+      "At this level, contents 0 selects",
+      "bottom table #0. It is not the final",
+      "data frame number.",
+      "Page Table 2 (top)",
+      "(pages are 16 bytes)",
+      "Table Index",
+      "Table Contents",
+      "Present",
+      "7",
+      "0",
+      "0",
+      "6",
+      "1",
+      "1",
+      "5",
+      "2",
+      "0",
+      "4",
+      "3",
+      "1",
+      "3",
+      "0",
+      "1",
+      "2",
+      "1",
+      "0",
+      "1",
+      "2",
+      "1",
+      "0",
+      "3",
+      "0"
+    ]
+  },
+  {
+    "slide": 71,
+    "lines": [
+      "Answer 14 (4/5)  |  Correct: A",
+      "Second lookup: bottom table #0",
+      "Use the bottom index 3 inside",
+      "bottom table #0. That row has",
+      "Present = 1 and Table Contents = 5.",
+      "This is a leaf entry, so contents 5 is",
+      "the physical data frame number.",
+      "Both Present checks have",
+      "succeeded.",
+      "Page Table 2 (bottom #0)",
+      "(pages are 16 bytes)",
+      "Table Index",
+      "Table Contents",
+      "Present",
+      "7",
+      "1",
+      "1",
+      "6",
+      "2",
+      "0",
+      "5",
+      "3",
+      "0",
+      "4",
+      "4",
+      "1",
+      "3",
+      "5",
+      "1",
+      "2",
+      "6",
+      "0",
+      "1",
+      "7",
+      "1",
+      "0",
+      "8",
+      "0"
+    ]
+  },
+  {
+    "slide": 72,
+    "lines": [
+      "Answer 14 (5/5)  |  Correct: A",
+      "Add the byte offset",
+      "Physical address = frame number × page size + offset. The frame is 0x5,",
+      "the page size is 0x10 bytes, and the offset is 0x9.",
+      "0x5 × 0x10 + 0x9 = 0x50 + 0x9 = 0x59. A is correct. The two indexes select",
+      "the mapping. The offset selects the byte inside the physical frame.",
+      "B incorrectly uses index 3 as the frame. C is incorrect because both",
+      "entries on this path are present."
+    ]
+  },
+  {
+    "slide": 73,
+    "lines": [
+      "Question 15 (1/3): Another two-level translation",
+      "Use Page Table 2. Pages are 16 bytes. What physical address corresponds to virtual address 0x358?",
+      "Page Table 2 (top)",
+      "(pages are 16 bytes)",
+      "Table Index",
+      "Table Contents",
+      "Present",
+      "7",
+      "0",
+      "0",
+      "6",
+      "1",
+      "1",
+      "5",
+      "2",
+      "0",
+      "4",
+      "3",
+      "1",
+      "3",
+      "0",
+      "1",
+      "2",
+      "1",
+      "0",
+      "1",
+      "2",
+      "1",
+      "0",
+      "3",
+      "0",
+      "A. 0xB8",
+      "B. 0x58",
+      "C. Not in RAM.",
+      "Bottom tables 0–3 follow on the next two slides."
+    ]
+  },
+  {
+    "slide": 74,
+    "lines": [
+      "Question 15 (2/3): Bottom tables 0 and 1",
+      "Use Page Table 2. Pages are 16 bytes. What physical address corresponds to virtual address 0x358?",
+      "Page Table 2 (bottom #0)",
+      "(pages are 16 bytes)",
+      "Table Index",
+      "Table Contents",
+      "Present",
+      "7",
+      "1",
+      "1",
+      "6",
+      "2",
+      "0",
+      "5",
+      "3",
+      "0",
+      "4",
+      "4",
+      "1",
+      "3",
+      "5",
+      "1",
+      "2",
+      "6",
+      "0",
+      "1",
+      "7",
+      "1",
+      "0",
+      "8",
+      "0",
+      "Page Table 2 (bottom #1)",
+      "(pages are 16 bytes)",
+      "Table Index",
+      "Table Contents",
+      "Present",
+      "7",
+      "9",
+      "1",
+      "6",
+      "A",
+      "1",
+      "5",
+      "B",
+      "0",
+      "4",
+      "C",
+      "0",
+      "3",
+      "D",
+      "1",
+      "2",
+      "E",
+      "1",
+      "1",
+      "F",
+      "0",
+      "0",
+      "0",
+      "0",
+      "A. 0xB8",
+      "B. 0x58",
+      "C. Not in RAM."
+    ]
+  },
+  {
+    "slide": 75,
+    "lines": [
+      "Question 15 (3/3): Bottom tables 2 and 3",
+      "Use Page Table 2. Pages are 16 bytes. What physical address corresponds to virtual address 0x358?",
+      "Page Table 2 (bottom #2)",
+      "(pages are 16 bytes)",
+      "Table Index",
+      "Table Contents",
+      "Present",
+      "7",
+      "0",
+      "1",
+      "6",
+      "1",
+      "0",
+      "5",
+      "2",
+      "1",
+      "4",
+      "3",
+      "1",
+      "3",
+      "4",
+      "0",
+      "2",
+      "5",
+      "0",
+      "1",
+      "A",
+      "0",
+      "0",
+      "B",
+      "1",
+      "Page Table 2 (bottom #3)",
+      "(pages are 16 bytes)",
+      "Table Index",
+      "Table Contents",
+      "Present",
+      "7",
+      "C",
+      "1",
+      "6",
+      "D",
+      "0",
+      "5",
+      "E",
+      "0",
+      "4",
+      "F",
+      "1",
+      "3",
+      "6",
+      "1",
+      "2",
+      "7",
+      "0",
+      "1",
+      "8",
+      "1",
+      "0",
+      "9",
+      "0",
+      "A. 0xB8",
+      "B. 0x58",
+      "C. Not in RAM."
+    ]
+  },
+  {
+    "slide": 76,
+    "lines": [
+      "Answer 15 (1/4)  |  Correct: C",
+      "Split from the right",
+      "Sixteen-byte pages give a 4-bit offset. Eight-entry tables give two 3-bit",
+      "indexes.",
+      "0x358 = binary 0011 0101 1000. From the right: 1000 is offset 8; 101 is",
+      "bottom index 5; 110 is top index 6.",
+      "The split is 110 | 101 | 1000, meaning top 6, bottom 5, offset 8."
+    ]
+  },
+  {
+    "slide": 77,
+    "lines": [
+      "Answer 15 (2/4)  |  Correct: C",
+      "The top entry is present",
+      "Top row 6 has Present = 1 and",
+      "contents 1. Follow it to bottom",
+      "table #1.",
+      "A present top entry only means",
+      "this lower-level table is available. It",
+      "does not promise every page",
+      "described by that table is resident.",
+      "Page Table 2 (top)",
+      "(pages are 16 bytes)",
+      "Table Index",
+      "Table Contents",
+      "Present",
+      "7",
+      "0",
+      "0",
+      "6",
+      "1",
+      "1",
+      "5",
+      "2",
+      "0",
+      "4",
+      "3",
+      "1",
+      "3",
+      "0",
+      "1",
+      "2",
+      "1",
+      "0",
+      "1",
+      "2",
+      "1",
+      "0",
+      "3",
+      "0"
+    ]
+  },
+  {
+    "slide": 78,
+    "lines": [
+      "Answer 15 (3/4)  |  Correct: C",
+      "The leaf entry is absent",
+      "In bottom table #1, row 5 has",
+      "Present = 0. Its contents field is B,",
+      "but that is not a usable current",
+      "frame mapping.",
+      "Stop here. There is no resident",
+      "physical data address for this",
+      "virtual page in Page Table 2.",
+      "Page Table 2 (bottom #1)",
+      "(pages are 16 bytes)",
+      "Table Index",
+      "Table Contents",
+      "Present",
+      "7",
+      "9",
+      "1",
+      "6",
+      "A",
+      "1",
+      "5",
+      "B",
+      "0",
+      "4",
+      "C",
+      "0",
+      "3",
+      "D",
+      "1",
+      "2",
+      "E",
+      "1",
+      "1",
+      "F",
+      "0",
+      "0",
+      "0",
+      "0"
+    ]
+  },
+  {
+    "slide": 79,
+    "lines": [
+      "Answer 15 (4/4)  |  Correct: C",
+      "Why C is the only answer",
+      "C is correct: Not in RAM. Both levels must have present entries along the",
+      "selected path.",
+      "A uses B as a frame while ignoring Present = 0. B uses the bottom index",
+      "5 as if it were a physical frame. Neither gives a valid translation."
+    ]
+  },
+  {
+    "slide": 80,
+    "lines": [
+      "Question 16 (1/3): Physical to virtual",
+      "Use Page Table 2. Pages are 16 bytes. Which virtual address corresponds to physical address 0xE4?",
+      "Page Table 2 (top)",
+      "(pages are 16 bytes)",
+      "Table Index",
+      "Table Contents",
+      "Present",
+      "7",
+      "0",
+      "0",
+      "6",
+      "1",
+      "1",
+      "5",
+      "2",
+      "0",
+      "4",
+      "3",
+      "1",
+      "3",
+      "0",
+      "1",
+      "2",
+      "1",
+      "0",
+      "1",
+      "2",
+      "1",
+      "0",
+      "3",
+      "0",
+      "A. 0x264",
+      "B. 0x324",
+      "C. 0x0E4",
+      "Bottom tables 0–3 follow on the next two slides."
+    ]
+  },
+  {
+    "slide": 81,
+    "lines": [
+      "Question 16 (2/3): Bottom tables 0 and 1",
+      "Use Page Table 2. Pages are 16 bytes. Which virtual address corresponds to physical address 0xE4?",
+      "Page Table 2 (bottom #0)",
+      "(pages are 16 bytes)",
+      "Table Index",
+      "Table Contents",
+      "Present",
+      "7",
+      "1",
+      "1",
+      "6",
+      "2",
+      "0",
+      "5",
+      "3",
+      "0",
+      "4",
+      "4",
+      "1",
+      "3",
+      "5",
+      "1",
+      "2",
+      "6",
+      "0",
+      "1",
+      "7",
+      "1",
+      "0",
+      "8",
+      "0",
+      "Page Table 2 (bottom #1)",
+      "(pages are 16 bytes)",
+      "Table Index",
+      "Table Contents",
+      "Present",
+      "7",
+      "9",
+      "1",
+      "6",
+      "A",
+      "1",
+      "5",
+      "B",
+      "0",
+      "4",
+      "C",
+      "0",
+      "3",
+      "D",
+      "1",
+      "2",
+      "E",
+      "1",
+      "1",
+      "F",
+      "0",
+      "0",
+      "0",
+      "0",
+      "A. 0x264",
+      "B. 0x324",
+      "C. 0x0E4"
+    ]
+  },
+  {
+    "slide": 82,
+    "lines": [
+      "Question 16 (3/3): Bottom tables 2 and 3",
+      "Use Page Table 2. Pages are 16 bytes. Which virtual address corresponds to physical address 0xE4?",
+      "Page Table 2 (bottom #2)",
+      "(pages are 16 bytes)",
+      "Table Index",
+      "Table Contents",
+      "Present",
+      "7",
+      "0",
+      "1",
+      "6",
+      "1",
+      "0",
+      "5",
+      "2",
+      "1",
+      "4",
+      "3",
+      "1",
+      "3",
+      "4",
+      "0",
+      "2",
+      "5",
+      "0",
+      "1",
+      "A",
+      "0",
+      "0",
+      "B",
+      "1",
+      "Page Table 2 (bottom #3)",
+      "(pages are 16 bytes)",
+      "Table Index",
+      "Table Contents",
+      "Present",
+      "7",
+      "C",
+      "1",
+      "6",
+      "D",
+      "0",
+      "5",
+      "E",
+      "0",
+      "4",
+      "F",
+      "1",
+      "3",
+      "6",
+      "1",
+      "2",
+      "7",
+      "0",
+      "1",
+      "8",
+      "1",
+      "0",
+      "9",
+      "0",
+      "A. 0x264",
+      "B. 0x324",
+      "C. 0x0E4"
+    ]
+  },
+  {
+    "slide": 83,
+    "lines": [
+      "Answer 16 (1/5)  |  Correct: B",
+      "Split the physical address first",
+      "A physical address contains a frame number and a byte offset. Since a",
+      "page has 16 = 2^4 bytes, the rightmost 4 bits are the offset.",
+      "0xE4 = 1110 0100. From the right, 0100 gives offset 0x4. The remaining",
+      "bits, 1110, give frame 0xE. Search for a present bottom entry containing",
+      "E."
+    ]
+  },
+  {
+    "slide": 84,
+    "lines": [
+      "Answer 16 (2/5)  |  Correct: B",
+      "Search the bottom tables",
+      "Scan the Table Contents column of",
+      "the bottom tables and check",
+      "Present. Bottom table #1, index 2,",
+      "contains E with Present = 1.",
+      "This gives bottom index 2. We still",
+      "need the top index that selects",
+      "bottom table #1.",
+      "Page Table 2 (bottom #1)",
+      "(pages are 16 bytes)",
+      "Table Index",
+      "Table Contents",
+      "Present",
+      "7",
+      "9",
+      "1",
+      "6",
+      "A",
+      "1",
+      "5",
+      "B",
+      "0",
+      "4",
+      "C",
+      "0",
+      "3",
+      "D",
+      "1",
+      "2",
+      "E",
+      "1",
+      "1",
+      "F",
+      "0",
+      "0",
+      "0",
+      "0"
+    ]
+  },
+  {
+    "slide": 85,
+    "lines": [
+      "Answer 16 (3/5)  |  Correct: B",
+      "Find the top-table link",
+      "Look for a present top-table row",
+      "with contents 1, because we need",
+      "bottom table #1. Top row 6 has",
+      "contents 1 and Present = 1.",
+      "Top row 2 also contains 1, but",
+      "Present = 0, so it cannot provide a",
+      "valid route. Use top index 6.",
+      "Page Table 2 (top)",
+      "(pages are 16 bytes)",
+      "Table Index",
+      "Table Contents",
+      "Present",
+      "7",
+      "0",
+      "0",
+      "6",
+      "1",
+      "1",
+      "5",
+      "2",
+      "0",
+      "4",
+      "3",
+      "1",
+      "3",
+      "0",
+      "1",
+      "2",
+      "1",
+      "0",
+      "1",
+      "2",
+      "1",
+      "0",
+      "3",
+      "0"
+    ]
+  },
+  {
+    "slide": 86,
+    "lines": [
+      "Answer 16 (4/5)  |  Correct: B",
+      "Rebuild the virtual address",
+      "Write each field using its required width: top 6 = 110, bottom 2 = 010,",
+      "offset 4 = 0100.",
+      "Join them in that order: 110 | 010 | 0100. Regroup into hex from the",
+      "right: 0011 0010 0100 = 0x324."
+    ]
+  },
+  {
+    "slide": 87,
+    "lines": [
+      "Answer 16 (5/5)  |  Correct: B",
+      "Check the choices forward",
+      "B follows top 6 to bottom #1, then row 2 to frame E, with offset 4. It",
+      "returns 0xE4.",
+      "A, 0x264, selects top 4 and bottom 6. That route is not the present",
+      "frame-E mapping. C, 0x0E4, selects top 1 and bottom 6, whose leaf is",
+      "absent.",
+      "The physical address itself does not encode the two virtual indexes. We",
+      "recover them by finding the valid table path."
+    ]
+  },
+  {
+    "slide": 88,
+    "lines": [
+      "Question 17: A different page size",
+      "Use Page Table 1B below. Pages",
+      "are now 32 bytes. What physical",
+      "address corresponds to virtual",
+      "address 0x96?",
+      "A. 0x36",
+      "B. 0x76",
+      "C. 0x96",
+      "Page Table 1B",
+      "(pages are 32 bytes)",
+      "Table Index",
+      "Table Contents",
+      "Present",
+      "7",
+      "0",
+      "1",
+      "6",
+      "1",
+      "0",
+      "5",
+      "2",
+      "0",
+      "4",
+      "3",
+      "1",
+      "3",
+      "0",
+      "0",
+      "2",
+      "1",
+      "1",
+      "1",
+      "2",
+      "1",
+      "0",
+      "3",
+      "0"
+    ]
+  },
+  {
+    "slide": 89,
+    "lines": [
+      "Answer 17 (1/4)  |  Correct: B",
+      "Thirty-two bytes needs five bits",
+      "The page size changed: 32 = 2^5. The offset therefore uses the",
+      "rightmost 5 bits, not 4.",
+      "One hexadecimal digit represents only 4 bits. Taking just the last hex",
+      "digit as the offset would be wrong for this page size."
+    ]
+  },
+  {
+    "slide": 90,
+    "lines": [
+      "Answer 17 (2/4)  |  Correct: B",
+      "Split 0x96 from the right",
+      "0x96 = 1001 0110 in binary. Starting on the right, take 5 bits for the",
+      "offset: 10110 = 0x16.",
+      "The remaining three bits are 100 = 4. That is the virtual page index. The",
+      "split is 100 | 10110."
+    ]
+  },
+  {
+    "slide": 91,
+    "lines": [
+      "Answer 17 (3/4)  |  Correct: B",
+      "Look up page 4",
+      "Page Table 1B uses 32-byte pages.",
+      "Index 4 has Present = 1 and Table",
+      "Contents = 3.",
+      "The physical frame is 3. The byte",
+      "offset stays 0x16. Translation",
+      "preserves the byte’s position inside",
+      "its page.",
+      "Page Table 1B",
+      "(pages are 32 bytes)",
+      "Table Index",
+      "Table Contents",
+      "Present",
+      "7",
+      "0",
+      "1",
+      "6",
+      "1",
+      "0",
+      "5",
+      "2",
+      "0",
+      "4",
+      "3",
+      "1",
+      "3",
+      "0",
+      "0",
+      "2",
+      "1",
+      "1",
+      "1",
+      "2",
+      "1",
+      "0",
+      "3",
+      "0"
+    ]
+  },
+  {
+    "slide": 92,
+    "lines": [
+      "Answer 17 (4/4)  |  Correct: B",
+      "Multiply before adding",
+      "Physical address = frame number × page size + offset. The frame is 0x3,",
+      "the page size is 0x20 bytes, and the offset is 0x16.",
+      "0x3 × 0x20 + 0x16 = 0x60 + 0x16 = 0x76. B is correct.",
+      "A incorrectly treats the fields as whole hex digits. C keeps the virtual",
+      "page number instead of replacing it with physical frame 3."
+    ]
+  },
+  {
+    "slide": 93,
+    "lines": [
+      "Question 18 (1/3): Physical to virtual",
+      "Use Page Table 2B. Pages are 32 bytes. Which virtual address corresponds to physical address 0x1AC?",
+      "Page Table 2B (top)",
+      "(pages are 32 bytes)",
+      "Table Index",
+      "Table Contents",
+      "Present",
+      "7",
+      "0",
+      "0",
+      "6",
+      "1",
+      "1",
+      "5",
+      "2",
+      "0",
+      "4",
+      "3",
+      "1",
+      "3",
+      "0",
+      "1",
+      "2",
+      "1",
+      "0",
+      "1",
+      "2",
+      "1",
+      "0",
+      "3",
+      "0",
+      "A. 0x66C",
+      "B. 0x36C",
+      "C. 0x1AC",
+      "Bottom tables 0–3 follow on the next two slides."
+    ]
+  },
+  {
+    "slide": 94,
+    "lines": [
+      "Question 18 (2/3): Bottom tables 0 and 1",
+      "Use Page Table 2B. Pages are 32 bytes. Which virtual address corresponds to physical address 0x1AC?",
+      "Page Table 2B (bottom #0)",
+      "(pages are 32 bytes)",
+      "Table Index",
+      "Table Contents",
+      "Present",
+      "7",
+      "1",
+      "1",
+      "6",
+      "2",
+      "0",
+      "5",
+      "3",
+      "0",
+      "4",
+      "4",
+      "1",
+      "3",
+      "5",
+      "1",
+      "2",
+      "6",
+      "0",
+      "1",
+      "7",
+      "1",
+      "0",
+      "8",
+      "0",
+      "Page Table 2B (bottom #1)",
+      "(pages are 32 bytes)",
+      "Table Index",
+      "Table Contents",
+      "Present",
+      "7",
+      "9",
+      "1",
+      "6",
+      "A",
+      "1",
+      "5",
+      "B",
+      "0",
+      "4",
+      "C",
+      "0",
+      "3",
+      "D",
+      "1",
+      "2",
+      "E",
+      "1",
+      "1",
+      "F",
+      "0",
+      "0",
+      "0",
+      "0",
+      "A. 0x66C",
+      "B. 0x36C",
+      "C. 0x1AC"
+    ]
+  },
+  {
+    "slide": 95,
+    "lines": [
+      "Question 18 (3/3): Bottom tables 2 and 3",
+      "Use Page Table 2B. Pages are 32 bytes. Which virtual address corresponds to physical address 0x1AC?",
+      "Page Table 2B (bottom #2)",
+      "(pages are 32 bytes)",
+      "Table Index",
+      "Table Contents",
+      "Present",
+      "7",
+      "0",
+      "1",
+      "6",
+      "1",
+      "0",
+      "5",
+      "2",
+      "1",
+      "4",
+      "3",
+      "1",
+      "3",
+      "4",
+      "0",
+      "2",
+      "5",
+      "0",
+      "1",
+      "A",
+      "0",
+      "0",
+      "B",
+      "1",
+      "Page Table 2B (bottom #3)",
+      "(pages are 32 bytes)",
+      "Table Index",
+      "Table Contents",
+      "Present",
+      "7",
+      "C",
+      "1",
+      "6",
+      "D",
+      "0",
+      "5",
+      "E",
+      "0",
+      "4",
+      "F",
+      "1",
+      "3",
+      "6",
+      "1",
+      "2",
+      "7",
+      "0",
+      "1",
+      "8",
+      "1",
+      "0",
+      "9",
+      "0",
+      "A. 0x66C",
+      "B. 0x36C",
+      "C. 0x1AC"
+    ]
+  },
+  {
+    "slide": 96,
+    "lines": [
+      "Answer 18 (1/8)  |  Correct: A",
+      "Split the physical address from the right",
+      "Pages are 32 bytes, and 32 = 2^5. The rightmost 5 bits of a physical",
+      "address are the byte offset. All remaining bits give the frame number.",
+      "0x1AC = 0001 1010 1100 in binary. Take the rightmost 5 bits: 01100 =",
+      "0xC. This is the byte offset, and it stays unchanged.",
+      "The remaining bits are 0001101 = 0xD. Search the bottom tables for",
+      "frame D. The physical address does not directly give the top and bottom",
+      "virtual-page indexes."
+    ]
+  },
+  {
+    "slide": 97,
+    "lines": [
+      "Answer 18 (2/8)  |  Correct: A",
+      "Find a present bottom entry for frame D",
+      "Search the Table Contents column",
+      "of all four bottom tables for D. Only",
+      "an entry with Present = 1 can",
+      "supply the current mapping.",
+      "Bottom table #1, row 3, contains D",
+      "and has Present = 1. Therefore the",
+      "bottom index is 3, and the needed",
+      "bottom table is #1.",
+      "Page Table 2B (bottom #1)",
+      "(pages are 32 bytes)",
+      "Table Index",
+      "Table Contents",
+      "Present",
+      "7",
+      "9",
+      "1",
+      "6",
+      "A",
+      "1",
+      "5",
+      "B",
+      "0",
+      "4",
+      "C",
+      "0",
+      "3",
+      "D",
+      "1",
+      "2",
+      "E",
+      "1",
+      "1",
+      "F",
+      "0",
+      "0",
+      "0",
+      "0"
+    ]
+  },
+  {
+    "slide": 98,
+    "lines": [
+      "Answer 18 (3/8)  |  Correct: A",
+      "Find a present bottom entry for frame D",
+      "Bottom table #3, row 6, also",
+      "contains D, but Present = 0. That",
+      "entry cannot be used.",
+      "Page Table 2B (bottom #3)",
+      "(pages are 32 bytes)",
+      "Table Index",
+      "Table Contents",
+      "Present",
+      "7",
+      "C",
+      "1",
+      "6",
+      "D",
+      "0",
+      "5",
+      "E",
+      "0",
+      "4",
+      "F",
+      "1",
+      "3",
+      "6",
+      "1",
+      "2",
+      "7",
+      "0",
+      "1",
+      "8",
+      "1",
+      "0",
+      "9",
+      "0"
+    ]
+  },
+  {
+    "slide": 99,
+    "lines": [
+      "Answer 18 (4/8)  |  Correct: A",
+      "Find the top entry that selects bottom #1",
+      "The top entry’s contents choose a",
+      "bottom table. To reach bottom",
+      "table #1, find a present top row",
+      "whose contents are 1.",
+      "Top row 6 has contents 1 and",
+      "Present = 1. The top index is 6.",
+      "Page Table 2B (top)",
+      "(pages are 32 bytes)",
+      "Table Index",
+      "Table Contents",
+      "Present",
+      "7",
+      "0",
+      "0",
+      "6",
+      "1",
+      "1",
+      "5",
+      "2",
+      "0",
+      "4",
+      "3",
+      "1",
+      "3",
+      "0",
+      "1",
+      "2",
+      "1",
+      "0",
+      "1",
+      "2",
+      "1",
+      "0",
+      "3",
+      "0"
+    ]
+  },
+  {
+    "slide": 100,
+    "lines": [
+      "Answer 18 (5/8)  |  Correct: A",
+      "Find the top entry that selects bottom #1",
+      "Top row 2 also has contents 1, but",
+      "Present = 0. It does not give",
+      "another valid route.",
+      "Page Table 2B (top)",
+      "(pages are 32 bytes)",
+      "Table Index",
+      "Table Contents",
+      "Present",
+      "7",
+      "0",
+      "0",
+      "6",
+      "1",
+      "1",
+      "5",
+      "2",
+      "0",
+      "4",
+      "3",
+      "1",
+      "3",
+      "0",
+      "1",
+      "2",
+      "1",
+      "0",
+      "1",
+      "2",
+      "1",
+      "0",
+      "3",
+      "0"
+    ]
+  },
+  {
+    "slide": 101,
+    "lines": [
+      "Answer 18 (6/8)  |  Correct: A",
+      "Assemble the virtual address",
+      "Each table has 8 rows, so each index needs 3 bits. The 32-byte page",
+      "needs 5 offset bits. Virtual address fields: top, bottom, then offset.",
+      "Top index 6 = 110. Bottom index 3 = 011. Offset 0xC = 01100. Join the",
+      "fields in that order: 110 | 011 | 01100.",
+      "For hexadecimal, group the bits in fours from the right. Add a zero on",
+      "the left to complete the first group: 0110 0110 1100 = 0x66C."
+    ]
+  },
+  {
+    "slide": 102,
+    "lines": [
+      "Answer 18 (7/8)  |  Correct: A",
+      "Assemble the virtual address",
+      "A is correct. The indexes identify the virtual page, and the offset",
+      "identifies the same byte within the page."
+    ]
+  },
+  {
+    "slide": 103,
+    "lines": [
+      "Answer 18 (8/8)  |  Correct: A",
+      "Check the physical address",
+      "Top index 6 selects bottom table #1. Its row 3 maps to physical frame",
+      "0xD. Both entries are present. The byte offset is 0xC.",
+      "Physical address = frame number × page size + offset. 0xD × 0x20 + 0xC",
+      "= 0x1A0 + 0xC = 0x1AC.",
+      "B, 0x36C, uses top index 3 and reaches frame 5, giving 0xAC. C, 0x1AC,",
+      "uses top index 1 and reaches frame 2, giving 0x4C. Neither maps to the",
+      "requested physical address."
+    ]
+  },
+  {
+    "slide": 104,
+    "lines": [
+      "Question 19 (1/3): Reverse the 32-byte mapping",
+      "Use Page Table 2B. Pages are 32 bytes. Which virtual address corresponds to physical address 0x91?",
+      "Page Table 2B (top)",
+      "(pages are 32 bytes)",
+      "Table Index",
+      "Table Contents",
+      "Present",
+      "7",
+      "0",
+      "0",
+      "6",
+      "1",
+      "1",
+      "5",
+      "2",
+      "0",
+      "4",
+      "3",
+      "1",
+      "3",
+      "0",
+      "1",
+      "2",
+      "1",
+      "0",
+      "1",
+      "2",
+      "1",
+      "0",
+      "3",
+      "0",
+      "A. 0x1D1",
+      "B. 0x311",
+      "C. 0x391",
+      "Bottom tables 0–3 follow on the next two slides."
+    ]
+  },
+  {
+    "slide": 105,
+    "lines": [
+      "Question 19 (2/3): Bottom tables 0 and 1",
+      "Use Page Table 2B. Pages are 32 bytes. Which virtual address corresponds to physical address 0x91?",
+      "Page Table 2B (bottom #0)",
+      "(pages are 32 bytes)",
+      "Table Index",
+      "Table Contents",
+      "Present",
+      "7",
+      "1",
+      "1",
+      "6",
+      "2",
+      "0",
+      "5",
+      "3",
+      "0",
+      "4",
+      "4",
+      "1",
+      "3",
+      "5",
+      "1",
+      "2",
+      "6",
+      "0",
+      "1",
+      "7",
+      "1",
+      "0",
+      "8",
+      "0",
+      "Page Table 2B (bottom #1)",
+      "(pages are 32 bytes)",
+      "Table Index",
+      "Table Contents",
+      "Present",
+      "7",
+      "9",
+      "1",
+      "6",
+      "A",
+      "1",
+      "5",
+      "B",
+      "0",
+      "4",
+      "C",
+      "0",
+      "3",
+      "D",
+      "1",
+      "2",
+      "E",
+      "1",
+      "1",
+      "F",
+      "0",
+      "0",
+      "0",
+      "0",
+      "A. 0x1D1",
+      "B. 0x311",
+      "C. 0x391"
+    ]
+  },
+  {
+    "slide": 106,
+    "lines": [
+      "Question 19 (3/3): Bottom tables 2 and 3",
+      "Use Page Table 2B. Pages are 32 bytes. Which virtual address corresponds to physical address 0x91?",
+      "Page Table 2B (bottom #2)",
+      "(pages are 32 bytes)",
+      "Table Index",
+      "Table Contents",
+      "Present",
+      "7",
+      "0",
+      "1",
+      "6",
+      "1",
+      "0",
+      "5",
+      "2",
+      "1",
+      "4",
+      "3",
+      "1",
+      "3",
+      "4",
+      "0",
+      "2",
+      "5",
+      "0",
+      "1",
+      "A",
+      "0",
+      "0",
+      "B",
+      "1",
+      "Page Table 2B (bottom #3)",
+      "(pages are 32 bytes)",
+      "Table Index",
+      "Table Contents",
+      "Present",
+      "7",
+      "C",
+      "1",
+      "6",
+      "D",
+      "0",
+      "5",
+      "E",
+      "0",
+      "4",
+      "F",
+      "1",
+      "3",
+      "6",
+      "1",
+      "2",
+      "7",
+      "0",
+      "1",
+      "8",
+      "1",
+      "0",
+      "9",
+      "0",
+      "A. 0x1D1",
+      "B. 0x311",
+      "C. 0x391"
+    ]
+  },
+  {
+    "slide": 107,
+    "lines": [
+      "Answer 19 (1/5)  |  Correct: C",
+      "Extract a five-bit physical offset",
+      "With 32-byte pages, the offset needs 5 bits because 32 = 2^5. Convert",
+      "the address: 0x91 = 1001 0001.",
+      "Take the rightmost 5 bits: 10001 = 0x11. That is the offset. The remaining",
+      "bits, 100, give physical frame 4.",
+      "The split is 100 | 10001. The offset crosses a hex-digit boundary, so",
+      "taking only the last hex digit would give the wrong split."
+    ]
+  },
+  {
+    "slide": 108,
+    "lines": [
+      "Answer 19 (2/5)  |  Correct: C",
+      "Find a present leaf for frame 4",
+      "In Page Table 2B, bottom table #0,",
+      "row 4 contains 4 and has Present =",
+      "1. The bottom index is 4.",
+      "Bottom table #2 also contains 4 at",
+      "row 3, but Present = 0. That entry",
+      "cannot supply a valid mapping.",
+      "Page Table 2B (bottom #0)",
+      "(pages are 32 bytes)",
+      "Table Index",
+      "Table Contents",
+      "Present",
+      "7",
+      "1",
+      "1",
+      "6",
+      "2",
+      "0",
+      "5",
+      "3",
+      "0",
+      "4",
+      "4",
+      "1",
+      "3",
+      "5",
+      "1",
+      "2",
+      "6",
+      "0",
+      "1",
+      "7",
+      "1",
+      "0",
+      "8",
+      "0"
+    ]
+  },
+  {
+    "slide": 109,
+    "lines": [
+      "Answer 19 (3/5)  |  Correct: C",
+      "Find the top index",
+      "Find a present top entry that",
+      "selects bottom table #0. Top row 3",
+      "has contents 0 and Present = 1.",
+      "Top row 7 also contains 0, but",
+      "Present = 0. Therefore the valid",
+      "route uses top index 3.",
+      "Page Table 2B (top)",
+      "(pages are 32 bytes)",
+      "Table Index",
+      "Table Contents",
+      "Present",
+      "7",
+      "0",
+      "0",
+      "6",
+      "1",
+      "1",
+      "5",
+      "2",
+      "0",
+      "4",
+      "3",
+      "1",
+      "3",
+      "0",
+      "1",
+      "2",
+      "1",
+      "0",
+      "1",
+      "2",
+      "1",
+      "0",
+      "3",
+      "0"
+    ]
+  },
+  {
+    "slide": 110,
+    "lines": [
+      "Answer 19 (4/5)  |  Correct: C",
+      "Join indexes with the offset",
+      "Each table has 8 rows, so each index needs 3 bits. Top index 3 is 011.",
+      "Bottom index 4 is 100. The 5-bit offset 0x11 is 10001.",
+      "Join the fields: 011 | 100 | 10001. Regroup into hex from the right: 0011",
+      "1001 0001 = 0x391."
+    ]
+  },
+  {
+    "slide": 111,
+    "lines": [
+      "Answer 19 (5/5)  |  Correct: C",
+      "Check all three choices",
+      "C, 0x391, follows top index 3 to bottom table #0. Bottom index 4 maps",
+      "to physical frame 4. The offset remains 0x11.",
+      "A, 0x1D1, selects top 1 and bottom 6, whose leaf is absent. B, 0x311,",
+      "selects top 3 and bottom 0, also absent.",
+      "Physical address = frame number × page size + offset. 0x4 × 0x20 + 0x11",
+      "= 0x80 + 0x11 = 0x91."
+    ]
+  },
+  {
+    "slide": 112,
+    "lines": [
+      "Question 20: Count a TLB hit",
+      "Read virtual address 0x24 using",
+      "Page Table 1. Assume a TLB hit.",
+      "Count TLB lookups, RAM accesses,",
+      "and disk accesses.",
+      "A. 1 TLB, 0 RAM, 0 disk",
+      "B. 1 TLB, 1 RAM, 0 disk",
+      "C. 1 TLB, 2 RAM, 0 disk",
+      "Page Table 1",
+      "(pages are 16 bytes)",
+      "Table Index",
+      "Table Contents",
+      "Present",
+      "7",
+      "0",
+      "1",
+      "6",
+      "1",
+      "0",
+      "5",
+      "2",
+      "0",
+      "4",
+      "3",
+      "1",
+      "3",
+      "0",
+      "0",
+      "2",
+      "1",
+      "1",
+      "1",
+      "2",
+      "1",
+      "0",
+      "3",
+      "0"
+    ]
+  },
+  {
+    "slide": 113,
+    "lines": [
+      "Answer 20 (1/5)  |  Correct: B",
+      "What is being counted?",
+      "Count one TLB lookup. Each page-table entry read from RAM would be",
+      "one RAM access, and the requested data read is also one RAM access.",
+      "Assume the page tables and requested page are resident, no other",
+      "caches are involved, and TLB filling or operating-system bookkeeping is",
+      "not counted."
+    ]
+  },
+  {
+    "slide": 114,
+    "lines": [
+      "Answer 20 (2/5)  |  Correct: B",
+      "What a TLB hit supplies",
+      "The TLB caches translations. A hit",
+      "supplies the physical frame without",
+      "reading the page table from RAM.",
+      "For 0x24, virtual page 2 maps to",
+      "frame 1. The offset stays 0x4. The",
+      "physical data address is 0x14.",
+      "Page Table 1",
+      "(pages are 16 bytes)",
+      "Table Index",
+      "Table Contents",
+      "Present",
+      "7",
+      "0",
+      "1",
+      "6",
+      "1",
+      "0",
+      "5",
+      "2",
+      "0",
+      "4",
+      "3",
+      "1",
+      "3",
+      "0",
+      "0",
+      "2",
+      "1",
+      "1",
+      "1",
+      "2",
+      "1",
+      "0",
+      "3",
+      "0"
+    ]
+  },
+  {
+    "slide": 115,
+    "lines": [
+      "Answer 20 (3/5)  |  Correct: B",
+      "What a TLB hit supplies",
+      "The displayed table shows the",
+      "mapping. The stated hit means",
+      "that mapping is already in the TLB.",
+      "Page Table 1",
+      "(pages are 16 bytes)",
+      "Table Index",
+      "Table Contents",
+      "Present",
+      "7",
+      "0",
+      "1",
+      "6",
+      "1",
+      "0",
+      "5",
+      "2",
+      "0",
+      "4",
+      "3",
+      "1",
+      "3",
+      "0",
+      "0",
+      "2",
+      "1",
+      "1",
+      "1",
+      "2",
+      "1",
+      "0",
+      "3",
+      "0"
+    ]
+  },
+  {
+    "slide": 116,
+    "lines": [
+      "Answer 20 (4/5)  |  Correct: B",
+      "The data still has to be read",
+      "Access 1: look up the translation in the TLB. Count = 1 TLB.",
+      "Access 2: read the requested data from physical memory. Count = 1",
+      "RAM. There are no page-table RAM reads on this hit.",
+      "No disk access is needed because the page is resident. Total: 1 TLB, 1",
+      "RAM, 0 disk. B is correct."
+    ]
+  },
+  {
+    "slide": 117,
+    "lines": [
+      "Answer 20 (5/5)  |  Correct: B",
+      "Avoid the two counting traps",
+      "A treats a TLB like a cache of the program’s data. It stores the",
+      "translation; the requested data must still be read.",
+      "C includes a page-table RAM access that a hit avoids. A single-level miss",
+      "with a resident page would need that extra RAM read, but this question",
+      "says hit."
+    ]
+  },
+  {
+    "slide": 118,
+    "lines": [
+      "Question 21 (1/3): Count a two-level TLB miss",
+      "Read 0x24C using Page Table 2 with 16-byte pages. Assume a TLB miss and resident tables. Count TLB lookups, RAM accesses, and disk accesses.",
+      "Page Table 2 (top)",
+      "(pages are 16 bytes)",
+      "Table Index",
+      "Table Contents",
+      "Present",
+      "7",
+      "0",
+      "0",
+      "6",
+      "1",
+      "1",
+      "5",
+      "2",
+      "0",
+      "4",
+      "3",
+      "1",
+      "3",
+      "0",
+      "1",
+      "2",
+      "1",
+      "0",
+      "1",
+      "2",
+      "1",
+      "0",
+      "3",
+      "0",
+      "A. 1 TLB, 2 RAM, 0 disk",
+      "B. 2 TLB, 3 RAM, 0 disk",
+      "C. 1 TLB, 3 RAM, 0 disk",
+      "Bottom tables 0–3 follow on the next two slides."
+    ]
+  },
+  {
+    "slide": 119,
+    "lines": [
+      "Question 21 (2/3): Bottom tables 0 and 1",
+      "Read 0x24C using Page Table 2 with 16-byte pages. Assume a TLB miss and resident tables. Count TLB lookups, RAM accesses, and disk accesses.",
+      "Page Table 2 (bottom #0)",
+      "(pages are 16 bytes)",
+      "Table Index",
+      "Table Contents",
+      "Present",
+      "7",
+      "1",
+      "1",
+      "6",
+      "2",
+      "0",
+      "5",
+      "3",
+      "0",
+      "4",
+      "4",
+      "1",
+      "3",
+      "5",
+      "1",
+      "2",
+      "6",
+      "0",
+      "1",
+      "7",
+      "1",
+      "0",
+      "8",
+      "0",
+      "Page Table 2 (bottom #1)",
+      "(pages are 16 bytes)",
+      "Table Index",
+      "Table Contents",
+      "Present",
+      "7",
+      "9",
+      "1",
+      "6",
+      "A",
+      "1",
+      "5",
+      "B",
+      "0",
+      "4",
+      "C",
+      "0",
+      "3",
+      "D",
+      "1",
+      "2",
+      "E",
+      "1",
+      "1",
+      "F",
+      "0",
+      "0",
+      "0",
+      "0",
+      "A. 1 TLB, 2 RAM, 0 disk",
+      "B. 2 TLB, 3 RAM, 0 disk",
+      "C. 1 TLB, 3 RAM, 0 disk"
+    ]
+  },
+  {
+    "slide": 120,
+    "lines": [
+      "Question 21 (3/3): Bottom tables 2 and 3",
+      "Read 0x24C using Page Table 2 with 16-byte pages. Assume a TLB miss and resident tables. Count TLB lookups, RAM accesses, and disk accesses.",
+      "Page Table 2 (bottom #2)",
+      "(pages are 16 bytes)",
+      "Table Index",
+      "Table Contents",
+      "Present",
+      "7",
+      "0",
+      "1",
+      "6",
+      "1",
+      "0",
+      "5",
+      "2",
+      "1",
+      "4",
+      "3",
+      "1",
+      "3",
+      "4",
+      "0",
+      "2",
+      "5",
+      "0",
+      "1",
+      "A",
+      "0",
+      "0",
+      "B",
+      "1",
+      "Page Table 2 (bottom #3)",
+      "(pages are 16 bytes)",
+      "Table Index",
+      "Table Contents",
+      "Present",
+      "7",
+      "C",
+      "1",
+      "6",
+      "D",
+      "0",
+      "5",
+      "E",
+      "0",
+      "4",
+      "F",
+      "1",
+      "3",
+      "6",
+      "1",
+      "2",
+      "7",
+      "0",
+      "1",
+      "8",
+      "1",
+      "0",
+      "9",
+      "0",
+      "A. 1 TLB, 2 RAM, 0 disk",
+      "B. 2 TLB, 3 RAM, 0 disk",
+      "C. 1 TLB, 3 RAM, 0 disk"
+    ]
+  },
+  {
+    "slide": 121,
+    "lines": [
+      "Answer 21 (1/5)  |  Correct: C",
+      "Use the same counting convention",
+      "Count one initial TLB lookup, one RAM access per page-table entry read,",
+      "and one RAM access to read the requested data.",
+      "Assume no other caches. Ignore the cost of filling the TLB and",
+      "operating-system bookkeeping. A TLB miss alone does not imply disk",
+      "access."
+    ]
+  },
+  {
+    "slide": 122,
+    "lines": [
+      "Answer 21 (2/5)  |  Correct: C",
+      "Check that the data is resident",
+      "With 16-byte pages, split 0x24C from the right into top 4, bottom 4,",
+      "offset C: 100 | 100 | 1100.",
+      "Top row 4 is present and points to bottom table #3. Bottom #3 row 4 is",
+      "present and maps to frame F. The data address is 0xFC."
+    ]
+  },
+  {
+    "slide": 123,
+    "lines": [
+      "Answer 21 (3/5)  |  Correct: C",
+      "First: the TLB lookup",
+      "Look up the virtual page in the TLB. The question says it misses, so the",
+      "translation is not supplied there.",
+      "Count so far: 1 TLB, 0 RAM, 0 disk. Now the page tables must be walked.",
+      "We do not add another TLB lookup for each level."
+    ]
+  },
+  {
+    "slide": 124,
+    "lines": [
+      "Answer 21 (4/5)  |  Correct: C",
+      "Next: two page-table RAM reads",
+      "RAM access 1 reads the selected top-table entry. It identifies bottom",
+      "table #3.",
+      "RAM access 2 reads the selected entry in bottom table #3. It gives",
+      "physical frame F.",
+      "These accesses obtain the translation. Neither one reads the program’s",
+      "requested data byte."
+    ]
+  },
+  {
+    "slide": 125,
+    "lines": [
+      "Answer 21 (5/5)  |  Correct: C",
+      "Finally: read the data",
+      "RAM access 3 reads the requested data at physical address 0xFC. All",
+      "selected entries are present, so no disk read is needed.",
+      "Final total: 1 TLB, 3 RAM, 0 disk. C is correct.",
+      "A forgets the final data read. B counts a second TLB lookup, but this",
+      "read checks the TLB only once."
+    ]
+  },
+  {
+    "slide": 126,
+    "lines": [
+      "Question 22: Searching for a free block",
+      "An allocator switches from an implicit free list to segregated free lists.",
+      "Which change can reduce its allocation-search work?",
+      "A. Search free blocks in a suitable size class instead of walking all heap",
+      "blocks.",
+      "B. Move allocated objects together whenever malloc runs.",
+      "C. Stop storing block sizes and allocation states."
+    ]
+  },
+  {
+    "slide": 127,
+    "lines": [
+      "Answer 22 (1/3)  |  Correct: A",
+      "How an implicit list searches",
+      "An implicit list follows the physical order of heap blocks. The current",
+      "block’s size tells the allocator where the next block starts.",
+      "The search can pass both allocated and free blocks. At each block, the",
+      "allocator checks whether it is free and large enough."
+    ]
+  },
+  {
+    "slide": 128,
+    "lines": [
+      "Answer 22 (2/3)  |  Correct: A",
+      "How segregated lists narrow the search",
+      "Segregated free lists divide free blocks into size classes. The requested",
+      "size tells the allocator which class to search first.",
+      "If that class has no usable block, the allocator can try larger classes. It",
+      "can avoid examining many allocated blocks and blocks that are",
+      "obviously too small.",
+      "That reduced search work is why A is correct. The exact running time still",
+      "depends on the allocator and the blocks available."
+    ]
+  },
+  {
+    "slide": 129,
+    "lines": [
+      "Answer 22 (3/3)  |  Correct: A",
+      "Why B and C fail",
+      "B describes moving live objects. Changing the free-list structure does",
+      "not give an ordinary malloc allocator permission to relocate objects that",
+      "the program still uses.",
+      "C removes information the allocator still needs. Block sizes and",
+      "allocation states are needed to identify usable storage and manage the",
+      "heap."
+    ]
+  },
+  {
+    "slide": 130,
+    "lines": [
+      "Question 23: Compare placement policies",
+      "Free blocks appear in this search order: 64, 96, 48 bytes. A request needs",
+      "a total block size of 40 bytes, including all overhead.",
+      "Next fit starts its search at the 96-byte block. Which sizes are selected by",
+      "first fit, next fit, and best fit, in that order?",
+      "A. 64 bytes, 96 bytes, 48 bytes",
+      "B. 48 bytes, 64 bytes, 96 bytes",
+      "C. 64 bytes, 48 bytes, 96 bytes"
+    ]
+  },
+  {
+    "slide": 131,
+    "lines": [
+      "Answer 23 (1/3)  |  Correct: A",
+      "First fit starts at the beginning",
+      "The request needs a 40-byte block. All three free blocks are large",
+      "enough: 64, 96, and 48 bytes.",
+      "First fit starts at the beginning of the given search order and stops at the",
+      "first block that fits. The first block is 64 bytes, so first fit selects 64."
+    ]
+  },
+  {
+    "slide": 132,
+    "lines": [
+      "Answer 23 (2/3)  |  Correct: A",
+      "Next fit starts where its search resumes",
+      "Next fit also stops at the first block that fits, but its search resumes from",
+      "a saved position instead of restarting at the beginning.",
+      "This question places that starting position at the 96-byte block. Since 96",
+      "is large enough for 40, next fit selects 96 immediately."
+    ]
+  },
+  {
+    "slide": 133,
+    "lines": [
+      "Answer 23 (3/3)  |  Correct: A",
+      "Best fit chooses the smallest usable block",
+      "Best fit compares the blocks that can satisfy the request. Of 64, 96, and",
+      "48 bytes, the smallest usable block is 48 bytes.",
+      "The requested order is first fit, next fit, best fit. The result is 64, 96, 48, so",
+      "A is correct.",
+      "We are choosing a block, not deciding how to split it afterward. The",
+      "question already includes alignment and metadata in the 40-byte",
+      "requirement."
+    ]
+  },
+  {
+    "slide": 134,
+    "lines": [
+      "Question 24: Adding a sequence",
+      "Assume n = 5 and malloc succeeds. Which change fixes the memory-use",
+      "bug?",
+      "int *sum_to_n(int n) {",
+      "  int *s = malloc(sizeof(*s));",
+      "  for (int k = 1; k <= n; k++) *s += k;",
+      "  return s;",
+      "}",
+      "A. Set *s = 0 before the",
+      "loop.",
+      "B. Allocate sizeof(s)",
+      "bytes instead.",
+      "C. Move return s before",
+      "the loop."
+    ]
+  },
+  {
+    "slide": 135,
+    "lines": [
+      "Answer 24 (1/4)  |  Correct: A",
+      "The storage is large enough",
+      "int *s = malloc(sizeof(*s));",
+      "s is a pointer to int. sizeof(*s) is the size of one int, so malloc reserves",
+      "enough storage for the value the loop uses.",
+      "malloc does not initialize that int to zero. Before the loop, *s has an",
+      "indeterminate value."
+    ]
+  },
+  {
+    "slide": 136,
+    "lines": [
+      "Answer 24 (2/4)  |  Correct: A",
+      "Why += needs an old value",
+      "for (int k = 1; k <= n; k++)",
+      "    *s += k;",
+      "The expression *s += k reads the old value of *s, adds k, and stores the",
+      "result.",
+      "On the first iteration, k is 1, but there is no initialized old total. This is a",
+      "use of uninitialized memory, not a valid sum that happens to start at",
+      "zero."
+    ]
+  },
+  {
+    "slide": 137,
+    "lines": [
+      "Answer 24 (3/4)  |  Correct: A",
+      "Initialize before the first read",
+      "int *s = malloc(sizeof(*s));",
+      "*s = 0;",
+      "for (int k = 1; k <= n; k++) *s += k;",
+      "Set *s = 0 before the loop. Then the first addition computes 0 + 1, the",
+      "second adds 2, and so on.",
+      "For example, with n = 3 the initialized totals are 0 → 1 → 3 → 6. A supplies",
+      "the missing initial value."
+    ]
+  },
+  {
+    "slide": 138,
+    "lines": [
+      "Answer 24 (4/4)  |  Correct: A",
+      "Why B and C do not fix it",
+      "B changes the number of bytes requested, but does not initialize their",
+      "contents. sizeof(s) measures the pointer and is not the right expression",
+      "for one int.",
+      "C skips the calculation and still returns an uninitialized int.",
+      "Returning s itself is allowed: the object is on the heap, so its lifetime",
+      "continues after the function returns. The caller must eventually free it."
+    ]
+  },
+  {
+    "slide": 139,
+    "lines": [
+      "Question 25: Freeing a linked list",
+      "Each node was allocated separately with malloc. The list ends at NULL.",
+      "Which change fixes this cleanup loop?",
+      "while (head != NULL) {",
+      "  free(head);",
+      "  head = head->next;",
+      "}",
+      "A. Advance head first,",
+      "then free it.",
+      "B. Save head->next,",
+      "free head, then use",
+      "that saved pointer.",
+      "C. Allocate with calloc",
+      "instead."
+    ]
+  },
+  {
+    "slide": 140,
+    "lines": [
+      "Answer 25 (1/6)  |  Correct: B",
+      "What head and head->next mean",
+      "head is a pointer to the current node. The node contains a next field that",
+      "stores the address of the following node.",
+      "head->next reads that field from the current node. For the last node,",
+      "next is NULL, meaning there is no following node.",
+      "To continue the loop safely, we need the next node’s address before",
+      "releasing the current node."
+    ]
+  },
+  {
+    "slide": 141,
+    "lines": [
+      "Answer 25 (2/6)  |  Correct: B",
+      "Why the original order is wrong",
+      "free(head);",
+      "head = head->next;",
+      "The first line releases the node. After free returns, the program may no",
+      "longer read fields from that node.",
+      "The second line tries to read its next field anyway. That is a",
+      "use-after-free error. The fact that the old bytes might still look",
+      "unchanged does not make the read valid."
+    ]
+  },
+  {
+    "slide": 142,
+    "lines": [
+      "Answer 25 (3/6)  |  Correct: B",
+      "The corrected loop",
+      "while (head != NULL) {",
+      "  struct Node *next = head->next;",
+      "  free(head);",
+      "  head = next;",
+      "}",
+      "First, save the next node’s address while the current node is still valid.",
+      "Then free the current node. Finally, update head using the saved",
+      "address."
+    ]
+  },
+  {
+    "slide": 143,
+    "lines": [
+      "Answer 25 (4/6)  |  Correct: B",
+      "The corrected loop",
+      "The variable next is separate from the node that free releases, so its",
+      "saved pointer value is still available."
+    ]
+  },
+  {
+    "slide": 144,
+    "lines": [
+      "Answer 25 (5/6)  |  Correct: B",
+      "Trace a list containing two nodes",
+      "Initially, head points to node X. X.next points to node Y, and Y.next is",
+      "NULL.",
+      "First iteration: save the address of Y, free X, and set head to Y.",
+      "Second iteration: save NULL, free Y, and set head to NULL. The loop",
+      "condition is now false, so it stops.",
+      "Both nodes are freed exactly once, and no next field is read after its",
+      "node is freed."
+    ]
+  },
+  {
+    "slide": 145,
+    "lines": [
+      "Answer 25 (6/6)  |  Correct: B",
+      "Why A and C do not fix the loop",
+      "A changes head first and then frees the new head. That loses the",
+      "original node without freeing it and can free the next node before",
+      "processing it.",
+      "C changes initialization, not lifetime. calloc cannot make a node valid",
+      "after free. The loop would still read head->next after releasing head.",
+      "B preserves the next address before free, so it fixes the actual error."
+    ]
+  },
+  {
+    "slide": 146,
+    "lines": [
+      "Question 26: The last loop iteration",
+      "Assume n > 0, the size calculation fits, and malloc succeeds. What is the",
+      "bug?",
+      "int *zeros(int n) {",
+      "  int *p = malloc(n * sizeof(*p));",
+      "  for (int k = 0; k <= n; k++) p[k] = 0;",
+      "  return p;",
+      "}",
+      "A. Returning p returns",
+      "a local array.",
+      "B. sizeof(*p) measures",
+      "a pointer.",
+      "C. The loop writes past",
+      "the allocated array."
+    ]
+  },
+  {
+    "slide": 147,
+    "lines": [
+      "Answer 26 (1/4)  |  Correct: C",
+      "Count the allocated elements",
+      "n * sizeof(*p) requests enough bytes for n ints. An array of n elements",
+      "has indexes 0 through n − 1.",
+      "For example, n = 3 gives valid indexes 0, 1, and 2. There is no fourth",
+      "element at index 3."
+    ]
+  },
+  {
+    "slide": 148,
+    "lines": [
+      "Answer 26 (2/4)  |  Correct: C",
+      "Trace the loop boundary",
+      "for (int k = 0; k <= n; k++) p[k] = 0;",
+      "The condition k <= n allows k to equal n. That final iteration executes",
+      "p[n] = 0.",
+      "An array of n integers has valid indexes 0 through n - 1. The write to p[n]",
+      "is outside that array. C identifies the off-by-one error."
+    ]
+  },
+  {
+    "slide": 149,
+    "lines": [
+      "Answer 26 (3/4)  |  Correct: C",
+      "Repair the bound",
+      "for (int k = 0; k < n; k++) p[k] = 0;",
+      "Use k < n. The loop then executes exactly n times, writing indexes 0",
+      "through n − 1."
+    ]
+  },
+  {
+    "slide": 150,
+    "lines": [
+      "Answer 26 (4/4)  |  Correct: C",
+      "Why A and B are incorrect",
+      "A confuses the local pointer variable with its heap allocation. Returning",
+      "the pointer value is fine; the heap object remains alive until freed.",
+      "B is incorrect because *p has type int. sizeof(*p) is the size of an int,",
+      "while sizeof(p) is the size of a pointer."
+    ]
+  },
+  {
+    "slide": 151,
+    "lines": [
+      "Question 27: Pointer arithmetic",
+      "The programmer intended to move p forward by ONE int. Assume",
+      "sizeof(int) is 4. What does this code actually print?",
+      "int data[6] = {2, 4, 6, 8, 10, 12};",
+      "int *p = data;",
+      "p += sizeof(*p);",
+      "printf(\"%d\", *p);",
+      "A. 4",
+      "B. 10",
+      "C. 6"
+    ]
+  },
+  {
+    "slide": 152,
+    "lines": [
+      "Answer 27 (1/4)  |  Correct: B",
+      "Where p starts",
+      "data has six initialized ints: data[0] is 2, data[1] is 4, data[2] is 6, data[3]",
+      "is 8, data[4] is 10, and data[5] is 12.",
+      "int *p = data sets p to the address of data[0]. Dereferencing p initially",
+      "would give 2."
+    ]
+  },
+  {
+    "slide": 153,
+    "lines": [
+      "Answer 27 (2/4)  |  Correct: B",
+      "Evaluate sizeof before moving",
+      "p points to int, so sizeof(*p) is sizeof(int), which the question defines as 4",
+      "bytes.",
+      "The expression p += sizeof(*p) therefore behaves as p += 4. For an int",
+      "pointer, adding 4 moves forward four int elements, not four bytes."
+    ]
+  },
+  {
+    "slide": 154,
+    "lines": [
+      "Answer 27 (3/4)  |  Correct: B",
+      "Apply the pointer scaling",
+      "Each int is 4 bytes. Moving four int elements moves 4 × 4 = 16 bytes,",
+      "from data[0] to data[4].",
+      "data[4] is 10, so printf prints 10 and B is correct. This example stays",
+      "within the six-element array, making the result well-defined."
+    ]
+  },
+  {
+    "slide": 155,
+    "lines": [
+      "Answer 27 (4/4)  |  Correct: B",
+      "Make the intended movement",
+      "p++;   /* one int forward */",
+      "Use p++ or p += 1 to move forward one int. C automatically scales that",
+      "movement by sizeof(int).",
+      "A, 4, would be the intended one-element result. C, 6, would correspond",
+      "to moving two elements. Neither matches the actual four-element",
+      "movement."
+    ]
+  },
+  {
+    "slide": 156,
+    "lines": [
+      "Question 28: Returning a local address",
+      "What is wrong with using *p after last_score returns?",
+      "int *last_score(void) {",
+      "  int scores[2] = {5, 9};",
+      "  return &scores[1];",
+      "}",
+      "/* later, in main */",
+      "int *p = last_score();",
+      "printf(\"%d\", *p);",
+      "A. Returning a pointer",
+      "keeps the array alive.",
+      "B. The element",
+      "becomes zero on",
+      "return.",
+      "C. The array’s lifetime",
+      "ends on return."
+    ]
+  },
+  {
+    "slide": 157,
+    "lines": [
+      "Answer 28 (1/4)  |  Correct: C",
+      "The array is local storage",
+      "int scores[2] = {5, 9};",
+      "return &scores[1];",
+      "scores is an automatic local array created for this call to last_score. Its",
+      "two initialized values are 5 and 9.",
+      "&scores[1] is the address of the second element. Taking that address",
+      "while the array is alive is allowed."
+    ]
+  },
+  {
+    "slide": 158,
+    "lines": [
+      "Answer 28 (2/4)  |  Correct: C",
+      "Returning an address does not extend life",
+      "When last_score returns, the lifetime of its automatic array ends.",
+      "Copying an address out of the function does not keep that array alive.",
+      "The caller has a dangling pointer: it refers to storage whose intended",
+      "object no longer exists."
+    ]
+  },
+  {
+    "slide": 159,
+    "lines": [
+      "Answer 28 (3/4)  |  Correct: C",
+      "There is no guaranteed printout",
+      "Dereferencing that pointer is undefined behavior. Seeing 9 during one",
+      "run would not make the code valid or guarantee 9 in another run.",
+      "C is correct. A falsely extends the array’s lifetime. B assumes expired",
+      "storage is automatically cleared to zero; C provides no such guarantee."
+    ]
+  },
+  {
+    "slide": 160,
+    "lines": [
+      "Answer 28 (4/4)  |  Correct: C",
+      "Ways to provide a valid result",
+      "If only the score is needed, return the integer 9 by value. No pointer is",
+      "required.",
+      "For an array result, the caller can provide storage that remains alive, or",
+      "the function can allocate heap storage whose ownership is passed to the",
+      "caller.",
+      "A local pointer variable can safely return a heap address. The problem",
+      "here is the local array object’s lifetime, not the mere fact that a pointer is",
+      "returned."
+    ]
+  },
+  {
+    "slide": 161,
+    "lines": [
+      "Question 29: Three ways to misuse a heap block",
+      "Each snippet starts with p pointing to one allocated int and no other",
+      "pointer to that block. Match the errors in I, II, III order.",
+      "I.   free(p); *p = 8;",
+      "II.  free(p); free(p);",
+      "III. p = NULL;",
+      "A. Use-after-free; double free; memory leak.",
+      "B. Memory leak; use-after-free; double free.",
+      "C. Double free; memory leak; use-after-free."
+    ]
+  },
+  {
+    "slide": 162,
+    "lines": [
+      "Answer 29 (1/5)  |  Correct: A",
+      "Treat these as separate programs",
+      "The three snippets are independent. Each begins with its own live",
+      "allocated int, pointed to only by p. Do not run I, then II, then III on the",
+      "same allocation.",
+      "free releases a heap allocation. It does not automatically set the pointer",
+      "variable to NULL, and assigning NULL does not automatically free a",
+      "block."
+    ]
+  },
+  {
+    "slide": 163,
+    "lines": [
+      "Answer 29 (2/5)  |  Correct: A",
+      "I: access after the object is freed",
+      "free(p);",
+      "*p = 8;",
+      "free(p) ends the allocated object’s lifetime. The following *p = 8 writes",
+      "through a pointer to an object that is no longer alive.",
+      "That is use-after-free and produces undefined behavior. If the value is",
+      "needed, use it before freeing the block and do not access the block",
+      "afterward."
+    ]
+  },
+  {
+    "slide": 164,
+    "lines": [
+      "Answer 29 (3/5)  |  Correct: A",
+      "II: free the same allocation twice",
+      "free(p);",
+      "free(p);",
+      "The first free(p) releases the block. p is not automatically cleared.",
+      "Passing it to free again tries to release the same allocation a second",
+      "time.",
+      "This is a double free and has undefined behavior. Each allocation must",
+      "be released only once."
+    ]
+  },
+  {
+    "slide": 165,
+    "lines": [
+      "Answer 29 (4/5)  |  Correct: A",
+      "III: lose the only address",
+      "p = NULL;",
+      "p = NULL overwrites the only pointer to the live allocation. It does not",
+      "call free, so the allocated block remains unreleased.",
+      "With no other pointer, the program has lost the way to free that block.",
+      "This is a memory leak. If finished with it, free it before discarding the",
+      "pointer."
+    ]
+  },
+  {
+    "slide": 166,
+    "lines": [
+      "Answer 29 (5/5)  |  Correct: A",
+      "Match the sequence",
+      "I accesses a dead object: use-after-free. II releases a dead object again:",
+      "double free. III abandons a live allocation: memory leak.",
+      "The order is exactly choice A. B and C attach the correct terms to the",
+      "wrong snippets.",
+      "These bugs concern ownership and lifetime. A pointer’s old numeric",
+      "address is not proof that the object is still valid."
+    ]
+  },
+  {
+    "slide": 167,
+    "lines": [
+      "Question 30: An event caused by an instruction",
+      "The currently executing instruction causes an exceptional event, such as",
+      "a divide error. Which term specifically describes its timing relationship to",
+      "execution?",
+      "A. Interrupt",
+      "B. Context switch",
+      "C. Synchronous exception"
+    ]
+  },
+  {
+    "slide": 168,
+    "lines": [
+      "Answer 30  |  Correct: C",
+      "Synchronous exception",
+      "The currently executing instruction causes the event. A divide error is",
+      "one example.",
+      "An interrupt comes from an external event such as a timer. A context",
+      "switch changes which process runs."
+    ]
+  },
+  {
+    "slide": 169,
+    "lines": [
+      "Question 31: Changing which process runs",
+      "The operating system saves one process’s execution state and restores",
+      "another process’s state so the CPU can resume it. What is this called?",
+      "A. System call",
+      "B. Context switch",
+      "C. exec"
+    ]
+  },
+  {
+    "slide": 170,
+    "lines": [
+      "Answer 31  |  Correct: B",
+      "Context switch",
+      "The operating system saves the current process’s state and restores",
+      "another process’s state so it can resume execution.",
+      "A system call requests an operating-system service. exec replaces the",
+      "program in the same process."
+    ]
+  },
+  {
+    "slide": 171,
+    "lines": [
+      "Question 32: The pages actively being used",
+      "Which term means the set of pages a process actively uses over a recent",
+      "interval of execution?",
+      "A. Working set",
+      "B. Physical memory",
+      "C. Entire virtual address space"
+    ]
+  },
+  {
+    "slide": 172,
+    "lines": [
+      "Answer 32  |  Correct: A",
+      "Working set",
+      "A working set is the set of pages a process has actively used during a",
+      "recent interval.",
+      "It is the actively used subset, not every page in the process’s virtual",
+      "address space. Physical memory is the actual RAM."
+    ]
+  },
+  {
+    "slide": 173,
+    "lines": [
+      "Question 33: Too much paging, too little progress",
+      "A system repeatedly moves needed pages into memory and evicts pages",
+      "it soon needs again. It spends most of its time paging rather than doing",
+      "useful work. What is this?",
+      "A. Coalescing",
+      "B. Internal fragmentation",
+      "C. Thrashing"
+    ]
+  },
+  {
+    "slide": 174,
+    "lines": [
+      "Answer 33  |  Correct: C",
+      "Thrashing",
+      "Thrashing means frequent page faults and repeated page replacement",
+      "leave little time for useful execution.",
+      "It commonly occurs when the active working sets do not fit in available",
+      "physical memory."
+    ]
+  },
+  {
+    "slide": 175,
+    "lines": [
+      "Question 34: Wasted space inside a block",
+      "An allocator gives an object a larger block than its requested payload",
+      "because of size rounding. The extra unused bytes remain inside that",
+      "allocated block. What is this waste called?",
+      "A. External fragmentation",
+      "B. Internal fragmentation",
+      "C. Coalescing"
+    ]
+  },
+  {
+    "slide": 176,
+    "lines": [
+      "Answer 34  |  Correct: B",
+      "Internal fragmentation",
+      "Internal fragmentation is unused space inside an allocated block. Size",
+      "rounding, padding, or an unsplittable remainder can create it.",
+      "External fragmentation concerns separate free blocks. Coalescing",
+      "merges adjacent free blocks."
+    ]
+  },
+  {
+    "slide": 177,
+    "lines": [
+      "Question 35: Enough free bytes in separate pieces",
+      "There are 200 free bytes in total, but no single free block is large enough",
+      "for a 120-byte request. What term describes this problem?",
+      "A. External fragmentation",
+      "B. Internal fragmentation",
+      "C. Garbage collection"
+    ]
+  },
+  {
+    "slide": 178,
+    "lines": [
+      "Answer 35  |  Correct: A",
+      "External fragmentation",
+      "Enough free bytes exist in total, but they are split among blocks that are",
+      "individually too small for the request.",
+      "Two separate 100-byte free blocks cannot satisfy one contiguous",
+      "120-byte allocation. Internal fragmentation is waste inside an allocated",
+      "block."
+    ]
+  },
+  {
+    "slide": 179,
+    "lines": [
+      "Question 36: A remainder too small to keep",
+      "Splitting a free block would leave a remainder smaller than the",
+      "allocator’s minimum valid block size. What is that tiny unusable",
+      "remainder called?",
+      "A. Payload",
+      "B. Working set",
+      "C. Splinter"
+    ]
+  },
+  {
+    "slide": 180,
+    "lines": [
+      "Answer 36  |  Correct: C",
+      "Splinter",
+      "A splinter is a remainder too small to form a valid free block after",
+      "splitting.",
+      "The allocator may give the caller the entire block instead. The extra",
+      "space then becomes internal fragmentation."
+    ]
+  },
+  {
+    "slide": 181,
+    "lines": [
+      "Question 37: Walking all heap blocks",
+      "An allocator finds the next physical heap block by using the current",
+      "block’s size. Its search may pass both allocated and free blocks, without",
+      "next/previous free-block pointers. What structure is this?",
+      "A. A TLB",
+      "B. An implicit free list",
+      "C. A segregated free list"
+    ]
+  },
+  {
+    "slide": 182,
+    "lines": [
+      "Answer 37  |  Correct: B",
+      "Implicit free list",
+      "The allocator uses block sizes to move from one physical heap block to",
+      "the next. Its search can pass both allocated and free blocks.",
+      "Segregated free lists group free blocks by size. A TLB caches address",
+      "translations."
+    ]
+  },
+  {
+    "slide": 183,
+    "lines": [
+      "Question 38: Automatic reclamation",
+      "Which allocation model relies on the runtime to reclaim unreachable",
+      "heap objects, rather than requiring the programmer to free each one",
+      "explicitly?",
+      "A. Implicit allocation",
+      "B. Explicit allocation",
+      "C. Implicit free list"
+    ]
+  },
+  {
+    "slide": 184,
+    "lines": [
+      "Answer 38  |  Correct: A",
+      "Implicit allocation",
+      "The runtime automatically reclaims unreachable heap objects through",
+      "garbage collection.",
+      "With explicit allocation, the programmer manages lifetime, as with",
+      "malloc and free. An implicit free list is a heap traversal structure."
+    ]
+  },
+  {
+    "slide": 185,
+    "lines": [
+      "Question 39: A sparse translation structure",
+      "Which structure divides address mappings into levels, allowing",
+      "lower-level tables for unused address ranges to be absent?",
+      "A. Working set",
+      "B. TLB",
+      "C. Multi-level page table"
+    ]
+  },
+  {
+    "slide": 186,
+    "lines": [
+      "Answer 39  |  Correct: C",
+      "Multi-level page table",
+      "An upper-level entry selects a lower-level table. Tables for unused",
+      "address ranges can be omitted, reducing page-table storage.",
+      "A TLB caches translations. A working set describes the pages a process",
+      "is actively using."
+    ]
+  },
+  {
+    "slide": 187,
+    "lines": [
+      "Question 40: Diagnosing incomplete input",
+      "In the Compiler homework, the compiler handles a regular input file but",
+      "can miss input supplied through a pipe. Which tool is recommended to",
+      "inspect the read system calls?",
+      "A. strace -e read",
+      "B. The shell’s jobs built-in",
+      "C. A page-table dump"
+    ]
+  },
+  {
+    "slide": 188,
+    "lines": [
+      "Answer 40  |  Correct: A",
+      "strace -e read shows the input reads",
+      "strace -e read shows each read system call and its return value: the",
+      "number of bytes that call delivered.",
+      "A read from a pipe can return fewer bytes than requested even though",
+      "more input will arrive. The loader must continue reading until end-of-file",
+      "instead of assuming one read gets everything.",
+      "jobs lists shell jobs. A page-table dump shows memory mappings.",
+      "Neither traces the compiler’s read calls."
+    ]
+  },
+  {
+    "slide": 189,
+    "lines": [
+      "Question 41: Testing token-array growth",
+      "Which test is most likely to expose the Compiler homework’s token-array",
+      "growth bug?",
+      "A. A small input that never makes the token array grow.",
+      "B. An input large enough to grow the token array, checked with ASan or",
+      "Memcheck.",
+      "C. An empty input checked only for faster execution."
+    ]
+  },
+  {
+    "slide": 190,
+    "lines": [
+      "Answer 41  |  Correct: B",
+      "Make the token array grow",
+      "The bug occurs when the token array grows. A small or empty input may",
+      "never reach that part of the code.",
+      "Growth can move the array’s storage. The parser must not keep using",
+      "pointers into the old storage.",
+      "Use an input that produces enough tokens to force growth, then run",
+      "ASan or Memcheck to detect invalid memory accesses. That is choice B."
+    ]
+  },
+  {
+    "slide": 191,
+    "lines": [
+      "Question 42: Name lookup and scope",
+      "In the Compiler homework, what must symbol lookup and leaving a",
+      "scope do?",
+      "A. Always choose the oldest declaration and remove every declaration",
+      "on scope exit.",
+      "B. Always choose the newest declaration, even if its scope has ended.",
+      "C. Choose the innermost active declaration and retire only the scope",
+      "being left."
+    ]
+  },
+  {
+    "slide": 192,
+    "lines": [
+      "Answer 42  |  Correct: C",
+      "Use the innermost active declaration",
+      "An inner declaration shadows an outer declaration with the same name",
+      "while the inner scope is active.",
+      "When the inner scope ends, retire only its declarations. The outer",
+      "declaration becomes visible again.",
+      "C follows both rules. A chooses the oldest declaration and removes too",
+      "much. B can choose a declaration whose scope has already ended."
+    ]
+  },
+  {
+    "slide": 193,
+    "lines": [
+      "Question 43: Preserving compiler correctness",
+      "Which requirement must an optimized compiler satisfy in the Compiler",
+      "homework?",
+      "A. Its required output stays byte-identical, and its memory check is",
+      "clean.",
+      "B. Its output runs successfully, even if the generated bytecode differs.",
+      "C. It runs faster, even if a bug still produces incorrect output."
+    ]
+  },
+  {
+    "slide": 194,
+    "lines": [
+      "Answer 43  |  Correct: A",
+      "Keep both output and memory use correct",
+      "The optimized compiler must produce byte-identical output: every",
+      "required byte must match. Merely producing a program that runs is not",
+      "enough.",
+      "It must also pass the required memory check. Faster execution does not",
+      "excuse invalid reads, invalid writes, or other memory errors.",
+      "A preserves both requirements. B allows changed output. C accepts",
+      "incorrect output in exchange for speed."
+    ]
+  },
+  {
+    "slide": 195,
+    "lines": [
+      "Question 44: The main optimization target",
+      "The Compiler README gives a profile of the corrected baseline. Which",
+      "stage is its largest performance target?",
+      "A. The code generator and emitter.",
+      "B. The lexer.",
+      "C. The loader."
+    ]
+  },
+  {
+    "slide": 196,
+    "lines": [
+      "Answer 44  |  Correct: B",
+      "The lexer",
+      "The lexer scans source characters and creates tokens for the parser. It is",
+      "the largest part of the corrected baseline’s profile.",
+      "The suggested optimizations include packing Token structures more",
+      "efficiently and making fewer passes over the input bytes."
+    ]
+  },
+  {
+    "slide": 197,
+    "lines": [
+      "Question 45: The SF-VM page-table design",
+      "Which configuration matches the Pages homework README?",
+      "A. One level, 8 entries per table, 16-byte pages.",
+      "B. Two levels, 256 entries per table, 1 KiB pages.",
+      "C. Three levels, 512 entries per table, 4 KiB pages."
+    ]
+  },
+  {
+    "slide": 198,
+    "lines": [
+      "Answer 45  |  Correct: C",
+      "C. Three levels, 512 entries per table, 4 KiB pages."
+    ]
+  },
+  {
+    "slide": 199,
+    "lines": [
+      "Question 46: Where guest memory lives",
+      "Where must the Pages homework store guest data pages and",
+      "page-table bytes?",
+      "A. In a separate host malloc allocation for every guest page.",
+      "B. Inside vm->data, using the simulated frame allocator.",
+      "C. In mutable global arrays shared by every VM."
+    ]
+  },
+  {
+    "slide": 200,
+    "lines": [
+      "Answer 46  |  Correct: B",
+      "Use vm->data and the simulated frame allocator",
+      "Guest data pages and page-table bytes both live inside vm->data. They",
+      "use the same pool of simulated physical frames.",
+      "The simulated frame allocator tracks that pool and supplies free frames",
+      "for both kinds of storage.",
+      "A bypasses the required pool with separate host allocations. C puts",
+      "per-VM state into mutable global arrays, which the homework forbids."
+    ]
+  },
+  {
+    "slide": 201,
+    "lines": [
+      "Question 47: Reservation versus residency",
+      "A successful sf_vm_alloc reserves a new virtual region. What does that",
+      "call immediately allocate from the physical frame pool?",
+      "A. No frames; reservation metadata is recorded first.",
+      "B. One data frame for every page in the region.",
+      "C. All data frames plus every possible page-table frame."
+    ]
+  },
+  {
+    "slide": 202,
+    "lines": [
+      "Answer 47  |  Correct: A",
+      "Reservation does not allocate physical frames",
+      "sf_vm_alloc records the virtual region, its permissions, and its allocation",
+      "ID. The call immediately allocates no physical frames.",
+      "A later permitted access to a nonresident page triggers demand",
+      "allocation. Page-fault handling supplies the data frame and any missing",
+      "page-table frames.",
+      "Reserved means the virtual range belongs to the allocation. Resident",
+      "means a page currently has a physical frame mapping. B and C confuse",
+      "those states."
+    ]
+  },
+  {
+    "slide": 203,
+    "lines": [
+      "Question 48: Updating cached permissions",
+      "The Pages homework changes a resident page from writable to",
+      "read-only. Its TLB entry still caches the old permissions. What must the",
+      "implementation do?",
+      "A. Keep the old entry until another page replaces it.",
+      "B. Invalidate that page’s TLB entry when updating its permissions.",
+      "C. Free the data frame and discard the page’s contents."
+    ]
+  },
+  {
+    "slide": 204,
+    "lines": [
+      "Answer 48  |  Correct: B",
+      "Invalidate the cached translation",
+      "The TLB caches access permissions along with the physical frame",
+      "number. Keeping its old entry could let a later access use the stale",
+      "writable permission.",
+      "Invalidate the page’s TLB entry when changing its permissions. The next",
+      "lookup must obtain the updated read-only permission.",
+      "The page keeps its data frame and contents. A leaves stale permissions;",
+      "C unnecessarily discards the data."
+    ]
+  },
+  {
+    "slide": 205,
+    "lines": [
+      "Question 49: What identifies a region to free?",
+      "What identifier must be passed to sf_vm_free to release a virtual region?",
+      "A. The region’s starting virtual address.",
+      "B. The physical frame number of its first resident page.",
+      "C. The region’s allocation ID."
+    ]
+  },
+  {
+    "slide": 206,
+    "lines": [
+      "Answer 49  |  Correct: C",
+      "Pass the allocation ID",
+      "sf_vm_alloc returns an allocation ID and a starting virtual address.",
+      "sf_vm_free identifies the region by its allocation ID.",
+      "A virtual address describes the region’s location. A frame number",
+      "describes a physical page and may not exist yet for a reserved region.",
+      "The allocation ID identifies the whole allocation, including any pages",
+      "that have never become resident."
+    ]
+  },
+  {
+    "slide": 207,
+    "lines": [
+      "Question 50: Required built-in commands",
+      "Which set of built-in commands is explicitly required by the Shell",
+      "homework README?",
+      "A. quit, jobs, bg, fg",
+      "B. cd, alias, export, history",
+      "C. malloc, free, fork, exec"
+    ]
+  },
+  {
+    "slide": 208,
+    "lines": [
+      "Answer 50  |  Correct: A",
+      "quit, jobs, bg, fg",
+      "quit ends the shell. jobs lists the jobs the shell tracks.",
+      "bg resumes a stopped job in the background and returns to the prompt.",
+      "fg puts the job in the foreground and waits for it to finish or stop.",
+      "These are the four required built-ins. B lists other shell commands. C",
+      "lists C memory and process operations."
+    ]
+  },
+  {
+    "slide": 209,
+    "lines": [
+      "Question 51: Forwarding Ctrl-C",
+      "In the Shell homework, where should the shell forward Ctrl-C when a",
+      "foreground job exists?",
+      "A. To every background job.",
+      "B. Only to the shell itself.",
+      "C. To the foreground job’s process group."
+    ]
+  },
+  {
+    "slide": 210,
+    "lines": [
+      "Answer 51  |  Correct: C",
+      "Forward SIGINT to the foreground process group",
+      "Ctrl-C corresponds to SIGINT. The shell forwards it to the foreground",
+      "job’s process group.",
+      "A process group lets the shell signal all processes belonging to that job.",
+      "Signaling only one member could leave the others running.",
+      "A targets unrelated background jobs. B targets the shell instead of the",
+      "job the user is controlling."
+    ]
+  },
+  {
+    "slide": 211,
+    "lines": [
+      "Question 52: Protecting job creation",
+      "Why does the Shell README require blocking SIGCHLD around fork and",
+      "adding the new job to the job list?",
+      "A. To prevent the child from running any instructions.",
+      "B. To prevent the child-status handler from running before the job has",
+      "been recorded.",
+      "C. To make the child inherit a new PID of zero."
+    ]
+  },
+  {
+    "slide": 212,
+    "lines": [
+      "Answer 52  |  Correct: B",
+      "Record the job before handling its status",
+      "Without blocking, the child could exit immediately. SIGCHLD could run",
+      "the parent’s handler before the parent adds the job to its list.",
+      "The parent blocks SIGCHLD, forks, records the job, then restores its",
+      "previous mask. An arriving SIGCHLD stays pending until delivery is",
+      "allowed.",
+      "The child inherits the blocked mask, so it restores the intended mask",
+      "before exec. Blocking a signal does not prevent the child from running",
+      "or change its PID."
+    ]
+  },
+  {
+    "slide": 213,
+    "lines": [
+      "Question 53: The child-status handler’s job",
+      "Which behavior matches the required sigchld_handler in the Shell",
+      "README?",
+      "A. Assume one SIGCHLD means one normal exit and always delete one",
+      "job.",
+      "B. Loop over available child statuses and distinguish exits, signal",
+      "terminations, and stops.",
+      "C. Ignore stopped children and wait until they terminate."
+    ]
+  },
+  {
+    "slide": 214,
+    "lines": [
+      "Answer 53  |  Correct: B",
+      "Collect statuses and handle their meanings",
+      "One SIGCHLD notification can cover several child events. The handler",
+      "loops over available statuses with waitpid instead of assuming one",
+      "notification means one child.",
+      "Normal exit or signal termination: reap the finished child and remove",
+      "the completed job.",
+      "Stopped child: keep the job in the list and mark it stopped so bg or fg",
+      "can resume it. A and C fail to track these different outcomes."
+    ]
+  },
+  {
+    "slide": 215,
+    "lines": [
+      "Question 54: Resuming with bg versus fg",
+      "A stopped job is resumed. What is the key difference between bg and fg",
+      "in the Shell homework?",
+      "A. bg creates a new process; fg restarts the old process from its",
+      "beginning.",
+      "B. Both resume the existing job, but fg waits for it to finish or stop",
+      "before the next prompt.",
+      "C. fg kills the job; bg leaves it stopped."
+    ]
+  },
+  {
+    "slide": 216,
+    "lines": [
+      "Answer 54  |  Correct: B",
+      "The difference is whether the shell waits",
+      "Both commands act on an existing job. For a stopped job, both send",
+      "SIGCONT to resume execution where it stopped.",
+      "bg runs the job in the background and returns to the prompt. fg makes",
+      "it the foreground job and waits until it finishes or stops again.",
+      "Neither command creates a replacement process, restarts the program",
+      "from the beginning, or kills the job."
+    ]
+  }
+]
