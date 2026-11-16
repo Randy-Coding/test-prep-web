@@ -12,10 +12,10 @@ spec = importlib.util.spec_from_file_location("mt2", ROOT / "question_banks/CSE3
 bank = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(bank)
 records = {a["id"]: (q, a) for entries in bank.questions.values() for q, a in entries.items()}
-assert len(records) == sum(map(len, bank.questions.values())) == 61
+assert len(records) == sum(map(len, bank.questions.values())) == 57
 assert {topic: len(entries) for topic, entries in bank.questions.items()} == {
     "PROCESSES CUSTOM": 31,
-    "SIGNALS": 30,
+    "SIGNALS": 26,
 }
 # Retain stable IDs after consolidation; gaps are intentional.
 assert {r["id"] for r in bank.questions["PROCESSES CUSTOM"].values()} == {
@@ -78,11 +78,11 @@ answer_has("PC39", "8 total processes")
 answer_has("PC41", "HP, CT, Bye, HC", "wait(&child_status)")
 
 assert {r["id"] for r in bank.questions["SIGNALS"].values()} == {
-    f"SG{i:02}" for i in range(1, 31)
+    f"SG{i:02}" for i in range(1, 31) if i not in {17, 22, 24, 28}
 }
 signals = bank.questions["SIGNALS"]
-assert sum(r["subcategory"] == "General" for r in signals.values()) == 17
-assert sum("```c" in q for q in signals) == 13
+assert sum(r["subcategory"] == "General" for r in signals.values()) == 16
+assert sum("```c" in q for q in signals) == 10
 for prompt, record in signals.items():
     assert record["explanation"].strip(), record["id"]
     assert any("8.1 Signals.pptx, slides " in s for s in record["sources"])
@@ -104,4 +104,4 @@ assert "SIG_SETMASK" in signal_record["answer"]
 assert "sigsuspend(&mask)" in signal_record["answer"]
 assert signal_record["explanation"].strip()
 assert any("entries 34-36" in source for source in signal_record["sources"])
-print("PASS: 31 PROCESSES CUSTOM and 30 SIGNALS; unique IDs, sources, explanations, code references, four starred Signals forms; process ordering and counts.")
+print("PASS: 31 PROCESSES CUSTOM and 26 SIGNALS; unique IDs, sources, explanations, code references, four starred Signals forms; process ordering and counts.")
