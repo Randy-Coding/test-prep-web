@@ -16,12 +16,22 @@ review_topics = {topic: entries for topic, entries in bank.questions.items()
 core_topics = {topic: entries for topic, entries in bank.questions.items()
                if topic not in review_topics}
 records = {a["id"]: (q, a) for entries in core_topics.values() for q, a in entries.items()}
-assert len(records) == sum(map(len, core_topics.values())) == 79
+assert len(records) == sum(map(len, core_topics.values())) == 87
 assert {topic: len(entries) for topic, entries in core_topics.items()} == {
     "PROCESSES CUSTOM": 31,
-    "SIGNALS": 26,
+    "SIGNALS": 25,
     "HW5 [Shell]": 22,
+    "HW3 [Compiler]": 9,
 }
+compiler = bank.questions["HW3 [Compiler]"]
+assert {r["id"] for r in compiler.values()} == {f"CP{i:02}" for i in range(1, 10)}
+assert {r["id"] for q, r in compiler.items() if q.startswith("⭐ ")} == {
+    f"CP{i:02}" for i in range(1, 8)
+}
+for prompt, record in compiler.items():
+    assert "```" not in prompt
+    if prompt.startswith("⭐ "):
+        assert any("Nov 5 mt2 review" in s and "line 85" in s for s in record["sources"])
 # Retain stable IDs after consolidation; gaps are intentional.
 assert {r["id"] for r in bank.questions["PROCESSES CUSTOM"].values()} == {
     f"PC{i:02}" for i in (1,3,4,6,7,8,9,10,11,12,13,14,16,17,18,20,22,25,26,27,
@@ -48,7 +58,7 @@ for ident, (prompt, record) in records.items():
 tree = ast.parse((ROOT / "question_banks/CSE320_MT2.py").read_text(encoding="utf-8"))
 prompts = [n.args[2].value for n in ast.walk(tree)
            if isinstance(n, ast.Call) and isinstance(n.func, ast.Name)
-           and n.func.id in {"_pc", "_pc_code", "_sg", "_shell"}
+           and n.func.id in {"_pc", "_pc_code", "_sg", "_shell", "_compiler"}
            and isinstance(n.args[2], ast.Constant)]
 assert len(prompts) == len(set(prompts))
 
@@ -84,11 +94,14 @@ answer_has("PC39", "8 total processes")
 answer_has("PC41", "HP, CT, Bye, HC", "wait(&child_status)")
 
 assert {r["id"] for r in bank.questions["SIGNALS"].values()} == {
-    f"SG{i:02}" for i in range(1, 31) if i not in {17, 22, 24, 28}
+    f"SG{i:02}" for i in range(1, 31) if i not in {17, 22, 24, 28, 29}
 }
 signals = bank.questions["SIGNALS"]
+assert all(not any(term in (q + r["answer"] + r["explanation"]).lower()
+                   for term in ("setjmp", "longjmp", "nonlocal jump"))
+           for q, r in signals.items())
 assert sum(r["subcategory"] == "General" for r in signals.values()) == 16
-assert sum("```c" in q for q in signals) == 10
+assert sum("```c" in q for q in signals) == 9
 for prompt, record in signals.items():
     assert record["explanation"].strip(), record["id"]
     assert any("8.1 Signals.pptx, slides " in s for s in record["sources"])
@@ -97,10 +110,12 @@ for prompt, record in signals.items():
 for ident, quote in {
     "SG01": "Tell me what I'm doing wrong",
     "SG02": "generic signal theory stuff",
+    "SG18": "Tell me what I'm doing wrong",
+    "SG23": "Tell me what I'm doing wrong",
+    "SG25": "Tell me what I'm doing wrong",
     "SG20": "does it leave zombies behind?",
     "SG21": "Tell me what you expect to happen",
     "SG27": "Tell me what you expect to happen",
-    "SG29": "Tell me what you expect to happen",
 }.items():
     prompt, record = records[ident]
     assert prompt.startswith("⭐ "), ident
@@ -114,10 +129,14 @@ assert "SIG_SETMASK" in signal_record["answer"]
 assert "sigsuspend(&mask)" in signal_record["answer"]
 assert signal_record["explanation"].strip()
 assert any("entries 34-36" in source for source in signal_record["sources"])
+assert {r["id"] for q, r in bank.questions["HW5 [Shell]"].items()
+        if q.startswith("\u2b50 ")} == {
+    "SH01", "SH03", "SH06", "SH07", "SH09", "SH15", "SH17"
+}
 assert {r["id"] for r in bank.questions["HW5 [Shell]"].values()} == {
     f"SH{i:02}" for i in range(1, 23)
 }
-print("PASS: 31 PROCESSES CUSTOM, 26 SIGNALS, and 22 HW5 [Shell]; unique IDs, sources, explanations, code references, six Signals stars covering four required forms; process ordering and counts.")
+print("PASS: 31 PROCESSES CUSTOM, 25 SIGNALS, and 22 HW5 [Shell]; unique IDs, sources, explanations, code references, eight Signals stars covering four required forms; process ordering and counts.")
 
 # Review deck: 54 numbered questions, including multipart prompts and answers.
 assert {topic: len(entries) for topic, entries in review_topics.items()} == {

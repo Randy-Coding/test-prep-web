@@ -7,6 +7,92 @@ Signals coverage follows signals_topic.txt and QUESTION GUIDELINES.txt.
 questions = {}
 
 
+# Compiler homework: user-approved nine-question scope, seven transcript stars.
+def _compiler(number, category, prompt, answer, explanation, sections, implementation=None):
+    sources = [f"COMPILER_HW/README.md, sections {sections}"]
+    if implementation:
+        sources.append(implementation)
+    if number <= 7:
+        prompt = "⭐ " + prompt
+        sources.append(
+            "Nov 5 mt2 review (transcribed on 06-Nov-2026 20-15-16).txt, line 85: "
+            '"at least at a high level, what the bugs were for homework three"; '
+            '"basic stuff about how to optimize homework three. Not super in detail."'
+        )
+    questions.setdefault("HW3 [Compiler]", {})[prompt] = {
+        "id": f"CP{number:02}", "subcategory": category,
+        "answer": answer, "explanation": explanation, "sources": sources,
+    }
+
+
+_compiler(1, "Bugs",
+    "In HW3, the compiler could lose the end of a program supplied through a pipe. What caused this, how should the loader be repaired, and how would you verify the repair?",
+    "- Cause: the loader used one read call and treated the bytes returned as the complete source. A pipe can deliver a successful short read before the producer has finished.\n"
+    "- Repair: accumulate bytes across reads until EOF, growing the buffer as needed and handling read errors. Terminate the complete source buffer before lexing.\n"
+    "- Verification: compare compilation of identical file and piped input, including input delivered in multiple chunks; use strace -e read to inspect the returned byte counts.",
+    "A positive read result reports bytes delivered by that call, not the total stream length. Stopping after that call can silently discard source. Reading to EOF makes completeness independent of how the producer divides its writes.",
+    "4.2", "COMPILER_HW/src/main.c, load_source")
+
+_compiler(2, "Bugs",
+    "Explain the interaction between the lexer and parser that caused HW3's token-array growth bug. Describe a repair and how to exercise it in a test.",
+    "- Cause: the parser cached token pointers into the lexer's array. When growth moved the array through realloc, those pointers referred to the old, freed allocation.\n"
+    "- Repair: use token indices and resolve them against the current array after operations that can grow it, or use storage that keeps token addresses stable. Update every affected token reference.\n"
+    "- Test: use input large enough to grow the initially 256-token array and run ASan or Memcheck. Check correctness as well as memory safety.",
+    "The lexer produces tokens on demand, so asking for another token can invalidate pointers already held by the parser. Small inputs miss this path, and growth does not necessarily relocate storage on every run. An output diff alone can miss an invalid read.",
+    "1.2, 4.3", "COMPILER_HW/src/lexer.c, lexer_init/push_tok; COMPILER_HW/src/parser.c, advance and token consumers")
+
+_compiler(3, "Bugs",
+    "In HW3, an inner variable could remain visible after its block ended. Explain the scope-removal error, its repair, and why memory checking alone would miss it.",
+    "- Cause: scope_pop tested for entries deeper than the current scope before decreasing the scope depth. Entries at the departing scope's depth were left active.\n"
+    "- Repair: retire entries at the departing depth before decrementing it, preserving outer declarations and the hash table's probe chains. Lookup can then find the innermost remaining declaration.\n"
+    "- Verification: a shadowing test should use the inner variable inside the block and the outer variable afterward. Memory checking alone misses this because accessing the wrong live symbol is a logic error, not necessarily an invalid memory access.",
+    "The supplied scope_shadow test assigns 1 to the outer x and 2 to the inner x. Its intended printout is 2 followed by 1; the buggy scope removal leaves the inner entry available and prints 2 again. Tombstones retire entries without breaking lookup along a probe chain.",
+    "4.4", "COMPILER_HW/src/symtab.c, scope_pop/symtab_lookup; COMPILER_HW/test/scope_shadow.sl")
+
+_compiler(4, "Optimization",
+    "What lexer optimizations does the HW3 README recommend, and why would each reduce compilation cost?",
+    "- Pack the Token structure to reduce its memory footprint, improving how many tokens fit in cache and reducing storage and copying costs.\n"
+    "- Make fewer passes over the input bytes to avoid repeated scanning and associated instruction and memory-access work.",
+    "The README identifies token layout and repeated byte processing as lexer optimization levers. These changes target the work of compiling the source while preserving the tokens' meaning and the emitted bytecode.",
+    "5.4, 5.6")
+
+_compiler(5, "Optimization",
+    "What allocation work does the HW3 README suggest optimizing in the parser, and why would changing it help?",
+    "Improve AST and token allocation, especially the overhead of allocating each AST node separately. For example, allocate nodes in blocks or an arena and grow collections with spare capacity instead of repeatedly allocating tiny pieces. This can reduce allocator calls, copying, and scattered memory access.",
+    "The README points to AST/token allocation and per-node malloc cost. Blocks or arenas are example designs for addressing that stated opportunity, not a required implementation. Object lifetimes and valid references must remain correct; reducing allocation overhead does not justify reintroducing the token-pointer bug.",
+    "4.3, 5.4, 5.6", "COMPILER_HW/src/parser.c, new_node/list_push")
+
+_compiler(6, "Optimization",
+    "How do hash quality, load factor, and probe length affect the HW3 symbol table's performance? What should an optimization improve while preserving scope behavior?",
+    "- Hash quality: distribute names across the table to reduce collisions.\n"
+    "- Load factor: avoid crowding that makes finding an entry or an available slot expensive; resizing trades additional space and rehashing work for cheaper operations.\n"
+    "- Probe length: reduce the number of slots examined per lookup or insertion.\n"
+    "Preserve shadowing, selection of the innermost active declaration, and retirement of declarations when their scope ends.",
+    "The README lists these three connected levers. Better distribution and appropriate occupancy can shorten probes, reducing instructions and memory accesses. A faster table that resolves a name to the wrong declaration fails the homework's correctness contract.",
+    "4.4, 5.4")
+
+_compiler(7, "Optimization",
+    "What loader optimizations does the HW3 README recommend, and how could they reduce compilation work? Include the limitation for piped input.",
+    "- mmap: map a suitable regular input file so the compiler can access its bytes without explicitly reading the entire file into a separate application buffer.\n"
+    "- Buffer sizing: choose or grow read buffers to avoid excessive small reads, reallocations, and copying. Continue reading through EOF.\n"
+    "Piped input still needs a stream-reading path; a regular-file mapping does not replace that path.",
+    "The README names mmap and buffer sizing as loader levers and requires both named-file and stdin input. Mapping a file can reduce explicit reading/copying work, while buffering improves the read-based path. Neither permits dropping source bytes or assuming one read consumes a stream.",
+    "4.2, 5.4, 5.6", "COMPILER_HW/src/main.c, load_source")
+
+_compiler(8, "Correctness",
+    "Two HW3 compiler builds print the same results when their generated programs run. Why is that insufficient to accept an optimization, and what checks are required?",
+    "Matching printed results on those inputs does not establish identical bytecode or memory-safe compilation. The optimized compiler must produce byte-identical .bvm output to golden on every correctness test and run clean under Memcheck on the memory corpus. All three planted bugs must be fixed before Part B is scored.",
+    "The assignment preserves the compiler's exact output, a stronger condition than matching the generated program's observed printout. The token-growth bug also shows why an apparently correct output does not replace memory checking.",
+    "1.1, 1.2, 4.1, 4.3")
+
+_compiler(9, "Measurement",
+    "How does HW3 measure optimization performance, and why could an improved score differ from an improvement in actual runtime?",
+    "- Measurement: compare user-space instruction counts, simulated cache misses, and syscall counts with the minimally bug-fixed baseline, rather than grading native wall-clock time.\n"
+    "- Limits: Cachegrind does not count kernel instructions or model prefetching, branch prediction, or out-of-order execution. A rewrite that reduces instruction count can still take more real cycles. mmap moves work toward the kernel, so the instruction metric does not capture its full cost; the syscall component captures part of the loader improvement.",
+    "The weighted score combines instruction, cache-miss, and syscall ratios. These are useful proxies with disclosed blind spots, so optimization should focus on reduced work and better allocation/layout rather than assuming every score improvement proves faster execution on hardware.",
+    "5.1, 5.3, 5.6")
+
+
 # User-approved slide 24 correction; remaining Signals questions follow below.
 questions["SIGNALS"] = {
     "⭐ This sequence is proposed as an implementation of sigsuspend(&mask), "
@@ -408,7 +494,7 @@ _sg(9, "General", "The pending types are SIGINT, SIGALRM, and SIGCHLD; the block
     "The kernel masks out blocked types from the pending vector when checking for signals before returning to the process. No cross-type delivery-order prediction is needed here.", "8")
 _sg(10, "General", "What actions do signal(signum, SIG_IGN), signal(signum, SIG_DFL), and signal(signum, handler) select? Where does execution continue after a handler returns normally?",
     "- SIG_IGN selects ignoring that signal type.\n- SIG_DFL restores that type's default action.\n- A handler address installs a user-level handler.\n- After a normal handler return, execution resumes in the interrupted control flow.",
-    "Installing a handler changes the signal disposition; catching is executing that handler. Normal return resumes the interrupted process, whereas a handler that exits or performs a nonlocal jump does not follow that normal return path.", "9-10, 30")
+    "Installing a handler changes the signal disposition; catching is executing that handler. Normal return resumes the interrupted process; a handler that terminates the process with exit does not resume that flow.", "9-10")
 _sg(11, "General", "In slide 11's diagram, process A is sent a signal, process B runs, and A later executes its handler. Explain the difference between delivery and receipt here, which process executes the handler, and the blocking rule while that handler runs.",
     "- Delivery records the signal for A; receipt is when A reacts to it by executing its handler. Scheduling can put B's execution between those events.\n- The handler executes in process A and shares A's data; it is a separate control flow within A.\n- The handled signal type is implicitly blocked during the handler under the course's normal handling semantics. Other unblocked signal types can interrupt it.",
     "The figure places both the handler and resumed main flow in A, with context switches to and from B before receipt. Slide 17 explains why the sigaction-based wrapper is used for consistent handling semantics.", "11, 13, 17")
@@ -434,7 +520,7 @@ _sg(30, "General", "Which function is used to explicitly block a signal type? Wh
 _sg(18, 'Code diagnosis', 'What is wrong with this SIGINT handler under the safe-handler guidelines? Identify the unsafe calls and suggest a safer design.',
     '- printf and fflush use the unsafe stdio interface; exit is also unsafe in a handler.\n- Use async-signal-safe output such as write if output is necessary, and _exit if terminating directly. Alternatively, have the handler set a volatile sig_atomic_t flag and return so main performs the stdio work and normal exit.\n- sleep is listed as async-signal-safe, though keeping the handler short is preferable.',
     'The introductory bomb handler illustrates catching SIGINT, but slides 13-14 later restrict which functions handlers should call. Predicting guaranteed stdio output would ignore that safety issue.', '10, 13-14', '22',
-    code='void sigint_handler(int sig) /* SIGINT handler */\n{\n    printf("So you think you can stop the bomb with ctrl-c, do you?\\n");\n    sleep(2);    printf("Well...");    fflush(stdout);    sleep(1);\n    printf("OK. :-)\\n");    exit(0);\n}', modification='Excerpted the complete handler; omitted main and its installation code.', quote=None)
+    code='void sigint_handler(int sig) /* SIGINT handler */\n{\n    printf("So you think you can stop the bomb with ctrl-c, do you?\\n");\n    sleep(2);    printf("Well...");    fflush(stdout);    sleep(1);\n    printf("OK. :-)\\n");    exit(0);\n}', modification='Excerpted the complete handler; omitted main and its installation code.', quote="Tell me what I'm doing wrong.")
 
 _sg(19, 'Handler behavior', 'A SIGINT is sent during the protected region below. Explain how the mask affects its receipt during the region and after the last call. Why restore prev_mask instead of clearing the entire blocked set?',
     '- SIGINT is blocked during the protected region, so it cannot interrupt the region through receipt.\n- Restoring prev_mask makes a pending SIGINT eligible for receipt if SIGINT was previously unblocked. If it was already blocked before the region, it stays blocked.\n- Restoring the saved mask preserves all preexisting blocked signals instead of inadvertently unblocking them.',
@@ -455,13 +541,13 @@ _sg(21, 'Handler behavior', 'In this handler, one child has terminated and anoth
 _sg(23, 'Code diagnosis', 'These excerpts use handler for SIGCHLD. Identify the job-list error, give an execution order that produces it, and describe the repair in both parent and child.',
     '- The child can exec and terminate before the parent blocks SIGCHLD and calls addjob.\n- A schedule is: fork; child runs and terminates; handler reaps it and tries deletejob before an entry exists; parent then adds the already-reaped PID. The job list can contain a stale entry.\n- Block SIGCHLD before fork. In the parent keep it blocked until after addjob, then restore the prior mask. In the child restore the inherited prior mask before exec.\n- In this schedule the child has already been reaped: a stale job entry is not itself a zombie process.',
     "Slides 18-20 identify the assumption that the parent runs before the child. Blocking only around addjob is too late to establish the required add-before-delete order. The handler's waitpid options are 0, so this printed handler can also block while other children remain running; that does not explain away the demonstrated job-list race.", '18-20', '27, 28',
-    code='int main(int argc, char **argv)\n{\n    int pid;  sigset_t mask_all, prev_all;\n    Sigfillset(&mask_all);\n    Signal(SIGCHLD, handler);\n    initjobs(); /* Initialize the job list */\n    while (1) {\n        if ((pid = Fork()) == 0)  /* Child */\n            Execve("/bin/date", argv, NULL); \n        Sigprocmask(SIG_BLOCK, &mask_all, &prev_all); \n/* Parent */\n        addjob(pid);  /* Add the child to the job list */\n        Sigprocmask(SIG_SETMASK, &prev_all, NULL);\n    }\n    exit(0);}\n\nvoid handler(int sig)\n{\n    int olderrno = errno;\n    sigset_t mask_all, prev_all;\n    pid_t pid;\n    Sigfillset(&mask_all);\n    while ((pid = waitpid(-1, NULL, 0)) > 0) { /* Reap child */\n        Sigprocmask(SIG_BLOCK, &mask_all, &prev_all);\n        deletejob(pid); /* Delete the child from the job list */\n        Sigprocmask(SIG_SETMASK, &prev_all, NULL);\n    }\n    if (errno != ECHILD)\n        Sio_error("waitpid error");\n    errno = olderrno;\n}', modification=None, quote=None)
+    code='int main(int argc, char **argv)\n{\n    int pid;  sigset_t mask_all, prev_all;\n    Sigfillset(&mask_all);\n    Signal(SIGCHLD, handler);\n    initjobs(); /* Initialize the job list */\n    while (1) {\n        if ((pid = Fork()) == 0)  /* Child */\n            Execve("/bin/date", argv, NULL); \n        Sigprocmask(SIG_BLOCK, &mask_all, &prev_all); \n/* Parent */\n        addjob(pid);  /* Add the child to the job list */\n        Sigprocmask(SIG_SETMASK, &prev_all, NULL);\n    }\n    exit(0);}\n\nvoid handler(int sig)\n{\n    int olderrno = errno;\n    sigset_t mask_all, prev_all;\n    pid_t pid;\n    Sigfillset(&mask_all);\n    while ((pid = waitpid(-1, NULL, 0)) > 0) { /* Reap child */\n        Sigprocmask(SIG_BLOCK, &mask_all, &prev_all);\n        deletejob(pid); /* Delete the child from the job list */\n        Sigprocmask(SIG_SETMASK, &prev_all, NULL);\n    }\n    if (errno != ECHILD)\n        Sio_error("waitpid error");\n    errno = olderrno;\n}', modification=None, quote="Tell me what I'm doing wrong.")
 
 
 _sg(25, 'Code diagnosis', "These excerpts explicitly wait for child completion. If pid = 0 is moved below the parent's SIG_SETMASK call, what goes wrong? Give the relevant execution order and explain the original placement.",
     "- Restoring the mask can let a pending SIGCHLD handler run and store the reaped child's PID.\n- The moved pid = 0 then overwrites that notification. The parent may spin indefinitely with no child completion left to set it again.\n- The original code clears pid while SIGCHLD is blocked, then restores the mask; the handler's update therefore follows the reset.",
     'The handler and main share the flag. Blocking protects the order of reset and notification; volatile sig_atomic_t alone does not order those actions. The empty SIGINT handler returns without changing pid.', '13, 21-22', '30, 31',
-    code='volatile sig_atomic_t pid;\nvoid sigchld_handler(int s)\n{\n    int olderrno = errno;\n    pid = Waitpid(-1, NULL, 0); /* Main is waiting for nonzero pid */\n    errno = olderrno;\n}\nvoid sigint_handler(int s) { }\n\nint main(int argc, char **argv) {\n    sigset_t mask, prev;\n    Signal(SIGCHLD, sigchld_handler);   Signal(SIGINT, sigint_handler);\n    Sigemptyset(&mask);   Sigaddset(&mask, SIGCHLD);\n    while (1) {\n\tSigprocmask(SIG_BLOCK, &mask, &prev); /* Block SIGCHLD */\n\tif (Fork() == 0)  exit(0); /* Child */\n        /* Parent */\n\tpid = 0;\n\tSigprocmask(SIG_SETMASK, &prev, NULL); /* Unblock SIGCHLD */\n\t/* Wait for SIGCHLD to be received (wasteful!) */\n\twhile (!pid) ;\n\t/* Do some work after receiving SIGCHLD */\n        printf(".");\n    }\n    exit(0);}', modification=None, quote=None)
+    code='volatile sig_atomic_t pid;\nvoid sigchld_handler(int s)\n{\n    int olderrno = errno;\n    pid = Waitpid(-1, NULL, 0); /* Main is waiting for nonzero pid */\n    errno = olderrno;\n}\nvoid sigint_handler(int s) { }\n\nint main(int argc, char **argv) {\n    sigset_t mask, prev;\n    Signal(SIGCHLD, sigchld_handler);   Signal(SIGINT, sigint_handler);\n    Sigemptyset(&mask);   Sigaddset(&mask, SIGCHLD);\n    while (1) {\n\tSigprocmask(SIG_BLOCK, &mask, &prev); /* Block SIGCHLD */\n\tif (Fork() == 0)  exit(0); /* Child */\n        /* Parent */\n\tpid = 0;\n\tSigprocmask(SIG_SETMASK, &prev, NULL); /* Unblock SIGCHLD */\n\t/* Wait for SIGCHLD to be received (wasteful!) */\n\twhile (!pid) ;\n\t/* Do some work after receiving SIGCHLD */\n        printf(".");\n    }\n    exit(0);}', modification=None, quote="Tell me what I'm doing wrong.")
 
 _sg(26, 'Code diagnosis', 'This loop replaces the busy wait on pid set by the SIGCHLD handler. Identify the problem, show an execution order that demonstrates it, and describe a repair.',
     '- There is a race condition between testing pid and calling pause; those operations are not atomic.\n- Main tests pid and finds zero. Before pause, SIGCHLD arrives, the handler reaps the child and sets pid nonzero, then returns. Main calls pause anyway and can wait indefinitely for another caught signal.\n- Keep SIGCHLD blocked while testing pid, then use sigsuspend with a temporary mask that permits SIGCHLD; recheck pid in a loop and restore the original mask after waiting. The atomic mask change and wait prevent the signal from being handled between the condition check and the wait.',
@@ -474,15 +560,14 @@ _sg(27, 'Handler behavior', 'While main is waiting in Sigsuspend with pid equal 
     code='volatile sig_atomic_t pid;\nvoid sigchld_handler(int s)\n{\n    int olderrno = errno;\n    pid = Waitpid(-1, NULL, 0); /* Main is waiting for nonzero pid */\n    errno = olderrno;\n}\nvoid sigint_handler(int s) { }\n\nint main(int argc, char **argv) {\n    sigset_t mask, prev;\n    Signal(SIGCHLD, sigchld_handler); Signal(SIGINT, sigint_handler);\n    Sigemptyset(&mask);  Sigaddset(&mask, SIGCHLD);\n    while (1) {\n        Sigprocmask(SIG_BLOCK, &mask, &prev); /* Block SIGCHLD */\n        if (Fork() == 0) exit(0);/* Child */\n        /* Wait for SIGCHLD to be received */\n        pid = 0; while (!pid) Sigsuspend(&prev);\n       /* Optionally unblock SIGCHLD */\n        Sigprocmask(SIG_SETMASK, &prev, NULL);\n\t/* Do some work after receiving SIGCHLD */\n        printf(".");\n    }\n    exit(0);}', modification=None, quote='Tell me what you expect to happen.')
 
 
-_sg(29, 'Handler behavior', 'What does this program do initially and when Ctrl-C invokes its handler after setup? Explain where execution resumes and whether exit(0) is reached.',
-    '- Initially it prints starting, then repeatedly sleeps and prints processing....\n- Ctrl-C invokes the handler, which calls siglongjmp(buf, 1). The saved sigsetjmp returns 1, selecting the else branch and printing restarting. Execution enters the processing loop again.\n- The saved signal mask is restored because sigsetjmp was called with second argument 1.\n- exit(0) is not reached through this flow because the loop has no exit.',
-    'Slide 30 shows signal-aware nonlocal control flow within the same process. It restarts the processing loop rather than creating a new process or terminating through the default SIGINT action. Exact numbers of processing messages depend on signal timing.', '26-30', '41',
-    code='sigjmp_buf buf;\nvoid handler(int sig)\n{\n    siglongjmp(buf, 1);\n}\nint main()\n{\n    if (!sigsetjmp(buf, 1)) {\n        Signal(SIGINT, handler);\n\tSio_puts("starting\\n");\n    }\n    else\n        Sio_puts("restarting\\n");\n    while(1) {\n\tSleep(1);\n\tSio_puts("processing...\\n");\n    }\n    exit(0); /* Control never reaches here */\n}', modification=None, quote='Tell me what you expect to happen.')
 
 
 # Shell homework: feature behavior and major design decisions, prepared in
 # shell_topic.txt. Command examples are not C-code diagnosis exercises.
 def _shell(number, category, prompt, answer, explanation, readme, *extra_sources):
+    # User-approved priorities grounded in November 5 transcript line 85.
+    if number in {1, 3, 6, 7, 9, 15, 17}:
+        prompt = "\u2b50 " + prompt
     questions.setdefault("HW5 [Shell]", {})[prompt] = {
         "id": f"SH{number:02}",
         "subcategory": category,
@@ -554,7 +639,7 @@ _shell(6, "Shell design",
     "SHELL_HW/src/tsh.c, main handler installation and forward_foreground_signal")
 
 _shell(7, "Job-control design",
-    "A stopped pipeline is resumed with fg. How do do_bgfg, waitfg, and sigchld_handler cooperate from resumption to the next prompt? Why is sending SIGCONT alone insufficient?",
+    "A stopped pipeline is resumed with fg. How do do_bgfg, waitfg, and sigchld_handler cooperate from when fg resumes the pipeline until the shell displays its next prompt? Why is sending SIGCONT alone insufficient?",
     "- do_bgfg finds the job, marks it foreground, and sends SIGCONT to its process group.\n"
     "- waitfg waits while that job remains foreground.\n"
     "- sigchld_handler collects member-status changes and updates the job when it stops or finishes.\n"
