@@ -16,10 +16,10 @@ review_topics = {topic: entries for topic, entries in bank.questions.items()
 core_topics = {topic: entries for topic, entries in bank.questions.items()
                if topic not in review_topics}
 records = {a["id"]: (q, a) for entries in core_topics.values() for q, a in entries.items()}
-assert len(records) == sum(map(len, core_topics.values())) == 87
+assert len(records) == sum(map(len, core_topics.values())) == 86
 assert {topic: len(entries) for topic, entries in core_topics.items()} == {
     "PROCESSES CUSTOM": 31,
-    "SIGNALS": 25,
+    "SIGNALS": 24,
     "HW5 [Shell]": 22,
     "HW3 [Compiler]": 9,
 }
@@ -94,13 +94,13 @@ answer_has("PC39", "8 total processes")
 answer_has("PC41", "HP, CT, Bye, HC", "wait(&child_status)")
 
 assert {r["id"] for r in bank.questions["SIGNALS"].values()} == {
-    f"SG{i:02}" for i in range(1, 31) if i not in {17, 22, 24, 28, 29}
+    f"SG{i:02}" for i in range(1, 31) if i not in {15, 17, 22, 24, 28, 29}
 }
 signals = bank.questions["SIGNALS"]
 assert all(not any(term in (q + r["answer"] + r["explanation"]).lower()
                    for term in ("setjmp", "longjmp", "nonlocal jump"))
            for q, r in signals.items())
-assert sum(r["subcategory"] == "General" for r in signals.values()) == 16
+assert sum(r["subcategory"] == "General" for r in signals.values()) == 15
 assert sum("```c" in q for q in signals) == 9
 for prompt, record in signals.items():
     assert record["explanation"].strip(), record["id"]
@@ -136,7 +136,7 @@ assert {r["id"] for q, r in bank.questions["HW5 [Shell]"].items()
 assert {r["id"] for r in bank.questions["HW5 [Shell]"].values()} == {
     f"SH{i:02}" for i in range(1, 23)
 }
-print("PASS: 31 PROCESSES CUSTOM, 25 SIGNALS, and 22 HW5 [Shell]; unique IDs, sources, explanations, code references, eight Signals stars covering four required forms; process ordering and counts.")
+print("PASS: 31 PROCESSES CUSTOM, 24 SIGNALS, and 22 HW5 [Shell]; unique IDs, sources, explanations, code references, eight Signals stars covering four required forms; process ordering and counts.")
 
 # Review deck: 54 numbered questions, including multipart prompts and answers.
 assert {topic: len(entries) for topic, entries in review_topics.items()} == {
