@@ -148,13 +148,13 @@ def _add(topic, ident, category, prompt, answer, explanation, deck, slides):
     }
 
 
-# PROCESSES CUSTOM: prepared from processes_topic.txt and the November 5 review.
+# PROCESSES: prepared from processes_topic.txt and the November 5 review.
 # Code is embedded below so the bank remains independent of local source files.
 # Technical sources support the answers. Starred questions separately cite
 # the transcript passage that establishes their study priority.
 def _pc(number, category, prompt, answer, explanation, slides, example=None,
         modification=None):
-    topic = "PROCESSES CUSTOM"
+    topic = "PROCESSES"
     _add(topic, f"PC{number:02}", category, prompt, answer, explanation,
          "8. Processes", slides)
     record = questions[topic][prompt]

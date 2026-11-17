@@ -18,7 +18,7 @@ core_topics = {topic: entries for topic, entries in bank.questions.items()
 records = {a["id"]: (q, a) for entries in core_topics.values() for q, a in entries.items()}
 assert len(records) == sum(map(len, core_topics.values())) == 122
 assert {topic: len(entries) for topic, entries in core_topics.items()} == {
-    "PROCESSES CUSTOM": 31,
+    "PROCESSES": 31,
     "SIGNALS": 24,
     "HW5 [Shell]": 22,
     "HW3 [Compiler]": 9,
@@ -48,7 +48,7 @@ for prompt, record in compiler.items():
     if prompt.startswith("⭐ "):
         assert any("Nov 5 mt2 review" in s and "line 85" in s for s in record["sources"])
 # Retain stable IDs after consolidation; gaps are intentional.
-assert {r["id"] for r in bank.questions["PROCESSES CUSTOM"].values()} == {
+assert {r["id"] for r in bank.questions["PROCESSES"].values()} == {
     f"PC{i:02}" for i in (1,3,4,6,7,8,9,10,11,12,13,14,16,17,18,20,22,25,26,27,
                           31,32,33,34,35,36,37,38,39,40,41)
 }
