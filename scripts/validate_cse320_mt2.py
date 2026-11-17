@@ -16,14 +16,20 @@ review_topics = {topic: entries for topic, entries in bank.questions.items()
 core_topics = {topic: entries for topic, entries in bank.questions.items()
                if topic not in review_topics}
 records = {a["id"]: (q, a) for entries in core_topics.values() for q, a in entries.items()}
-assert len(records) == sum(map(len, core_topics.values())) == 122
+assert len(records) == sum(map(len, core_topics.values())) == 145
 assert {topic: len(entries) for topic, entries in core_topics.items()} == {
     "PROCESSES": 31,
-    "SIGNALS": 24,
+    "SIGNALS": 23,
     "HW5 [Shell]": 22,
     "HW3 [Compiler]": 9,
     "HEAP MEMORY": 36,
+    "VIRTUAL MEMORY": 24,
 }
+vm = bank.questions["VIRTUAL MEMORY"]
+assert {r["id"] for r in vm.values()} == {f"VM{i:02}" for i in range(1, 25)}
+assert all(r.get("image") == "cse320/page_table.png" for r in vm.values())
+assert all(q.startswith("⭐ ") for q in vm)
+assert sum(r["subcategory"] == "Page-fault access counts" for r in vm.values()) == 3
 heap = bank.questions["HEAP MEMORY"]
 assert {r["id"] for r in heap.values()} == {f"HP{i:02}" for i in range(1, 37)}
 assert sum(r["subcategory"] == "General" for r in heap.values()) == 24
@@ -56,7 +62,7 @@ for ident, (prompt, record) in records.items():
     assert prompt.strip() and record["answer"].strip() and record["subcategory"]
     assert record["explanation"].strip(), ident
     assert record["sources"] and all(
-        s.startswith("https://") or (ROOT / "cse320/midterm-2" / s.split(", ", 1)[0]).is_file()
+        s.startswith("https://") or (ROOT / "midterm-2" / s.split(", ", 1)[0]).is_file()
         for s in record["sources"]
     ), ident
     assert prompt.count("```") % 2 == 0, ident
@@ -73,7 +79,7 @@ for ident, (prompt, record) in records.items():
 tree = ast.parse((ROOT / "question_banks/CSE320_MT2.py").read_text(encoding="utf-8"))
 prompts = [n.args[2].value for n in ast.walk(tree)
            if isinstance(n, ast.Call) and isinstance(n.func, ast.Name)
-           and n.func.id in {"_pc", "_pc_code", "_sg", "_shell", "_compiler", "_heap"}
+           and n.func.id in {"_pc", "_pc_code", "_sg", "_shell", "_compiler", "_heap", "_vm"}
            and isinstance(n.args[2], ast.Constant)]
 assert len(prompts) == len(set(prompts))
 
@@ -109,21 +115,20 @@ answer_has("PC39", "8 total processes")
 answer_has("PC41", "HP, CT, Bye, HC", "wait(&child_status)")
 
 assert {r["id"] for r in bank.questions["SIGNALS"].values()} == {
-    f"SG{i:02}" for i in range(1, 31) if i not in {15, 17, 22, 24, 28, 29}
+    f"SG{i:02}" for i in range(1, 31) if i not in {1, 15, 17, 22, 24, 28, 29}
 }
 signals = bank.questions["SIGNALS"]
 assert all(not any(term in (q + r["answer"] + r["explanation"]).lower()
                    for term in ("setjmp", "longjmp", "nonlocal jump"))
            for q, r in signals.items())
 assert sum(r["subcategory"] == "General" for r in signals.values()) == 15
-assert sum("```c" in q for q in signals) == 9
+assert sum("```c" in q for q in signals) == 8
 for prompt, record in signals.items():
     assert record["explanation"].strip(), record["id"]
     assert any("8.1 Signals.pptx, slides " in s for s in record["sources"])
     if "```c" in prompt:
         assert any("midterm-2-code-examples.md" in s for s in record["sources"])
 for ident, quote in {
-    "SG01": "Tell me what I'm doing wrong",
     "SG02": "generic signal theory stuff",
     "SG18": "Tell me what I'm doing wrong",
     "SG23": "Tell me what I'm doing wrong",
@@ -137,13 +142,6 @@ for ident, quote in {
     assert any(quote in s and "line 85" in s for s in record["sources"]), ident
 assert not records["SG19"][0].startswith("⭐ ")
 assert not any("Nov 5 mt2 review" in source for source in records["SG19"][1]["sources"])
-signal_prompt, signal_record = records["SG01"]
-assert signal_prompt.startswith("⭐ ")
-assert "sigprocmask(SIG_BLOCK, &mask, &prev);" in signal_prompt
-assert "SIG_SETMASK" in signal_record["answer"]
-assert "sigsuspend(&mask)" in signal_record["answer"]
-assert signal_record["explanation"].strip()
-assert any("entries 34-36" in source for source in signal_record["sources"])
 assert {r["id"] for q, r in bank.questions["HW5 [Shell]"].items()
         if q.startswith("\u2b50 ")} == {
     "SH01", "SH03", "SH06", "SH07", "SH09", "SH15", "SH17"
@@ -151,7 +149,7 @@ assert {r["id"] for q, r in bank.questions["HW5 [Shell]"].items()
 assert {r["id"] for r in bank.questions["HW5 [Shell]"].values()} == {
     f"SH{i:02}" for i in range(1, 23)
 }
-print("PASS: 122 custom questions across Processes, Signals, Shell, Compiler, and Heap; unique IDs, sources, explanations, code references, required stars, and process ordering/counts. Heap: 24 General, 12 starred code questions, 24 total stars.")
+print("PASS: 145 custom questions across Processes, Signals, Virtual Memory, Shell, Compiler, and Heap; unique IDs, sources, explanations, image attachments, required stars, and process ordering/counts.")
 
 # Review deck: 54 numbered questions, including multipart prompts and answers.
 assert {topic: len(entries) for topic, entries in review_topics.items()} == {

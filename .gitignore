@@ -15,3 +15,8 @@ MP3_HW*/
 /cse320/midterm-2/*
 !/cse320/midterm-2/*.png
 !/cse320/midterm-2/*.svg
+/midterm-1/
+/midterm-2//midterm-2-old/
+/midterm-1.zip
+/midterm-2.zip
+.DS_Store

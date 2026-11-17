@@ -28,7 +28,10 @@ def image_path(name):
     original = ASSET_ROOT / name
     if original.is_file():
         return original
-    return ASSET_ROOT / "midterm-1" / name
+    midterm_one = ASSET_ROOT / "midterm-1" / name
+    if midterm_one.is_file():
+        return midterm_one
+    return ASSET_ROOT / "midterm-2" / name
 
 
 def normalize_question(question, answer):

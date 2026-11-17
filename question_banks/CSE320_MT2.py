@@ -1,10 +1,143 @@
-"""Midterm 2 practice: Processes, Signals, Heap, homework, and review references.
+"""Midterm 2 practice: Processes, Signals, Virtual Memory, Heap, homework, and review references.
 
 Stable IDs and source references are recorded in the coverage notes.
 Signals coverage follows signals_topic.txt and QUESTION GUIDELINES.txt.
 """
 
 questions = {}
+
+
+def _vm(number, kind, prompt, answer, explanation, slides, review=None, fault_rule=False):
+    sources = [f"9. Virtual Memory.pptx, slides {slides}", "page_table.png"]
+    if review:
+        sources.append(f"CSE 320 MT2 Review Session.pptx, slides {review}")
+    sources.append("Nov 5 mt2 review (transcribed on 06-Nov-2026 20-15-16).txt, line 85; lines 91-95")
+    if fault_rule:
+        sources.append("new_transcripts/Nov 17 part 2 threads (transcribed on 17-Nov-2026 15-17-04).txt, line 19")
+    questions.setdefault("VIRTUAL MEMORY", {})["⭐ " + prompt] = {
+        "id": f"VM{number:02}", "subcategory": kind,
+        "answer": answer, "explanation": explanation,
+        "sources": sources, "image": "cse320/page_table.png",
+    }
+
+
+# All input addresses below are hexadecimal. Page-table lookups use the
+# attached 16-byte-page diagram; a nonpresent entry has no current PA.
+_vm(1, "Single-level translation",
+    "Using Page Table 1, translate virtual address 0x2D to a physical address.",
+    "0x1D", "Page size 0x10 makes VPN 0x2 and offset 0xD. Index 2 is present and contains frame 0x1. The physical address is 0x10 + 0xD = 0x1D.",
+    "15-18", "56-60")
+_vm(2, "Single-level translation",
+    "Using Page Table 1, translate virtual address 0x4F to a physical address.",
+    "0x3F", "VPN 0x4 selects the present entry containing frame 0x3. Preserve offset 0xF: 0x30 + 0xF = 0x3F.",
+    "15-18", "56-60")
+_vm(3, "Single-level translation",
+    "Using Page Table 1, translate virtual address 0x71 to a physical address.",
+    "0x01", "VPN 0x7 selects a present entry containing physical frame 0x0. The offset remains 0x1, so the physical address is 0x01. Frame zero is a valid frame here.",
+    "15-18", "56-60")
+_vm(4, "Single-level page fault",
+    "Using Page Table 1, what is the translation result for virtual address 0x5A?",
+    "Not in RAM; the lookup causes a page fault.",
+    "VPN 0x5 has Present = 0. Its contents value 0x2 is not a usable current physical frame. No current physical address follows from the table.",
+    "8-9, 19", "61-64")
+
+_vm(5, "Two-level translation",
+    "Using Page Table 2, translate virtual address 0x1B9 to a physical address. Show the two indices and offset.",
+    "Top index 0x3; bottom index 0x3; offset 0x9; physical address 0x59.",
+    "The two 8-entry tables use three index bits each; the 16-byte page uses four offset bits. Top 3 selects bottom #0. Bottom #0 row 3 is present and contains frame 5. Therefore 0x50 + 0x9 = 0x59.",
+    "16-18, 29-33", "65-72")
+_vm(6, "Two-level translation",
+    "Using Page Table 2, translate virtual address 0x0D7 to a physical address. Derive both table indices.",
+    "Top index 0x1; bottom index 0x5; physical address 0x27.",
+    "0x0D7 splits into top 1, bottom 5, offset 7. Top 1 points to bottom #2; its row 5 is present and contains frame 2. Hence 0x20 + 0x7 = 0x27.",
+    "16-18, 29-33", "65-72")
+_vm(7, "Two-level translation",
+    "Using Page Table 2, translate virtual address 0x24C to a physical address. Show the lookup path.",
+    "Top 0x4 → bottom #3, row 0x4 → frame 0xF; physical address 0xFC.",
+    "The top and bottom indices each occupy three bits: 0x24C splits into 4, 4, C. Both entries are present. Frame F with offset C gives 0xFC.",
+    "16-18, 29-33", "118-125")
+_vm(8, "Two-level translation",
+    "Using Page Table 2, translate virtual address 0x33E to a physical address.",
+    "0xDE", "0x33E splits into top 6, bottom 3, offset E. Top 6 points to bottom #1; row 3 there is present and contains frame D. 0xD0 + 0xE = 0xDE.",
+    "16-18, 29-33", "65-72")
+_vm(9, "Two-level translation",
+    "Using Page Table 2, translate virtual address 0x0F2 to a physical address.",
+    "0x02", "0x0F2 splits into top 1, bottom 7, offset 2. Top 1 points to bottom #2; row 7 is present and contains frame 0. The physical address is 0x02.",
+    "16-18, 29-33", "65-72")
+_vm(10, "Two-level page fault",
+    "Using Page Table 2, what happens when virtual address 0x2A6 is translated? Identify the entry that stops the walk.",
+    "Page fault at top index 0x5; no current physical address.",
+    "0x2A6 splits into top 5, bottom 2, offset 6. Top row 5 has Present = 0, so no bottom table is followed. Its contents value is inactive.",
+    "8-9, 19, 29-33", "73-79")
+_vm(11, "Two-level page fault",
+    "Using Page Table 2, what happens when virtual address 0x1A6 is translated? Identify the entry that stops the walk.",
+    "Page fault at bottom table #0, index 0x2; no current physical address.",
+    "The address splits into top 3, bottom 2, offset 6. Present top row 3 points to bottom #0. Its row 2 has Present = 0, so its contents value 6 cannot be used as a frame.",
+    "8-9, 19, 29-33", "73-79")
+_vm(12, "Two-level page fault",
+    "Using Page Table 2, what happens when virtual address 0x357 is translated? Identify the lookup path.",
+    "Top 0x6 → bottom #1, row 0x5 → page fault; no current physical address.",
+    "0x357 splits into top 6, bottom 5, offset 7. Top 6 is present and points to bottom #1. Row 5 there has Present = 0, so the displayed B is not a current frame mapping.",
+    "8-9, 19, 29-33", "73-79")
+
+_vm(13, "Reverse translation",
+    "Using Page Table 1, which virtual address maps to physical address 0x1E?",
+    "0x2E", "Physical frame 1 appears in the present entry at virtual page index 2. Preserve offset E, giving 0x20 + 0xE = 0x2E.",
+    "12, 15-18", "80-87")
+_vm(14, "Reverse translation",
+    "Using Page Table 1, which virtual address maps to physical address 0x04?",
+    "0x74", "The physical frame is 0 and the offset is 4. Present virtual page 7 maps to frame 0. Therefore the virtual address is 0x70 + 0x4 = 0x74.",
+    "12, 15-18", "80-87")
+_vm(15, "Reverse translation",
+    "Using Page Table 2, which virtual address maps to physical address 0xE4? Show the valid table path.",
+    "0x324; top 6 → bottom #1, row 2 → frame E.",
+    "Frame E is in present row 2 of bottom #1. Present top row 6 points to that bottom table; top row 2's identical contents are nonpresent. Preserve physical offset 4: 6×0x80 + 2×0x10 + 4 = 0x324.",
+    "12, 15-18, 29-33", "80-87")
+_vm(16, "Reverse translation",
+    "Using Page Table 2, which virtual address maps to physical address 0xC9? Derive both virtual indices.",
+    "0x279; top index 4, bottom index 7.",
+    "Frame C is in present row 7 of bottom #3. Present top row 4 selects bottom #3. Preserve offset 9: 4×0x80 + 7×0x10 + 9 = 0x279.",
+    "12, 15-18, 29-33", "80-87")
+_vm(17, "Reverse translation",
+    "Using Page Table 2, which virtual address maps to physical address 0x27?",
+    "0x0D7", "Frame 2 occurs in present row 5 of bottom #2. Present top row 1 selects bottom #2. Keep offset 7, giving 1×0x80 + 5×0x10 + 7 = 0x0D7.",
+    "12, 15-18, 29-33", "80-87")
+
+_vm(18, "Access counts",
+    "Read virtual address 0x24 using Page Table 1. Assume a TLB hit. Count TLB lookups, RAM accesses, and disk accesses.",
+    "1 TLB lookup; 1 RAM access; 0 disk accesses.",
+    "The TLB hit supplies the translation without a page-table read. One RAM access reads the requested data. The page is resident, so disk is not accessed.",
+    "18, 22-23", "112-117")
+_vm(19, "Access counts",
+    "Read virtual address 0x4B using Page Table 1. Assume a TLB miss. Count TLB lookups, RAM accesses, and disk accesses.",
+    "1 TLB lookup; 2 RAM accesses; 0 disk accesses.",
+    "The miss requires one RAM read of the single-level PTE. Index 4 is present, so a second RAM access reads the data from frame 3 at 0x3B. A TLB miss alone does not require disk.",
+    "18, 22-27", "113, 117, 121")
+_vm(20, "Access counts",
+    "Read virtual address 0x24C using Page Table 2. Assume a TLB miss and resident page tables. Count TLB lookups, RAM accesses, and disk accesses.",
+    "1 TLB lookup; 3 RAM accesses; 0 disk accesses.",
+    "Two RAM reads walk top index 4 and bottom #3 index 4. Both are present. The third RAM access reads the requested data at 0xFC. No disk access occurs.",
+    "18, 22-27, 29-33", "118-125")
+_vm(21, "Access counts",
+    "Read virtual address 0x33E using Page Table 2. Assume a TLB hit. Count TLB lookups, RAM accesses, and disk accesses.",
+    "1 TLB lookup; 1 RAM access; 0 disk accesses.",
+    "The TLB hit supplies the mapping to frame D, bypassing both page-table RAM reads. One RAM access reads data at 0xDE; disk is unused.",
+    "18, 22-27, 29-33", "112-117")
+_vm(22, "Page-fault access counts",
+    "Read virtual address 0x5A using Page Table 1. Assume a TLB miss. Count TLB lookups, RAM accesses, and disk accesses up to the page fault; stop there.",
+    "1 TLB lookup; 1 RAM access; 1 disk access.",
+    "The TLB misses, then one RAM read finds Present = 0 at index 5. Under the instructor's exam convention, count one disk access at the fault and stop. The data read and fault handler are not counted.",
+    "19, 22-27", "61-64", fault_rule=True)
+_vm(23, "Page-fault access counts",
+    "Read virtual address 0x2A6 using Page Table 2. Assume a TLB miss and a resident top table. Count TLB lookups, RAM accesses, and disk accesses up to the page fault; stop there.",
+    "1 TLB lookup; 1 RAM access; 1 disk access.",
+    "The TLB misses. One RAM read finds Present = 0 at top index 5, so the walk stops before a bottom-table read. Count one disk access for the fault under the instructor's convention.",
+    "19, 22-27, 29-33", "73-79", fault_rule=True)
+_vm(24, "Page-fault access counts",
+    "Read virtual address 0x357 using Page Table 2. Assume a TLB miss and resident page tables. Count TLB lookups, RAM accesses, and disk accesses up to the page fault; stop there.",
+    "1 TLB lookup; 2 RAM accesses; 1 disk access.",
+    "The TLB misses. RAM reads the present top row 6 and then the nonpresent bottom #1 row 5. Count one disk access at that fault and stop before any data read or handler work.",
+    "19, 22-27, 29-33", "73-79", fault_rule=True)
 
 
 # Compiler homework: user-approved nine-question scope, seven transcript stars.
@@ -91,51 +224,6 @@ _compiler(9, "Measurement",
     "- Limits: Cachegrind does not count kernel instructions or model prefetching, branch prediction, or out-of-order execution. A rewrite that reduces instruction count can still take more real cycles. mmap moves work toward the kernel, so the instruction metric does not capture its full cost; the syscall component captures part of the loader improvement.",
     "The weighted score combines instruction, cache-miss, and syscall ratios. These are useful proxies with disclosed blind spots, so optimization should focus on reduced work and better allocation/layout rather than assuming every score improvement proves faster execution on hardware.",
     "5.1, 5.3, 5.6")
-
-
-# User-approved slide 24 correction; remaining Signals questions follow below.
-questions["SIGNALS"] = {
-    "⭐ This sequence is proposed as an implementation of sigsuspend(&mask), "
-    "where mask and prev are sigset_t objects. What is wrong with it? "
-    "Explain how the wait could fail and give the correct replacement.\n\n"
-    "```c\n"
-    "sigprocmask(SIG_BLOCK, &mask, &prev);\n"
-    "pause();\n"
-    "sigprocmask(SIG_SETMASK, &prev, NULL);\n"
-    "```": {
-        "id": "SG01",
-        "subcategory": "Code diagnosis",
-        "answer":
-            "- SIG_BLOCK adds mask's signals to the existing blocked set. "
-            "sigsuspend instead temporarily replaces the blocked set with mask. "
-            "For example, a signal blocked before this sequence stays blocked "
-            "even if mask excludes it, so it cannot wake pause by running its handler.\n"
-            "- Separate mask-setting and pause calls leave a race: an unblocked "
-            "signal can run its handler after the mask change but before pause. "
-            "pause then waits for another signal, even though the event being "
-            "awaited has already been handled.\n"
-            "- Replace the sequence with sigsuspend(&mask). It atomically installs "
-            "mask and suspends execution, then restores the previous mask when "
-            "it returns after a handler. Changing SIG_BLOCK to SIG_SETMASK alone "
-            "does not remove the race.",
-        "explanation":
-            "Slide 24 intends to describe an atomic mask/wait/restore operation, "
-            "but its SIG_BLOCK operation does not express mask replacement. "
-            "Slide 25 demonstrates the intended use: block SIGCHLD before "
-            "checking the flag, then call Sigsuspend(&prev) to temporarily "
-            "restore the previous mask while waiting. Slide 23 shows the "
-            "test/pause race. "
-            "Here mask is a sigset_t object, so &mask is the pointer passed "
-            "to sigsuspend; in its declaration, const sigset_t *mask already "
-            "names a pointer parameter.",
-        "sources": [
-            "8.1 Signals.pptx, slides 12, 23-25 (slide 24 mask-operation correction accepted by user)",
-            "midterm-2-code-examples.md, 8.1 Signals.pptx section, entries 34-36",
-            "Nov 5 mt2 review (transcribed on 06-Nov-2026 20-15-16).txt, line 85: "
-            '"Tell me what I\'m doing wrong."',
-        ],
-    },
-}
 
 
 def _add(topic, ident, category, prompt, answer, explanation, deck, slides):
