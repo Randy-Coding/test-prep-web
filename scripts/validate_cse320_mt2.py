@@ -16,13 +16,28 @@ review_topics = {topic: entries for topic, entries in bank.questions.items()
 core_topics = {topic: entries for topic, entries in bank.questions.items()
                if topic not in review_topics}
 records = {a["id"]: (q, a) for entries in core_topics.values() for q, a in entries.items()}
-assert len(records) == sum(map(len, core_topics.values())) == 86
+assert len(records) == sum(map(len, core_topics.values())) == 122
 assert {topic: len(entries) for topic, entries in core_topics.items()} == {
     "PROCESSES CUSTOM": 31,
     "SIGNALS": 24,
     "HW5 [Shell]": 22,
     "HW3 [Compiler]": 9,
+    "HEAP MEMORY": 36,
 }
+heap = bank.questions["HEAP MEMORY"]
+assert {r["id"] for r in heap.values()} == {f"HP{i:02}" for i in range(1, 37)}
+assert sum(r["subcategory"] == "General" for r in heap.values()) == 24
+assert sum(r["subcategory"] == "Bad memory usage code" for r in heap.values()) == 12
+assert {r["id"] for p, r in heap.items() if p.startswith("⭐ ")} == {
+    f"HP{i:02}" for i in (*range(7, 13), *range(14, 20), *range(25, 37))
+}
+for prompt, record in heap.items():
+    assert any("9.1 (The) Heap.pptx, slides " in s for s in record["sources"])
+    if record["subcategory"] == "Bad memory usage code":
+        assert prompt.startswith("⭐ ") and "```c" in prompt
+        assert any("midterm-2-code-examples.md, entry " in s for s in record["sources"])
+        assert any("line 85" in s and "something wrong with every program" in s
+                   for s in record["sources"])
 compiler = bank.questions["HW3 [Compiler]"]
 assert {r["id"] for r in compiler.values()} == {f"CP{i:02}" for i in range(1, 10)}
 assert {r["id"] for q, r in compiler.items() if q.startswith("⭐ ")} == {
@@ -58,7 +73,7 @@ for ident, (prompt, record) in records.items():
 tree = ast.parse((ROOT / "question_banks/CSE320_MT2.py").read_text(encoding="utf-8"))
 prompts = [n.args[2].value for n in ast.walk(tree)
            if isinstance(n, ast.Call) and isinstance(n.func, ast.Name)
-           and n.func.id in {"_pc", "_pc_code", "_sg", "_shell", "_compiler"}
+           and n.func.id in {"_pc", "_pc_code", "_sg", "_shell", "_compiler", "_heap"}
            and isinstance(n.args[2], ast.Constant)]
 assert len(prompts) == len(set(prompts))
 
@@ -136,7 +151,7 @@ assert {r["id"] for q, r in bank.questions["HW5 [Shell]"].items()
 assert {r["id"] for r in bank.questions["HW5 [Shell]"].values()} == {
     f"SH{i:02}" for i in range(1, 23)
 }
-print("PASS: 31 PROCESSES CUSTOM, 24 SIGNALS, and 22 HW5 [Shell]; unique IDs, sources, explanations, code references, eight Signals stars covering four required forms; process ordering and counts.")
+print("PASS: 122 custom questions across Processes, Signals, Shell, Compiler, and Heap; unique IDs, sources, explanations, code references, required stars, and process ordering/counts. Heap: 24 General, 12 starred code questions, 24 total stars.")
 
 # Review deck: 54 numbered questions, including multipart prompts and answers.
 assert {topic: len(entries) for topic, entries in review_topics.items()} == {

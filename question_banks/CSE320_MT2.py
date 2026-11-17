@@ -1,4 +1,4 @@
-"""Midterm 2 practice: Processes, Signals, Shell homework, and review references.
+"""Midterm 2 practice: Processes, Signals, Heap, homework, and review references.
 
 Stable IDs and source references are recorded in the coverage notes.
 Signals coverage follows signals_topic.txt and QUESTION GUIDELINES.txt.
@@ -778,6 +778,280 @@ _shell(22, "Pipeline design",
     "Pipe ownership is part of establishing the required dataflow and completion behavior. The parent is managing the pipeline, not supplying data through those write ends.",
     "Behavioral requirements, Pipes dataflow, foreground completion, and EOF example",
     "SHELL_HW/src/tsh.c, eval parent close(next[1]) and remaining pipe-end cleanup")
+
+
+# Heap: source-mapped exam preparation, HP01-HP36.
+def _heap(number, kind, prompt, answer, explanation, slides, *, entry=None,
+          transcript=None, star=False, changes=None):
+    sources = [f"9.1 (The) Heap.pptx, slides {slides}"]
+    if entry is not None:
+        sources.append(f"midterm-2-code-examples.md, entry {entry}" +
+                       (f"; adaptation: {changes}" if changes else ""))
+    if transcript:
+        sources.append("Nov 5 mt2 review (transcribed on 06-Nov-2026 20-15-16).txt, " + transcript)
+    if star:
+        prompt = "⭐ " + prompt
+        sources.append(
+            "Nov 5 mt2 review (transcribed on 06-Nov-2026 20-15-16).txt, line 85: "
+            '"There is something wrong with every program I give you. You need to figure out what is not and why."'
+            if kind == "Bad memory usage code" else
+            "Nov 5 mt2 review (transcribed on 06-Nov-2026 20-15-16).txt, line 85: "
+            '"the design of malloc and seg lists and implicit and explicit lists"'
+        )
+    questions.setdefault("HEAP MEMORY", {})[prompt] = {
+        "id": f"HP{number:02}", "subcategory": kind, "answer": answer,
+        "explanation": explanation, "sources": sources,
+    }
+
+
+_heap(1, "General",
+    "Why use dynamic heap allocation? How do explicit and implicit allocators divide responsibility between the application and memory manager?",
+    "- Purpose: obtain storage at runtime, including for structures whose sizes are not known in advance. Heap storage can outlive the function that allocated it.\n"
+    "- Explicit: the application requests storage and releases it, as with malloc/free.\n"
+    "- Implicit: the application requests storage; the memory manager reclaims it automatically.",
+    "Heap allocation separates an object's storage lifetime from the allocating function's stack frame. Automatic reclamation changes who decides when to release that storage; it does not remove the need to allocate it.",
+    "2-3, 42", transcript="lines 41, 63")
+
+_heap(2, "General",
+    "Compare the size and lifetime flexibility of stack and heap storage. What happens to each when the allocating function returns?",
+    "- Stack: a variable-length local array can have a runtime size, but its storage lifetime ends when its scope ends; a function's local storage does not survive its return.\n"
+    "- Heap: allocation size is chosen at runtime, and the allocation can survive the function's return. With explicit allocation it remains allocated until released, even if the program loses its last pointer to it.",
+    "Dynamic size does not imply a lifetime independent of scope. Returning a pointer to a local variable cannot extend that variable's lifetime, while losing a local pointer to a heap block does not free the block.",
+    "2-3, 50, 57-58", transcript="lines 63, 89")
+
+_heap(3, "General",
+    "What does a successful malloc request provide, how is allocation failure reported, and how does calloc differ? What does free release?",
+    "- malloc: a suitably aligned block with at least the requested number of bytes; its contents are not initialized.\n"
+    "- Failure: a null pointer. Check it before using the allocation.\n"
+    "- calloc: allocates storage and initializes its bytes to zero.\n"
+    "- free: releases the allocated block designated by its argument for reuse. It does not recursively release other blocks whose pointers were stored inside it.",
+    "Allocation and initialization are separate operations with malloc. Releasing a container allocation is also separate from releasing other allocations reachable through it.",
+    "4-5, 54, 59", transcript="lines 85, 89")
+
+_heap(4, "General",
+    "What constraints limit an explicit allocator's handling of allocation requests and live blocks? Explain why moving live blocks would be a problem.",
+    "It must handle requests immediately, satisfy alignment requirements, and allocate from free memory. It cannot reorder requests or move live allocated blocks. Moving a live block would leave application-held pointers referring to its old location.",
+    "The allocator controls the layout of free space, but the application holds pointers into allocated storage. Compaction is therefore excluded by the allocator model in these slides.",
+    "8")
+
+_heap(5, "General",
+    "What do allocator throughput and peak memory utilization measure? Why can improving one hurt the other?",
+    "- Throughput: completed malloc/free requests per unit time.\n"
+    "- Peak utilization after request k: the largest aggregate live requested payload seen through k, divided by the current heap size H_k, under the slides' nondecreasing-heap assumption.\n"
+    "- Tradeoff: more searching or coalescing may improve space use but takes time; faster policies may leave more wasted space.",
+    "The payload excludes allocator metadata and padding. Peak utilization uses the maximum live payload so far, not the sum of every allocation ever requested or just the payload currently live.",
+    "9-10, 18, 25")
+
+_heap(6, "General",
+    "Explain internal and external fragmentation. Which is reduced by coalescing adjacent free blocks, and why doesn't coalescing solve both?",
+    "- Internal fragmentation: space inside allocated blocks beyond the requested payload, including overhead and alignment padding.\n"
+    "- External fragmentation: free space is divided so that no single free block can satisfy a request despite sufficient total free space.\n"
+    "Coalescing combines adjacent free blocks and reduces external fragmentation. It does not recover padding or overhead inside live allocated blocks.",
+    "The distinction is where the unavailable space lies. Coalescing changes the representation of neighboring free regions, not the contents or size of a live allocation.",
+    "11-12, 20-22")
+
+_heap(7, "General",
+    "How does free determine a block's size from its payload pointer? How can one header word store both size and allocation status?",
+    "A header preceding the payload records the block size. Alignment leaves low-order bits unused by the size representation, so a low bit can record allocation status. Mask out that flag when reading the size.",
+    "The application pointer identifies the payload; the allocator locates the associated metadata. Using an alignment-implied zero bit avoids spending a whole extra word on the allocated/free flag.",
+    "14, 16-17", star=True)
+
+_heap(8, "General",
+    "Compare an implicit free list with an explicit free list: which blocks does each traverse, and how does it find the next block?",
+    "- Implicit list: traverses all physical heap blocks, allocated and free, using block sizes to locate the next block.\n"
+    "- Explicit list: traverses only free blocks using stored next/previous pointers. Consecutive list entries need not be adjacent in memory.",
+    "The explicit list is a second structure over the heap's free blocks. Its logical links serve allocation search, while physical adjacency matters for coalescing.",
+    "15-17, 27-29", transcript="lines 3-5", star=True)
+
+_heap(9, "General",
+    "Compare first fit, next fit, and best fit. What tradeoff does best fit make, and what are splinters?",
+    "- First fit: search from the beginning and take the first sufficiently large free block.\n"
+    "- Next fit: resume searching where the previous search ended.\n"
+    "- Best fit: choose the sufficiently large block with the least leftover space; it generally spends more search time to improve space use.\n"
+    "- Splinters: tiny leftover fragments with little allocation value; first fit can accumulate them near the start of the list.",
+    "These are placement policies, not different definitions of allocation. Their search and fragmentation behavior affect throughput and utilization; best fit is not a guarantee that all future requests will fit.",
+    "18, 25", transcript="line 3", star=True)
+
+_heap(10, "General",
+    "Why split a free block when satisfying an allocation? What tradeoff determines whether to keep the remainder separate?",
+    "Splitting allocates the needed portion and leaves the remainder free for later requests. Keeping a usable remainder can reduce internal fragmentation. If the remainder is too small to be useful or represent as a free block, keeping the whole block avoids creating a splinter but wastes space inside the allocation.",
+    "Splitting is a separate policy from choosing the block. Its benefit depends on whether the leftover region is useful; exact thresholds depend on the allocator's block layout.",
+    "18-19, 25", transcript="lines 1, 21", star=True)
+
+_heap(11, "General",
+    "Why can clearing a block's allocated bit leave an allocator unable to satisfy a request? How do coalescing and boundary tags address this?",
+    "Adjacent free blocks can remain represented as separate small blocks, causing false fragmentation. Coalescing merges physically adjacent free blocks. A block's size locates its successor; a boundary tag at the end of the preceding free block lets the allocator locate and merge that predecessor too.",
+    "A large contiguous free region is useful only if the allocator recognizes it as a sufficiently large block. Boundary tags enable backward neighbor discovery at the cost of metadata space.",
+    "20-24", transcript="line 3", star=True)
+
+_heap(12, "General",
+    "When freeing a block, what coalescing action corresponds to each combination of allocated/free left and right physical neighbors?",
+    "- Both allocated: keep the newly freed block separate.\n"
+    "- Left free, right allocated: merge with the left block.\n"
+    "- Left allocated, right free: merge with the right block.\n"
+    "- Both free: merge all three into one free block.",
+    "Only physically adjacent free blocks are merged. In an explicit free list, remove any merged neighbors' old entries and insert the resulting block once; list adjacency alone is not evidence of physical adjacency.",
+    "21-23, 32-35", transcript="lines 3, 35", star=True)
+
+_heap(13, "General",
+    "Compare immediate and deferred coalescing. When might a deferred allocator do the work?",
+    "Immediate coalescing merges adjacent free blocks during free. Deferred coalescing postpones that work, for example until a malloc search scans the free list or fragmentation reaches a threshold. Deferring can make individual frees cheaper, but leaves merging work for later requests.",
+    "Both policies can merge the same regions; they choose different times to pay the cost. A deferred representation may temporarily retain neighboring free blocks separately.",
+    "25")
+
+_heap(14, "General",
+    "Why is an explicit free list especially useful when most heap blocks are allocated? Where are its links stored, and what extra work does it require?",
+    "Allocation search skips allocated blocks and examines only free ones, so a mostly full heap can be much faster to search than an implicit list. Free blocks store forward/back links in their unused payload area. Allocation and freeing must splice entries out of and into the list, and the link fields increase the space required to represent a free block.",
+    "Explicit links reduce the set searched; they do not make a single linked-list search constant time. Storage for free-block metadata also constrains how small a usable free block can be.",
+    "28, 36", transcript="lines 3-7", star=True)
+
+_heap(15, "General",
+    "Compare LIFO and address-ordered insertion into an explicit free list. What do they trade off?",
+    "- LIFO: insert at the front, giving simple constant-time insertion.\n"
+    "- Address ordered: search for the position that keeps free blocks in increasing address order.\n"
+    "The slides report lower fragmentation with address ordering, at the cost of insertion search. LIFO favors cheap insertion.",
+    "List order is a policy choice independent of where blocks physically lie. Address ordering does not replace the need to update links correctly when blocks merge.",
+    "29, 31", transcript="line 3", star=True)
+
+_heap(16, "General",
+    "Describe allocation with segregated free lists, from receiving a request through handling a failure to find a block.",
+    "1. Choose the size class appropriate to the request.\n"
+    "2. Search that class for a sufficiently large block.\n"
+    "3. If found, remove it, allocate from it, and optionally split it; insert any usable remainder in its appropriate class.\n"
+    "4. Otherwise try larger classes. If no suitable block exists, request additional heap memory from the OS and allocate from that space, retaining the remainder as free storage.",
+    "Classes avoid searching blocks known to be too small. The transcript describes sbrk as the heap-growth mechanism in this teaching model; the growth-chunk size is a policy, not a fixed requirement for all allocators.",
+    "38-40", transcript="lines 17-35", star=True)
+
+_heap(17, "General",
+    "A segregated list has a class containing blocks from 1,000 to 2,000 bytes. For a 1,500-byte request, why might its first block fail, and what should the allocator do if no block in that class fits?",
+    "A block in that class may be smaller than 1,500 bytes. Search within the class for a sufficiently large block. If none fits, try the next larger class, continuing until a suitable block is found or the heap must grow.",
+    "A size class groups sizes; it does not make every member identical. Choosing the correct starting class narrows the search without proving that its first entry satisfies the request.",
+    "38-39", transcript="lines 21-27", star=True)
+
+_heap(18, "General",
+    "How should a segregated-list allocator free a block whose physical neighbors are also free? Include the list updates.",
+    "Remove both free neighbors from their current size-class lists, merge them with the newly freed block, and insert the resulting larger block into the class for its new size.",
+    "Coalescing changes the size and identity of the represented free region. Leaving old entries behind would let later searches find overlapping or obsolete blocks; retaining the old class could misclassify the merged block.",
+    "39-40", transcript="line 35", star=True)
+
+_heap(19, "General",
+    "Why do segregated free lists approximate best fit with less search work than one implicit list? What allocation pattern weakens this benefit?",
+    "They begin near the requested size and skip smaller size classes instead of traversing every physical block. This tends to find a reasonably close fit without a full best-fit search. If many free blocks fall into the same class, that class can still require a long linear scan.",
+    "The speedup comes from reducing irrelevant candidates, not eliminating search. Class distribution and request patterns determine the benefit; the transcript explicitly gives the concentrated-class worst case.",
+    "36, 38-40", transcript="lines 21-27, 37", star=True)
+
+_heap(20, "General",
+    "In tracing garbage collection, what are roots, and how does reachability determine which heap blocks can be reclaimed? Include an unreachable cycle.",
+    "Roots are nonheap locations holding pointers into the heap, such as registers, stack locations, and globals. Keep blocks reachable by following pointers from roots; unreachable allocated blocks can be reclaimed. A cycle with no path from a root is garbage even though its blocks point to one another.",
+    "Incoming pointers from other garbage do not make a block usable by the application. Tracing starts from accessible roots, rather than preserving every block with any incoming edge.",
+    "43, 45-46", transcript="lines 41-47")
+
+_heap(21, "General",
+    "Describe mark-and-sweep collection. Why check whether a block is already marked, and what happens to survivor marks during sweep?",
+    "- Mark: traverse from the roots, marking each reachable block and following its pointer fields. Ignore nonpointers and skip already marked blocks to avoid repeated traversal and loops through cycles.\n"
+    "- Sweep: walk heap blocks, free allocated blocks that were not marked, and clear marks on survivors for the next collection.",
+    "The mark phase follows object references; the sweep phase visits blocks by heap layout. A mark bit records reachability for this collection, while the allocation bit records whether storage is in use.",
+    "46-48", transcript="lines 49-53")
+
+_heap(22, "General",
+    "What pointer assumptions simplify tracing collection? How does a conservative C collector handle values that might be pointers and pointers into the middle of a block?",
+    "The simple model assumes the collector distinguishes pointers from nonpointers, pointers identify block starts, and the program does not hide pointers by encoding them as integers. A conservative collector treats values that point into allocated storage as possible pointers. To handle interior pointers, it needs a way to find the containing allocation, such as the slides' balanced tree of allocated blocks.",
+    "A value that resembles a pointer can keep a block alive even if it was just data, so conservative collection may fail to reclaim some garbage. The tree supports locating allocations; implementing tree rotations is not the learning task.",
+    "42-43, 47, 49", transcript="lines 41-43, 55-57")
+
+_heap(23, "General",
+    "How does reference counting decide when to release a block, and what work does it perform that tracing collection postpones?",
+    "Maintain a count of references to each managed block. Update counts as references are added or removed, including when local references go out of scope. Release a block when its count reaches zero. This spreads bookkeeping across reference changes, rather than waiting to discover unreachable blocks through a later tracing pass.",
+    "Reference counting trades ongoing update work for reclamation when the last counted reference disappears. This question concerns the mechanism, not a claim that every C++ or Rust pointer uses it.",
+    "50", transcript="lines 59-63")
+
+_heap(24, "General",
+    "What roles do gdb, data-structure consistency checkers, and valgrind play when investigating memory bugs?",
+    "- gdb: inspect execution and state around faults such as bad-pointer dereferences.\n"
+    "- Consistency checkers/assertions: detect broken data-structure invariants near where they first appear.\n"
+    "- valgrind: check memory references at runtime to expose errors such as invalid accesses and accesses outside allocated blocks.",
+    "A crash location may be far from the earlier overwrite that caused it. Runtime access checks and invariant checks provide evidence that complements stepping through the final failure.",
+    "60", transcript="line 89")
+
+
+_heap(25, "Bad memory usage code",
+    "Identify the memory error and repair the call.\n\n```c\nint val;\nscanf(\"%d\", val);\n```",
+    "scanf needs an int pointer identifying where to store the input, but val supplies an integer value. Use scanf(\"%d\", &val).",
+    "The %d conversion writes to the destination address passed by the caller. Reading val as an address does not designate the local variable and can cause an invalid access; val is also uninitialized here.",
+    "53", entry=62, transcript="line 79", star=True,
+    changes="omitted ellipsis; normalized typographic quotes")
+
+_heap(26, "Bad memory usage code",
+    "What goes wrong for the shown input, and how should the read be repaired?\n\n```c\nchar s[8];\nint i;\ngets(s);  /* reads \"123456789\" from stdin */\n```",
+    "The nine characters plus the terminating null byte need 10 bytes, but s has only 8. Replace gets with a bounded read, such as fgets(s, sizeof s, stdin), and handle any remaining input as needed.",
+    "gets has no buffer-size argument and can write beyond s. A bounded read preserves space for the terminator; it may read only part of a longer input rather than overflowing the array. The exact overwritten object or crash is not determined by this snippet.",
+    "53", entry=63, star=True)
+
+_heap(27, "Bad memory usage code",
+    "Identify why this function does not correctly compute y = Ax, and repair it.\n\n```c\nint *matvec(int **A, int *x) {\n   int *y = malloc(N*sizeof(int));\n   int i, j;\n   for (i=0; i<N; i++)\n      for (j=0; j<N; j++)\n         y[i] += A[i][j]*x[j];\n   return y;\n}\n```",
+    "y[i] is read by += before being initialized. Set each y[i] to zero before its inner loop, or allocate y with calloc(N, sizeof *y). Check allocation success before using the result.",
+    "malloc does not zero the returned storage. Accumulation requires a known starting value; otherwise the computation reads indeterminate data rather than starting each dot product at zero.",
+    "54", entry=64, transcript="line 85", star=True,
+    changes="omitted the source's return-y=Ax comment, retained in prompt")
+
+_heap(28, "Bad memory usage code",
+    "Identify the allocation error and repair it.\n\n```c\nint **p;\np = malloc(N*sizeof(int));\nfor (i=0; i<N; i++)\n   p[i] = malloc(M*sizeof(int));\n```",
+    "The outer array contains int pointers, but its allocation reserves N int-sized elements. Use p = malloc(N * sizeof *p), equivalently N * sizeof(int *). The inner allocations correctly reserve storage for M ints each.",
+    "The required outer element size is the size of p[i], not the size of an int stored in a row. Where pointers are larger than ints, the original allocation is too small and writes to p can overrun it; equality of sizes on another platform does not make the size expression appropriate.",
+    "55", entry=65, transcript="line 85", star=True)
+
+_heap(29, "Bad memory usage code",
+    "Identify the invalid access and repair the loop.\n\n```c\nint **p;\np = malloc(N*sizeof(int *));\nfor (i=0; i<=N; i++)\n   p[i] = malloc(M*sizeof(int));\n```",
+    "The last iteration writes p[N], beyond the N-element pointer array. Use i < N so the valid indices are 0 through N-1.",
+    "Allocating N elements does not provide an element at index N. The extra row allocation does not enlarge the outer pointer array that receives its address.",
+    "55", entry=66, transcript="line 85", star=True)
+
+_heap(30, "Bad memory usage code",
+    "This function should inspect consecutive ints until it finds val or a zero sentinel. Identify the error and repair it.\n\n```c\nint *search(int *p, int val) {\n   while (*p && *p != val)\n      p += sizeof(int);\n   return p;\n}\n```",
+    "Pointer arithmetic already scales by the pointed-to type. p += sizeof(int) skips sizeof(int) elements, rather than one. Use p++ or p += 1.",
+    "For a four-byte int, adding four to an int pointer advances 16 bytes. The original loop can skip the match or sentinel and read outside the intended sequence.",
+    "55", entry=67, transcript="line 85", star=True)
+
+_heap(31, "Bad memory usage code",
+    "Identify the error in this deletion routine and repair it.\n\n```c\nint *BinheapDelete(int **binheap, int *size) {\n   int *packet;\n   packet = binheap[0];\n   binheap[0] = binheap[*size - 1];\n   *size--;\n   Heapify(binheap, *size, 0);\n   return(packet);\n}\n```",
+    "*size-- is parsed as *(size--): it decrements the local pointer, not the caller's count. Replace it with (*size)--. Heapify then receives the updated integer count through *size.",
+    "Postfix -- binds more tightly than unary *. In the original, the count is not decreased and the following *size uses the moved pointer. Parentheses select the pointed-to integer as the object to decrement.",
+    "56", entry=68, star=True)
+
+_heap(32, "Bad memory usage code",
+    "What is wrong with using the pointer returned by this function? Describe a repair.\n\n```c\nint *foo () {\n   int val;\n   return &val;\n}\n```",
+    "val's lifetime ends when foo returns, so the returned pointer does not designate a live local variable. To return an integer result, give val a value and return that value with an int return type. If a pointer result is needed, use storage whose lifetime extends past the call, with clear ownership.",
+    "Returning an address does not extend the storage lifetime. Initializing val alone would not repair the dangling pointer; the returned result must have an appropriate lifetime.",
+    "57", entry=69, transcript="line 89", star=True)
+
+_heap(33, "Bad memory usage code",
+    "Identify the ownership error and repair the final release.\n\n```c\nx = malloc(N*sizeof(int));\n        <manipulate x>\nfree(x);\ny = malloc(M*sizeof(int));\n        <manipulate y>\nfree(x);\n```",
+    "The final release uses x again instead of releasing the allocation owned through y. Change the final statement to free(y), after y's last use.",
+    "The pointer for each live allocation must identify its release. The first x allocation has already been released. A later allocation might reuse an address, so do not use an observed crash or lack of one as proof that the ownership sequence is correct.",
+    "58", entry=70, transcript="line 89", star=True)
+
+_heap(34, "Bad memory usage code",
+    "Here M <= N. Identify the invalid memory use, explain why apparent success is misleading, and repair the release order.\n\n```c\nx = malloc(N*sizeof(int));\n  <manipulate x>\nfree(x);\n   ...\ny = malloc(M*sizeof(int));\nfor (i=0; i<M; i++)\n   y[i] = x[i]++;\n```",
+    "- Error: x[i]++ reads and writes storage after x has been freed.\n"
+    "- Apparent success: old contents may remain, or malloc may reuse the region, but neither preserves x's valid access to the released allocation.\n"
+    "- Repair: keep x allocated through the loop, then free it after its last access. Release y separately when its work is complete.",
+    "free can make the region available for allocator metadata or another allocation. The loop requires live x storage throughout; its behavior cannot be justified by predicting values left behind after free. M <= N isolates the lifetime bug from an additional bounds error.",
+    "58", entry=71, transcript="line 89", star=True,
+    changes="added M <= N in prompt to isolate the supplied lifetime bug")
+
+_heap(35, "Bad memory usage code",
+    "The omitted work neither frees x nor saves its pointer elsewhere. Identify the memory-management error and repair it.\n\n```c\nfoo() {\n   int *x = malloc(N*sizeof(int));\n   ...\n   return;\n}\n```",
+    "Returning loses the only pointer to the still-allocated block, causing a memory leak. Call free(x) after the last use and before returning.",
+    "The local pointer's lifetime and the heap allocation's lifetime are separate. Ordinary C explicit allocation does not reclaim the block merely because its pointer goes out of scope.",
+    "42, 58", entry=72, transcript="line 89", star=True,
+    changes="made the omitted work's ownership behavior explicit")
+
+_heap(36, "Bad memory usage code",
+    "The omitted work adds several separately allocated nodes after head. What memory-management error remains at return, and how should cleanup work?\n\n```c\nstruct list {\n   int val;\n   struct list *next;\n};\nfoo() {\n   struct list *head = malloc(sizeof(struct list));\n   head->val = 0;\n   head->next = NULL;\n   <create and manipulate the rest of the list>\n    ...\n   free(head);\n   return;\n}\n```",
+    "free(head) releases only the first node, leaving the remaining nodes allocated and unreachable if head was the only way to reach them. Traverse and release every node, preserving the next pointer before freeing the current node; alternatively, recursively release the tail before the current node.",
+    "free does not follow pointer fields. Cleanup must retain a way to reach unfreed nodes and must not read next from a node after freeing it. The extra nodes in the prompt are essential: freeing the original one-node list alone would be sufficient.",
+    "59", entry=73, transcript="line 89", star=True,
+    changes="specified that omitted list creation adds separately allocated nodes")
 
 
 # Review session questions (RS01-RS54). Each numbered question appears once.
