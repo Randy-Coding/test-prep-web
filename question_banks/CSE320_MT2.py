@@ -14,7 +14,9 @@ def _vm(number, kind, prompt, answer, explanation, slides, review=None, fault_ru
     sources.append("Nov 5 mt2 review (transcribed on 06-Nov-2026 20-15-16).txt, line 85; lines 91-95")
     if fault_rule:
         sources.append("new_transcripts/Nov 17 part 2 threads (transcribed on 17-Nov-2026 15-17-04).txt, line 19")
-    questions.setdefault("VIRTUAL MEMORY", {})["⭐ " + prompt] = {
+    hard = number in {5, 6, 7, 8, 9, 10, 11, 12, 15, 16, 17, 20, 23, 24}
+    difficulty = "Hard" if hard else "Easy"
+    questions.setdefault("VIRTUAL MEMORY", {})[f"⭐ {difficulty}: " + prompt] = {
         "id": f"VM{number:02}", "subcategory": kind,
         "answer": answer, "explanation": explanation,
         "sources": sources, "image": "cse320/page_table.png",
@@ -24,58 +26,58 @@ def _vm(number, kind, prompt, answer, explanation, slides, review=None, fault_ru
 # All input addresses below are hexadecimal. Page-table lookups use the
 # attached 16-byte-page diagram; a nonpresent entry has no current PA.
 _vm(1, "Single-level translation",
-    "Using Page Table 1, translate virtual address 0x2D to a physical address.",
+    "Using Page Table 1, determine the translation result for virtual address 0x2D.",
     "0x1D", "Page size 0x10 makes VPN 0x2 and offset 0xD. Index 2 is present and contains frame 0x1. The physical address is 0x10 + 0xD = 0x1D.",
     "15-18", "56-60")
 _vm(2, "Single-level translation",
-    "Using Page Table 1, translate virtual address 0x4F to a physical address.",
+    "Using Page Table 1, determine the translation result for virtual address 0x4F.",
     "0x3F", "VPN 0x4 selects the present entry containing frame 0x3. Preserve offset 0xF: 0x30 + 0xF = 0x3F.",
     "15-18", "56-60")
 _vm(3, "Single-level translation",
-    "Using Page Table 1, translate virtual address 0x71 to a physical address.",
+    "Using Page Table 1, determine the translation result for virtual address 0x71.",
     "0x01", "VPN 0x7 selects a present entry containing physical frame 0x0. The offset remains 0x1, so the physical address is 0x01. Frame zero is a valid frame here.",
     "15-18", "56-60")
-_vm(4, "Single-level page fault",
-    "Using Page Table 1, what is the translation result for virtual address 0x5A?",
+_vm(4, "Single-level translation",
+    "Using Page Table 1, determine the translation result for virtual address 0x5A.",
     "Not in RAM; the lookup causes a page fault.",
     "VPN 0x5 has Present = 0. Its contents value 0x2 is not a usable current physical frame. No current physical address follows from the table.",
     "8-9, 19", "61-64")
 
 _vm(5, "Two-level translation",
-    "Using Page Table 2, translate virtual address 0x1B9 to a physical address. Show the two indices and offset.",
+    "Using Page Table 2, determine the translation result for virtual address 0x1B9.",
     "Top index 0x3; bottom index 0x3; offset 0x9; physical address 0x59.",
     "The two 8-entry tables use three index bits each; the 16-byte page uses four offset bits. Top 3 selects bottom #0. Bottom #0 row 3 is present and contains frame 5. Therefore 0x50 + 0x9 = 0x59.",
     "16-18, 29-33", "65-72")
 _vm(6, "Two-level translation",
-    "Using Page Table 2, translate virtual address 0x0D7 to a physical address. Derive both table indices.",
+    "Using Page Table 2, determine the translation result for virtual address 0x0D7.",
     "Top index 0x1; bottom index 0x5; physical address 0x27.",
     "0x0D7 splits into top 1, bottom 5, offset 7. Top 1 points to bottom #2; its row 5 is present and contains frame 2. Hence 0x20 + 0x7 = 0x27.",
     "16-18, 29-33", "65-72")
 _vm(7, "Two-level translation",
-    "Using Page Table 2, translate virtual address 0x24C to a physical address. Show the lookup path.",
+    "Using Page Table 2, determine the translation result for virtual address 0x24C.",
     "Top 0x4 → bottom #3, row 0x4 → frame 0xF; physical address 0xFC.",
     "The top and bottom indices each occupy three bits: 0x24C splits into 4, 4, C. Both entries are present. Frame F with offset C gives 0xFC.",
     "16-18, 29-33", "118-125")
 _vm(8, "Two-level translation",
-    "Using Page Table 2, translate virtual address 0x33E to a physical address.",
+    "Using Page Table 2, determine the translation result for virtual address 0x33E.",
     "0xDE", "0x33E splits into top 6, bottom 3, offset E. Top 6 points to bottom #1; row 3 there is present and contains frame D. 0xD0 + 0xE = 0xDE.",
     "16-18, 29-33", "65-72")
 _vm(9, "Two-level translation",
-    "Using Page Table 2, translate virtual address 0x0F2 to a physical address.",
+    "Using Page Table 2, determine the translation result for virtual address 0x0F2.",
     "0x02", "0x0F2 splits into top 1, bottom 7, offset 2. Top 1 points to bottom #2; row 7 is present and contains frame 0. The physical address is 0x02.",
     "16-18, 29-33", "65-72")
-_vm(10, "Two-level page fault",
-    "Using Page Table 2, what happens when virtual address 0x2A6 is translated? Identify the entry that stops the walk.",
+_vm(10, "Two-level translation",
+    "Using Page Table 2, determine the translation result for virtual address 0x2A6.",
     "Page fault at top index 0x5; no current physical address.",
     "0x2A6 splits into top 5, bottom 2, offset 6. Top row 5 has Present = 0, so no bottom table is followed. Its contents value is inactive.",
     "8-9, 19, 29-33", "73-79")
-_vm(11, "Two-level page fault",
-    "Using Page Table 2, what happens when virtual address 0x1A6 is translated? Identify the entry that stops the walk.",
+_vm(11, "Two-level translation",
+    "Using Page Table 2, determine the translation result for virtual address 0x1A6.",
     "Page fault at bottom table #0, index 0x2; no current physical address.",
     "The address splits into top 3, bottom 2, offset 6. Present top row 3 points to bottom #0. Its row 2 has Present = 0, so its contents value 6 cannot be used as a frame.",
     "8-9, 19, 29-33", "73-79")
-_vm(12, "Two-level page fault",
-    "Using Page Table 2, what happens when virtual address 0x357 is translated? Identify the lookup path.",
+_vm(12, "Two-level translation",
+    "Using Page Table 2, determine the translation result for virtual address 0x357.",
     "Top 0x6 → bottom #1, row 0x5 → page fault; no current physical address.",
     "0x357 splits into top 6, bottom 5, offset 7. Top 6 is present and points to bottom #1. Row 5 there has Present = 0, so the displayed B is not a current frame mapping.",
     "8-9, 19, 29-33", "73-79")
@@ -123,18 +125,18 @@ _vm(21, "Access counts",
     "1 TLB lookup; 1 RAM access; 0 disk accesses.",
     "The TLB hit supplies the mapping to frame D, bypassing both page-table RAM reads. One RAM access reads data at 0xDE; disk is unused.",
     "18, 22-27, 29-33", "112-117")
-_vm(22, "Page-fault access counts",
-    "Read virtual address 0x5A using Page Table 1. Assume a TLB miss. Count TLB lookups, RAM accesses, and disk accesses up to the page fault; stop there.",
+_vm(22, "Access counts",
+    "Read virtual address 0x5A using Page Table 1. Assume a TLB miss. Count TLB lookups, RAM accesses, and disk accesses.",
     "1 TLB lookup; 1 RAM access; 1 disk access.",
     "The TLB misses, then one RAM read finds Present = 0 at index 5. Under the instructor's exam convention, count one disk access at the fault and stop. The data read and fault handler are not counted.",
     "19, 22-27", "61-64", fault_rule=True)
-_vm(23, "Page-fault access counts",
-    "Read virtual address 0x2A6 using Page Table 2. Assume a TLB miss and a resident top table. Count TLB lookups, RAM accesses, and disk accesses up to the page fault; stop there.",
+_vm(23, "Access counts",
+    "Read virtual address 0x2A6 using Page Table 2. Assume a TLB miss and a resident top table. Count TLB lookups, RAM accesses, and disk accesses.",
     "1 TLB lookup; 1 RAM access; 1 disk access.",
     "The TLB misses. One RAM read finds Present = 0 at top index 5, so the walk stops before a bottom-table read. Count one disk access for the fault under the instructor's convention.",
     "19, 22-27, 29-33", "73-79", fault_rule=True)
-_vm(24, "Page-fault access counts",
-    "Read virtual address 0x357 using Page Table 2. Assume a TLB miss and resident page tables. Count TLB lookups, RAM accesses, and disk accesses up to the page fault; stop there.",
+_vm(24, "Access counts",
+    "Read virtual address 0x357 using Page Table 2. Assume a TLB miss and resident page tables. Count TLB lookups, RAM accesses, and disk accesses.",
     "1 TLB lookup; 2 RAM accesses; 1 disk access.",
     "The TLB misses. RAM reads the present top row 6 and then the nonpresent bottom #1 row 5. Count one disk access at that fault and stop before any data read or handler work.",
     "19, 22-27, 29-33", "73-79", fault_rule=True)

@@ -29,7 +29,12 @@ vm = bank.questions["VIRTUAL MEMORY"]
 assert {r["id"] for r in vm.values()} == {f"VM{i:02}" for i in range(1, 25)}
 assert all(r.get("image") == "cse320/page_table.png" for r in vm.values())
 assert all(q.startswith("⭐ ") for q in vm)
-assert sum(r["subcategory"] == "Page-fault access counts" for r in vm.values()) == 3
+assert sum(q.startswith("⭐ Easy: ") for q in vm) == 10
+assert sum(q.startswith("⭐ Hard: ") for q in vm) == 14
+assert sum(r["subcategory"] == "Page-fault access counts" for r in vm.values()) == 0
+assert sum(r["subcategory"] == "Access counts" for r in vm.values()) == 7
+assert all("page fault" not in prompt.lower() and "stops the walk" not in prompt.lower()
+           for prompt in vm)
 heap = bank.questions["HEAP MEMORY"]
 assert {r["id"] for r in heap.values()} == {f"HP{i:02}" for i in range(1, 37)}
 assert sum(r["subcategory"] == "General" for r in heap.values()) == 24
