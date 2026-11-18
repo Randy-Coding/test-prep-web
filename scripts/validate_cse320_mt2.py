@@ -27,7 +27,11 @@ assert {topic: len(entries) for topic, entries in core_topics.items()} == {
 }
 vm = bank.questions["VIRTUAL MEMORY"]
 assert {r["id"] for r in vm.values()} == {f"VM{i:02}" for i in range(1, 25)}
-assert all(r.get("image") == "cse320/page_table.png" for r in vm.values())
+assert {r.get("image") for r in vm.values()} == {
+    "cse320/page_table.png", "cse320/page_table_hard.svg"
+}
+assert all(r["image"] == ("cse320/page_table_hard.svg" if q.startswith("⭐ Hard: ")
+                          else "cse320/page_table.png") for q, r in vm.items())
 assert all(q.startswith("⭐ ") for q in vm)
 assert sum(q.startswith("⭐ Easy: ") for q in vm) == 10
 assert sum(q.startswith("⭐ Hard: ") for q in vm) == 14
