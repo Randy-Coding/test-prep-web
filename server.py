@@ -24,14 +24,15 @@ def image_name(value):
 
 
 def image_path(name):
-    """Resolve legacy image URLs after the Midterm 1 resource folder move."""
-    original = ASSET_ROOT / name
-    if original.is_file():
-        return original
-    midterm_one = ASSET_ROOT / "midterm-1" / name
-    if midterm_one.is_file():
-        return midterm_one
-    return ASSET_ROOT / "midterm-2" / name
+    """Resolve image URLs across the current and legacy resource folders."""
+    candidates = (
+        ASSET_ROOT / name,
+        ASSET_ROOT / "midterm-1" / name,
+        ASSET_ROOT / "midterm-2" / name,
+        ROOT / "midterm-1" / name,
+        ROOT / "midterm-2" / name,
+    )
+    return next((path for path in candidates if path.is_file()), candidates[-1])
 
 
 def normalize_question(question, answer):
