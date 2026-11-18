@@ -16,12 +16,12 @@ review_topics = {topic: entries for topic, entries in bank.questions.items()
 core_topics = {topic: entries for topic, entries in bank.questions.items()
                if topic not in review_topics}
 records = {a["id"]: (q, a) for entries in core_topics.values() for q, a in entries.items()}
-assert len(records) == sum(map(len, core_topics.values())) == 145
+assert len(records) == sum(map(len, core_topics.values())) == 136
 assert {topic: len(entries) for topic, entries in core_topics.items()} == {
     "PROCESSES": 31,
-    "SIGNALS": 23,
+    "SIGNALS": 18,
     "HW5 [Shell]": 22,
-    "HW3 [Compiler]": 9,
+    "HW3 [Compiler]": 5,
     "HEAP MEMORY": 36,
     "VIRTUAL MEMORY": 24,
 }
@@ -45,14 +45,14 @@ for prompt, record in heap.items():
         assert any("line 85" in s and "something wrong with every program" in s
                    for s in record["sources"])
 compiler = bank.questions["HW3 [Compiler]"]
-assert {r["id"] for r in compiler.values()} == {f"CP{i:02}" for i in range(1, 10)}
+assert {r["id"] for r in compiler.values()} == {"CP01", "CP02", "CP03", "CP04", "CP09"}
 assert {r["id"] for q, r in compiler.items() if q.startswith("⭐ ")} == {
-    f"CP{i:02}" for i in range(1, 8)
+    "CP01", "CP02", "CP03", "CP04", "CP09"
 }
 for prompt, record in compiler.items():
     assert "```" not in prompt
     if prompt.startswith("⭐ "):
-        assert any("Nov 5 mt2 review" in s and "line 85" in s for s in record["sources"])
+        assert any("new_new_transcript" in s and "line 65" in s for s in record["sources"])
 # Retain stable IDs after consolidation; gaps are intentional.
 assert {r["id"] for r in bank.questions["PROCESSES"].values()} == {
     f"PC{i:02}" for i in (1,3,4,6,7,8,9,10,11,12,13,14,16,17,18,20,22,25,26,27,
@@ -67,7 +67,8 @@ for ident, (prompt, record) in records.items():
     ), ident
     assert prompt.count("```") % 2 == 0, ident
     if prompt.startswith("⭐ "):
-        assert any("Nov 5 mt2 review" in s and "line 85" in s
+        assert any(("Nov 5 mt2 review" in s and "line 85" in s) or
+                   ("new_new_transcript" in s and "line 65" in s)
                    for s in record["sources"]), ident
     if ident.startswith("PC"):
         assert record["explanation"].strip(), ident
@@ -115,14 +116,15 @@ answer_has("PC39", "8 total processes")
 answer_has("PC41", "HP, CT, Bye, HC", "wait(&child_status)")
 
 assert {r["id"] for r in bank.questions["SIGNALS"].values()} == {
-    f"SG{i:02}" for i in range(1, 31) if i not in {1, 15, 17, 22, 24, 28, 29}
+    f"SG{i:02}" for i in range(1, 34)
+    if i not in {1, 3, 4, 7, 8, 9, 10, 11, 15, 17, 22, 24, 28, 29, 30}
 }
 signals = bank.questions["SIGNALS"]
 assert all(not any(term in (q + r["answer"] + r["explanation"]).lower()
                    for term in ("setjmp", "longjmp", "nonlocal jump"))
            for q, r in signals.items())
-assert sum(r["subcategory"] == "General" for r in signals.values()) == 15
-assert sum("```c" in q for q in signals) == 8
+assert sum(r["subcategory"] == "General" for r in signals.values()) == 7
+assert sum("```c" in q for q in signals) == 11
 for prompt, record in signals.items():
     assert record["explanation"].strip(), record["id"]
     assert any("8.1 Signals.pptx, slides " in s for s in record["sources"])
@@ -149,7 +151,7 @@ assert {r["id"] for q, r in bank.questions["HW5 [Shell]"].items()
 assert {r["id"] for r in bank.questions["HW5 [Shell]"].values()} == {
     f"SH{i:02}" for i in range(1, 23)
 }
-print("PASS: 145 custom questions across Processes, Signals, Virtual Memory, Shell, Compiler, and Heap; unique IDs, sources, explanations, image attachments, required stars, and process ordering/counts.")
+print("PASS: 136 custom questions across Processes, Signals, Virtual Memory, Shell, Compiler, and Heap; unique IDs, sources, explanations, image attachments, required stars, and process ordering/counts.")
 
 # Review deck: 54 numbered questions, including multipart prompts and answers.
 assert {topic: len(entries) for topic, entries in review_topics.items()} == {

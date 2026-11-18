@@ -7,16 +7,17 @@ MP3_HW*/
 /tmp/deployment-*/
 # Keep course source documents local, but deploy the Midterm 1 study diagrams.
 /cse320/*
-!/cse320/midterm-1/
-/cse320/midterm-1/*
-!/cse320/midterm-1/*.png
-!/cse320/midterm-1/*.svg
-!/cse320/midterm-2/
-/cse320/midterm-2/*
-!/cse320/midterm-2/*.png
 !/cse320/midterm-2/*.svg
-/midterm-1/
-/midterm-2//midterm-2-old/
+# Keep source material local; allow images in both midterm folders.
+/midterm-[12]/**
+!/midterm-[12]/**/
+!/midterm-[12]/**/*.png
+!/midterm-[12]/**/*.svg
+!/midterm-[12]/**/*.jpg
+!/midterm-[12]/**/*.jpeg
+!/midterm-[12]/**/*.gif
+!/midterm-[12]/**/*.webp
+/midterm-2-old/
 /midterm-1.zip
 /midterm-2.zip
 .DS_Store
