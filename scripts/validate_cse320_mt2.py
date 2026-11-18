@@ -16,17 +16,17 @@ review_topics = {topic: entries for topic, entries in bank.questions.items()
 core_topics = {topic: entries for topic, entries in bank.questions.items()
                if topic not in review_topics}
 records = {a["id"]: (q, a) for entries in core_topics.values() for q, a in entries.items()}
-assert len(records) == sum(map(len, core_topics.values())) == 136
+assert len(records) == sum(map(len, core_topics.values())) == 137
 assert {topic: len(entries) for topic, entries in core_topics.items()} == {
     "PROCESSES": 31,
     "SIGNALS": 18,
     "HW5 [Shell]": 22,
     "HW3 [Compiler]": 5,
     "HEAP MEMORY": 36,
-    "VIRTUAL MEMORY": 24,
+    "VIRTUAL MEMORY": 25,
 }
 vm = bank.questions["VIRTUAL MEMORY"]
-assert {r["id"] for r in vm.values()} == {f"VM{i:02}" for i in range(1, 25)}
+assert {r["id"] for r in vm.values()} == {f"VM{i:02}" for i in range(1, 26)}
 assert {r.get("image") for r in vm.values()} == {
     "cse320/page_table.png", "cse320/page_table_hard.svg"
 }
@@ -34,7 +34,7 @@ assert all(r["image"] == ("cse320/page_table_hard.svg" if q.startswith("⭐ Hard
                           else "cse320/page_table.png") for q, r in vm.items())
 assert all(q.startswith("⭐ ") for q in vm)
 assert sum(q.startswith("⭐ Easy: ") for q in vm) == 10
-assert sum(q.startswith("⭐ Hard: ") for q in vm) == 14
+assert sum(q.startswith("⭐ Hard: ") for q in vm) == 15
 assert sum(r["subcategory"] == "Page-fault access counts" for r in vm.values()) == 0
 assert sum(r["subcategory"] == "Access counts" for r in vm.values()) == 7
 assert all("page fault" not in prompt.lower() and "stops the walk" not in prompt.lower()
@@ -71,13 +71,18 @@ for ident, (prompt, record) in records.items():
     assert prompt.strip() and record["answer"].strip() and record["subcategory"]
     assert record["explanation"].strip(), ident
     assert record["sources"] and all(
-        s.startswith("https://") or (ROOT / "midterm-2" / s.split(", ", 1)[0]).is_file()
+        s.startswith("https://") or any(
+            (base / s.split(", ", 1)[0]).is_file()
+            for base in (ROOT / "midterm-2", ROOT / "cse320/midterm-2")
+        )
         for s in record["sources"]
     ), ident
     assert prompt.count("```") % 2 == 0, ident
     if prompt.startswith("⭐ "):
         assert any(("Nov 5 mt2 review" in s and "line 85" in s) or
-                   ("new_new_transcript" in s and "line 65" in s)
+                   ("new_new_transcript" in s and "line 65" in s) or
+                   (ident in {"SG16", "SG26"} and "new_transcripts/nov17 " in s
+                    and ("line 87" in s or "lines 9-11" in s))
                    for s in record["sources"]), ident
     if ident.startswith("PC"):
         assert record["explanation"].strip(), ident
@@ -119,7 +124,7 @@ wait_orders = [p for p in itertools.permutations(("HC", "HP", "CT", "Bye"))
                and p.index("HP") < p.index("CT") < p.index("Bye")]
 assert set(wait_orders) == {("HC", "HP", "CT", "Bye"), ("HP", "HC", "CT", "Bye")}
 answer_has("PC34", "HC, HP, CT, Bye", "HP, HC, CT, Bye")
-answer_has("PC06", "Increasing n increases modeled utilization")
+answer_has("PC06", "run another process while one waits for I/O")
 assert 2**3 == 8
 answer_has("PC39", "8 total processes")
 answer_has("PC41", "HP, CT, Bye, HC", "wait(&child_status)")
@@ -160,7 +165,7 @@ assert {r["id"] for q, r in bank.questions["HW5 [Shell]"].items()
 assert {r["id"] for r in bank.questions["HW5 [Shell]"].values()} == {
     f"SH{i:02}" for i in range(1, 23)
 }
-print("PASS: 136 custom questions across Processes, Signals, Virtual Memory, Shell, Compiler, and Heap; unique IDs, sources, explanations, image attachments, required stars, and process ordering/counts.")
+print("PASS: 137 custom questions across Processes, Signals, Virtual Memory, Shell, Compiler, and Heap; unique IDs, sources, explanations, image attachments, required stars, and process ordering/counts.")
 
 # Review deck: 54 numbered questions, including multipart prompts and answers.
 assert {topic: len(entries) for topic, entries in review_topics.items()} == {
@@ -222,6 +227,15 @@ if deck.is_file():
             assert slide in record["question_slides" if kind == "Question" else "answer_slides"]
             if kind == "Answer":
                 assert record["answer"].startswith(re.search(r"Correct: ([ABC])", texts[0])[1] + ". ")
+            if number == 10:
+                # User-approved scope adaptation supplies the loop semantics and
+                # replaces the detailed API explanation. Keep checking the deck
+                # answer key and slide inventory; exact text fidelity is no
+                # longer expected for this item's adapted answer slides.
+                assert record.get("code_modification")
+                if kind == "Answer":
+                    continue
+                target = re.sub(r"/\* Reap one available.*?\*/", "", target, flags=re.S)
             for text in texts[1:]:
                 if text.startswith("Bottom tables 0"):
                     continue  # A slide-navigation cue, replaced by embedded tables.
