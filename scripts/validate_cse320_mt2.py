@@ -14,16 +14,25 @@ spec.loader.exec_module(bank)
 review_topics = {topic: entries for topic, entries in bank.questions.items()
                  if topic.endswith(" review session")}
 core_topics = {topic: entries for topic, entries in bank.questions.items()
-               if topic not in review_topics}
+               if topic not in review_topics and topic != "GENERAL CONCEPTS"}
 records = {a["id"]: (q, a) for entries in core_topics.values() for q, a in entries.items()}
-assert len(records) == sum(map(len, core_topics.values())) == 137
+assert len(records) == sum(map(len, core_topics.values())) == 154
 assert {topic: len(entries) for topic, entries in core_topics.items()} == {
     "PROCESSES": 31,
     "SIGNALS": 18,
     "HW5 [Shell]": 22,
     "HW3 [Compiler]": 5,
+    "HW4 [Pages]": 17,
     "HEAP MEMORY": 36,
     "VIRTUAL MEMORY": 25,
+}
+concepts = bank.questions["GENERAL CONCEPTS"]
+assert len(concepts) == 73
+assert {r["id"] for r in concepts.values()} == {f"GC{i:02}" for i in range(1, 74)}
+assert all(q.startswith("What is ") and q.endswith("?") for q in concepts)
+assert all(r["answer"] and r["sources"] for r in concepts.values())
+assert {r["subcategory"] for r in concepts.values()} == {
+    "Processes", "Signals", "Virtual Memory", "Heap"
 }
 vm = bank.questions["VIRTUAL MEMORY"]
 assert {r["id"] for r in vm.values()} == {f"VM{i:02}" for i in range(1, 26)}
@@ -94,7 +103,7 @@ for ident, (prompt, record) in records.items():
 tree = ast.parse((ROOT / "question_banks/CSE320_MT2.py").read_text(encoding="utf-8"))
 prompts = [n.args[2].value for n in ast.walk(tree)
            if isinstance(n, ast.Call) and isinstance(n.func, ast.Name)
-           and n.func.id in {"_pc", "_pc_code", "_sg", "_shell", "_compiler", "_heap", "_vm"}
+           and n.func.id in {"_pc", "_pc_code", "_sg", "_shell", "_compiler", "_pages", "_heap", "_vm"}
            and isinstance(n.args[2], ast.Constant)]
 assert len(prompts) == len(set(prompts))
 
@@ -165,7 +174,7 @@ assert {r["id"] for q, r in bank.questions["HW5 [Shell]"].items()
 assert {r["id"] for r in bank.questions["HW5 [Shell]"].values()} == {
     f"SH{i:02}" for i in range(1, 23)
 }
-print("PASS: 137 custom questions across Processes, Signals, Virtual Memory, Shell, Compiler, and Heap; unique IDs, sources, explanations, image attachments, required stars, and process ordering/counts.")
+print("PASS: 154 custom questions across Processes, Signals, Virtual Memory, Shell, Compiler, Pages, and Heap; unique IDs, sources, explanations, image attachments, required stars, and process ordering/counts.")
 
 # Review deck: 54 numbered questions, including multipart prompts and answers.
 assert {topic: len(entries) for topic, entries in review_topics.items()} == {
@@ -227,6 +236,14 @@ if deck.is_file():
             assert slide in record["question_slides" if kind == "Question" else "answer_slides"]
             if kind == "Answer":
                 assert record["answer"].startswith(re.search(r"Correct: ([ABC])", texts[0])[1] + ". ")
+            if number == 22:
+                # User-approved distractor rewrite supersedes exact slide wording.
+                assert prompt.endswith(
+                    "A. Search free blocks grouped by size.\n"
+                    "B. Search heap blocks starting at the last allocation.\n"
+                    "C. Search heap blocks using the smallest-fit policy.")
+                assert record["answer"] == "A. Search free blocks grouped by size."
+                continue
             if number == 10:
                 # User-approved scope adaptation supplies the loop semantics and
                 # replaces the detailed API explanation. Keep checking the deck
