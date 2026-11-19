@@ -968,9 +968,34 @@ _shell(22, "Pipeline design",
 
 
 # Heap: source-mapped exam preparation, HP01-HP36.
+_HEAP_ERROR_NAMES = {
+    25: "Dereferencing Bad Pointers: Value vs Pointer",
+    26: "Buffer Overflow vulnerability",
+    27: "Reading Uninitialized Memory",
+    28: "Overwriting Memory: Wrong allocation size",
+    29: "Overwriting Memory: Wrong allocation count",
+    30: "Overwriting Memory: Wrong pointer stride",
+    31: "Overwriting Memory (pointer access): Referencing a pointer instead of the object it points to",
+    32: "Referencing Nonexistent Variables",
+    33: "Freeing blocks multiple times (Too many frees), and Failing to free blocks (Too few frees) for y",
+    34: "A: Referencing freed blocks (Too early frees). B and C: no error under the stated assumptions",
+    35: "A: Freeing blocks multiple times (Too many frees). B: Failing to free blocks (Memory Leaks / Too few frees). C: Referencing freed blocks (Too early frees)",
+    36: "Failing to Free Blocks (Memory Leaks): Freeing only part of a data structure",
+}
+
+
 def _heap(number, kind, prompt, answer, explanation, slides, *, entry=None,
           transcript=None, star=False, changes=None):
     sources = [f"9.1 (The) Heap.pptx, slides {slides}"]
+    if kind == "Bad memory usage code":
+        instruction = (
+            "Name each error using the heap slides' terminology, explain why it occurs, "
+            "and show a correction. For multiple options, identify any error-free options too."
+        )
+        setup, separator, code = prompt.partition("\n\n")
+        prompt = setup + " " + instruction + separator + code
+        answer = "Slide error name(s): " + _HEAP_ERROR_NAMES[number] + ".\n\n" + answer
+        sources.append("9.1 (The) Heap.pptx, slide 52, memory-related error names")
     if entry is not None:
         sources.append(f"midterm-2-code-examples.md, entry {entry}" +
                        (f"; adaptation: {changes}" if changes else ""))
@@ -1182,13 +1207,13 @@ _heap(27, "Bad memory usage code",
     changes="omitted the source's return-y=Ax comment, retained in prompt")
 
 _heap(28, "Bad memory usage code",
-    'What is wrong with this code? Explain the error and show a correction.\n\n```c\nint **p;\np = malloc(N*sizeof(int));\nfor (i=0; i<N; i++)\n   p[i] = malloc(M*sizeof(int));\n```',
+    'What is wrong with this code? Explain the error and show a correction.\n\n```c\nint N = 3, M = 4;\nint i;\nint **p;\np = malloc(N*sizeof(int));\nfor (i=0; i<N; i++)\n   p[i] = malloc(M*sizeof(int));\n```',
     "The outer array contains int pointers, but its allocation reserves N int-sized elements. Use p = malloc(N * sizeof *p), equivalently N * sizeof(int *). The inner allocations correctly reserve storage for M ints each.",
     "The required outer element size is the size of p[i], not the size of an int stored in a row. Where pointers are larger than ints, the original allocation is too small and writes to p can overrun it; equality of sizes on another platform does not make the size expression appropriate.",
     "55", entry=65, transcript="line 85", star=True)
 
 _heap(29, "Bad memory usage code",
-    'What is wrong with this code? Explain the error and show a correction.\n\n```c\nint **p;\np = malloc(N*sizeof(int *));\nfor (i=0; i<=N; i++)\n   p[i] = malloc(M*sizeof(int));\n```',
+    'What is wrong with this code? Explain the error and show a correction.\n\n```c\nint N = 3, M = 4;\nint i;\nint **p;\np = malloc(N*sizeof(int *));\nfor (i=0; i<=N; i++)\n   p[i] = malloc(M*sizeof(int));\n```',
     "The last iteration writes p[N], beyond the N-element pointer array. Use i < N so the valid indices are 0 through N-1.",
     "Allocating N elements does not provide an element at index N. The extra row allocation does not enlarge the outer pointer array that receives its address.",
     "55", entry=66, transcript="line 85", star=True)
