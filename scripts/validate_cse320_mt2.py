@@ -16,11 +16,11 @@ review_topics = {topic: entries for topic, entries in bank.questions.items()
 core_topics = {topic: entries for topic, entries in bank.questions.items()
                if topic not in review_topics and topic != "GENERAL CONCEPTS"}
 records = {a["id"]: (q, a) for entries in core_topics.values() for q, a in entries.items()}
-assert len(records) == sum(map(len, core_topics.values())) == 154
+assert len(records) == sum(map(len, core_topics.values())) == 150
 assert {topic: len(entries) for topic, entries in core_topics.items()} == {
     "PROCESSES": 31,
     "SIGNALS": 18,
-    "HW5 [Shell]": 22,
+    "HW5 [Shell]": 18,
     "HW3 [Compiler]": 5,
     "HW4 [Pages]": 17,
     "HEAP MEMORY": 36,
@@ -172,9 +172,9 @@ assert {r["id"] for q, r in bank.questions["HW5 [Shell]"].items()
     "SH01", "SH03", "SH06", "SH07", "SH09", "SH15", "SH17"
 }
 assert {r["id"] for r in bank.questions["HW5 [Shell]"].values()} == {
-    f"SH{i:02}" for i in range(1, 23)
+    f"SH{i:02}" for i in range(1, 23) if i not in {14, 18, 19, 21}
 }
-print("PASS: 154 custom questions across Processes, Signals, Virtual Memory, Shell, Compiler, Pages, and Heap; unique IDs, sources, explanations, image attachments, required stars, and process ordering/counts.")
+print("PASS: 150 custom questions across Processes, Signals, Virtual Memory, Shell, Compiler, Pages, and Heap; unique IDs, sources, explanations, image attachments, required stars, and process ordering/counts.")
 
 # Review deck: 54 numbered questions, including multipart prompts and answers.
 assert {topic: len(entries) for topic, entries in review_topics.items()} == {

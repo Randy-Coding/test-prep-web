@@ -20,168 +20,146 @@ def _pages(number, category, prompt, answer, explanation, sections):
 
 
 _pages(1, "Physical-frame allocator",
-    "In SF-VM, only frames 2-3 and 8-12 are free. Give the results and state changes of find_free_run(3), followed by alloc, free of the allocated frame, and a second free of that frame. Explain how init and is_allocated fit this ownership model, where the allocator stores its state, and how copies remain independent.",
-    "- find_free_run(3): true, output frame 8; nothing is reserved.\n"
-    "- alloc: true, output frame 2; frame 2 becomes allocated.\n"
-    "- First free of frame 2: true; frame 2 becomes free. Second free: false, no change.\n"
-    "- init marks every frame free, including frame 0, and resets previously used metadata. is_allocated reports current ownership and returns false for free or out-of-range IDs.\n"
-    "- Persistent ownership metadata belongs in allocator->state. Use indices or offsets rather than pointers into the original object so a copied allocator can change independently.\n"
-    "- The allocator manages ownership of the shared pool used for data and tables; it does not clear guest bytes.",
-    "Task I separates a free-run query from allocation: the query finds enough consecutive free frames, while alloc takes the lowest single free frame. Invalid frees and exhausted allocations leave metadata and outputs unchanged. Per-object metadata avoids sharing state between VM instances or copies. Data and page-table bytes themselves live in vm->data.",
-    "Task I: Physical-frame allocator; Machine model: Sizes, Page tables, Ownership; Rules: State, Allowed storage")
+    "What problem does the physical-frame allocator solve in the simulator? Explain how data pages and page tables obtain storage, how freed storage becomes reusable, and why the allocator does not need host malloc.",
+    "- The allocator tracks which simulated physical frames are free or owned and supplies a free frame when a layer needs storage. Data pages and page tables use the same finite pool in vm->data.\n"
+    "- Releasing a frame makes it available for a later allocation; a frame still referenced by a live mapping or table cannot be released.\n"
+    "- The physical-memory array already exists. Fixed allocator metadata tracks ownership within it, so host malloc is unnecessary and prohibited.",
+    "Task I manages ownership, not page contents or virtual addresses. It supplies the lowest free frame, tracks releases, and supports ownership/free-space queries. The layer creating a table or demand-paged page initializes its bytes. This lets the other tasks build a memory manager from a bounded simulated pool.",
+    "Overview; Rules: No host memory allocation, Allowed storage; Machine model: Page tables, Ownership; Task I: Physical-frame allocator")
 
 _pages(2, "Reservations and residency",
-    "Compare a reserved nonresident page with a resident raw mapping outside every reservation. What happens when guest code reads each address, and which records or frames explain the difference?",
-    "- Reserved nonresident page: an aligned read permitted by the region faults the page in, then returns its word. Reservation alone created a region record and used no physical frames; the first touch allocates a zeroed data frame and any missing tables.\n"
-    "- Raw mapping outside reservations: the guest read returns SF_VM_INVALID_ADDRESS before resolve, even though a resident leaf and data frame exist. It changes no access stats.\n"
-    "- The region records authorize guest access; page tables describe residency and physical placement.",
-    "The Machine model distinguishes reservations from mappings. A low-level map occupies virtual space but does not grant the guest permission to use that space. Tasks VI-VII turn a permitted reservation into a resident page on demand, after the guest's region checks.",
+    "Why does reserving a virtual region not immediately allocate a physical frame for every page? Explain what the region manager records, what the page table records, and when physical storage is supplied.",
+    "- The region manager records an authorized virtual range, its permissions, and its allocation ID.\n"
+    "- The page table records which pages are resident, which frames hold them, and their access permissions.\n"
+    "- Physical storage is supplied on the first permitted access to a nonresident page, rather than for every reserved page in advance. Untouched pages remain nonresident.",
+    "Reservations describe legal use of virtual addresses; mappings describe their current physical backing. Keeping them separate makes large, sparsely touched reservations inexpensive. A raw mapping outside a reservation does not by itself authorize guest reads or writes.",
     "Machine model: Reservations vs. mappings; Tasks V-VII")
 
 _pages(3, "Shared paths and unmapping",
-    "Two mapped pages have the same VPN[2] but different VPN[1] values. They are the only mappings, with no extra empty tables. Which tables do their paths share, and what remains after sf_vm_unmap_page removes one page? Compare with pages differing only in VPN[0], or only in byte offset.",
-    "- Different VPN[1]: both use the same root and L1 table, but separate L0 tables. Unmapping one frees its now-empty L0 table; the shared L1, root, and other page's L0 survive.\n"
-    "- Different VPN[0] only: both leaves are in the same L0 table, so all three tables survive removal of one leaf.\n"
-    "- Different byte offset only: the addresses refer to the same page and leaf. Unmapping that page removes both addresses' mapping; if it is the last mapping, all three tables are reclaimed and root_frame becomes SF_INVALID_FRAME.\n"
-    "- Unmap clears the leaf and invalidates its TLB entry, but returns its data frame still allocated. Any reservation remains.",
-    "Tasks II and IV organize paths by the three VPN indices. Pruning works upward only through tables with no present entries; a live neighbor preserves shared ancestors. Nonpresent PTEs with leftover bits do not preserve a table. Region free, rather than low-level unmap, releases managed data frames.",
-    "Machine model: Allocation order, Ownership; Task II: Page-table walk; Task IV: sf_vm_unmap_page")
+    "Why can two virtual pages share some page-table structures but still map to different data frames? When one page is unmapped, how does the simulator decide which tables to keep and which to reclaim?",
+    "- The three-level tree uses successive portions of the virtual page number. Pages with a common prefix share upper tables; different leaf entries can name different data frames.\n"
+    "- Unmapping removes that page's leaf. Reclaim tables that become empty, working upward, but preserve any table still needed by another present mapping.\n"
+    "- Removing one mapping therefore preserves shared ancestors and the other page's data. Low-level unmap returns the removed data frame still allocated; region free also releases that frame.",
+    "The shared-prefix tree avoids a separate full table path for every page. For example, pages in the same bottom table share all three tables; pages in different bottom tables under one branch still share upper tables. Pruning by remaining present entries preserves those shared paths.",
+    "Machine model: Page tables, Ownership; Task II: Page-table walk; Task IV: sf_vm_unmap_page")
 
-_pages(4, "Creating walks and frame order",
-    "On separate fresh VMs, compare a noncreating walk, a successful creating walk, and the first successful permitted page-fault handling. State their results, which frames hold data or tables, and what a successful walk actually returns.",
-    "- Noncreating walk: SF_VM_PAGE_FAULT because the root is absent; no frames or links change and the output is unchanged.\n"
-    "- Creating walk: SF_VM_OK; root frame 0, L1 frame 1, L0 frame 2. The tables are zeroed; the leaf slot remains zero and no data frame is allocated.\n"
-    "- First successful fault: SF_VM_OK; data frame 0 is allocated and zeroed first, then map's creating walk allocates root 1, L1 2, L0 3 and installs the leaf.\n"
-    "- Walk returns the physical byte offset of the bottom-level PTE slot in vm->data, not the page's data address or a guarantee of residency.",
-    "The allocator picks the lowest free frame. Task II creates only the table path from the root down; Task VI obtains data before asking map to create that path. This ordering explains the different frame numbers without giving frame 0 any special failure meaning.",
+_pages(4, "Page-table walk",
+    "What is the page-table walk responsible for, and why does creating a path not mean that a data page has been mapped? Contrast a lookup-only walk with a creating walk, and explain why a first page fault allocates frames in a different order.",
+    "- Walk follows the three levels using the virtual page indices and locates the bottom-level entry slot. A slot can exist without a resident data-page mapping.\n"
+    "- Lookup-only mode follows existing tables and reports absence when a required table is missing. Creating mode allocates and zeros missing tables from the root downward. Neither mode allocates a data page.\n"
+    "- Fault handling obtains and zeros a data frame first, then mapping invokes the creating walk for any missing tables. A bare creating walk allocates only tables, so the two operations assign frames in a different order.",
+    "Task II constructs or locates the tree path; installing the leaf and providing its data frame are separate responsibilities. This distinction prevents treating a successful walk as proof that an access already has physical backing. Exact frame-number memorization is unnecessary to explain the order.",
     "Machine model: Allocation order; Task II: Page-table walk; Task VI: Demand-page fault handler")
 
 _pages(5, "Allocation failure and rollback",
-    "A VM has an existing root and live mappings. A creating walk needs a new L1 and L0 branch, allocates the L1, then runs out of frames. Describe the required state after failure. If this walk was inside a fault handler's map call, what additional cleanup belongs to the handler?",
-    "- The walk returns SF_VM_OUT_OF_MEMORY and leaves its output unchanged.\n"
-    "- Free the new L1 frame and restore the root entry changed by this walk. Preserve the existing root, tables, leaves, and data frames.\n"
-    "- If the handler allocated a new data frame before calling map, the handler frees that data frame and propagates the error. The walk rolls back its own tables and links.\n"
-    "- Frames that were free before the call and are free again afterward need not regain their old bytes.",
-    "Tasks II and VI assign cleanup to the layer that acquired the resource. Retaining a partial branch leaks frames; freeing an old ancestor destroys unrelated mappings. Rollback records the limited frames and links changed, rather than copying the whole VM. Resolve may still record the failed access's miss and fault, as specified separately in Task VII.",
-    "Task II: Failure; Task IV: sf_vm_map_page; Task VI: map failure; Rules: Allowed storage, Output and errors")
+    "The simulator runs out of physical frames while building a new mapping. What should happen to work performed for that attempt and to existing mappings? Why is rollback part of a correct memory manager?",
+    "- Release the new data/table frames acquired by the failed attempt and undo its new table links.\n"
+    "- Preserve the tables, frames, and mappings that existed before the attempt. Each layer cleans up the resources it acquired.\n"
+    "- Report exhaustion instead of leaving a partial mapping, leaking frames, or damaging unrelated pages.",
+    "The walk rolls back newly created tables and links; the fault handler releases its new data frame if mapping fails. A fixed pool makes leaks affect future accesses, even when previously stored values still read correctly. This simulator has no eviction or swapping to rescue an exhausted pool.",
+    "Rules: Output and errors; Task II: Failure; Task VI: map failure; The call layers")
 
 _pages(6, "Allocation identity",
-    "Region A is freed and region B later receives A's old starting address. What happens to free or protect requests using A's old allocation ID, and why? How does a failed allocation affect the ID sequence?",
-    "- Requests using A's freed ID return SF_VM_INVALID_ADDRESS and leave B unchanged.\n"
-    "- B receives a new ID even though its address is reused. IDs increase and are not reused until sf_vm_init; an address identifies a location, not an allocation's lifetime.\n"
-    "- A failed allocation consumes no ID. The counter advances only when a reservation is inserted.",
-    "Task V uses IDs to prevent a stale reference from freeing or changing a later occupant of the same virtual range. Free and protect validate live allocation identity, rather than treating an address match as ownership.",
-    "Task V: IDs, sf_vm_alloc, sf_vm_free, sf_vm_protect")
+    "Why does the region manager use allocation IDs rather than virtual addresses to identify regions for free and protect? Explain what happens to an old ID after its address is reused.",
+    "- An address names a location that a later allocation can reuse; an ID identifies a particular allocation's lifetime.\n"
+    "- After the old region is freed, its ID remains invalid even if a new region occupies the same address. Free or protect using that old ID is rejected and leaves the new region alone.",
+    "Task V assigns increasing IDs and does not reuse them until VM initialization. This prevents a stale reference from changing or releasing the new occupant of an old virtual location.",
+    "Task V: IDs, sf_vm_free, sf_vm_protect")
 
 _pages(7, "Demand paging and guest access",
-    "Trace the first successful sf_vm_write_word to an aligned address in a writable, nonresident reservation with an empty TLB. Identify the main functions, their results, and when data and tables are allocated, zeroed, and mapped. Explain which layer performs the write and how the handler treats an unreserved, denied, resident, or malformed page when called directly.",
-    "- Guest write checks address range, 8-byte alignment, region membership, and region write permission, then calls sf_vm_resolve.\n"
-    "- Resolve records a TLB miss; sf_vm_lookup_page uses a noncreating walk and returns SF_VM_PAGE_FAULT. Resolve counts a fault and calls sf_vm_handle_page_fault.\n"
-    "- The handler independently validates address/access, reservation, and region permission. sf_vm_translate confirms SF_VM_PAGE_FAULT. It allocates and zeros a data frame, then calls sf_vm_map_page on the page base with the region's permissions.\n"
-    "- Map's creating walk zeros any new tables and returns the leaf-slot offset; map installs the leaf and returns SF_VM_OK. The handler returns SF_VM_OK.\n"
-    "- Resolve looks up once more, obtains frame/permissions, fills the TLB, checks access, and returns SF_VM_OK with the physical byte address. The guest function writes the word and returns SF_VM_OK.\n"
-    "- Direct handler calls: unreserved gives SF_VM_INVALID_ADDRESS; region-denied gives SF_VM_PROTECTION_FAULT before table inspection. For an allowed region access, an existing translation's OK, leaf-denied, or malformed result is returned without allocation, replacement, or widening.",
-    "The call-layer diagram and Tasks VI-VII separate authorization, residency repair, translation, and word transfer. Walk can find an empty leaf slot successfully while lookup still reports absence. The handler installs a usable mapping but neither writes the word nor updates the TLB/stats; resolve owns caching/counting, and the guest transfers only after success. A failed read leaves its result unchanged; a failed write transfers no word.",
-    "The call layers; Tasks II, IV, VI, VII")
+    "Explain how the simulator completes a permitted write to a reserved page that is not resident. What does the fault handler supply, and why is the actual write left to the guest-access layer?",
+    "- The guest-access layer checks the address and reservation permissions, then asks resolve for a physical address.\n"
+    "- With no cached or resident translation, resolve calls the fault handler. The handler checks that the access is authorized, allocates and zeros a data frame, and maps the page with the region's permissions, creating missing tables as needed.\n"
+    "- Resolve checks the new mapping, caches the translation, and returns the physical address. The guest-access layer then writes the word.\n"
+    "- The handler repairs missing physical backing; it does not carry out the read or write. An unauthorized access is rejected instead of being made valid.",
+    "Tasks VI-VII separate repairing residency from completing a particular memory operation. Zeroing precedes exposure of new data and tables. The same repair mechanism can support reads or writes, while the guest interface transfers a word only after successful resolution. A TLB entry already present would be used before a page-table lookup.",
+    "The call layers; Tasks VI and VII; Machine model: Ownership")
 
 _pages(8, "Resolve retry and malformed state",
-    "Compare resolve after an initial lookup returns SF_VM_PAGE_FAULT with resolve after SF_VM_INVALID_ADDRESS from a malformed present PTE. What happens if the handler returns SF_VM_OK but the page is still absent? Explain the retry limit.",
-    "- Initial PAGE_FAULT: count the fault, invoke the handler once, and propagate a non-OK handler result. After handler OK, perform exactly one more lookup.\n"
-    "- Initial INVALID_ADDRESS: return it directly; do not invoke the handler, retry lookup, or insert a TLB entry.\n"
-    "- If the second lookup still reports absence, return SF_VM_PAGE_FAULT without invoking the handler again or inserting a TLB entry. The physical-address output stays unchanged.\n"
-    "- One retry verifies the handler's claimed repair and prevents an ineffective handler from causing an endless retry loop.",
-    "Task VII distinguishes a missing mapping from corrupt present state. Only absence requests demand allocation; malformed structures are errors rather than something to overwrite. The handler runs at most once per resolve call, and a successful handler result does not substitute for checking the resulting mapping.",
+    "Why does resolve check the mapping again after a successful fault handler, but stop if it is still absent? Why is a malformed present page-table entry treated differently from a missing page?",
+    "- The second lookup verifies that the handler actually installed a usable mapping and obtains its frame and permissions.\n"
+    "- If the page remains absent, return the failure rather than repeatedly invoking a handler that has not repaired it. The handler runs at most once per resolve call.\n"
+    "- Absence is a condition demand paging can repair. A malformed present entry indicates invalid table state; report it rather than trying to allocate over or silently repair it.",
+    "Task VII permits one post-handler lookup, avoiding an endless retry loop. Missing backing and corrupt structure are different problems, so only the former triggers demand-page handling. A successful handler return alone is not a physical translation.",
     "Task IV: sf_vm_lookup_page; Task VI; Task VII: sf_vm_resolve")
 
 _pages(9, "TLB coherence",
-    "Which Pages operations invalidate cached translations? Describe a guest-visible failure from omitting invalidation after a leaf permission change and another after free followed by address/frame reuse. Explain the treatment of direct PTE edits and a newly installed leaf.",
-    "- sf_vm_protect_page and sf_vm_unmap_page invalidate the affected page. Region protect and free do this for their affected resident pages through those operations.\n"
-    "- If a leaf is narrowed to read-only inside a still-writable reservation, a stale writable TLB entry could let a guest write succeed despite the new leaf permissions.\n"
-    "- After freeing a region and reusing its virtual address for a new permitted reservation, a stale entry could reach the old physical frame, expose unrelated data, or corrupt its new owner instead of faulting in the new page.\n"
-    "- Code editing PTEs directly must flush the TLB afterward. Installing a leaf for an unmapped page needs no invalidation under the coherence invariant, because no valid cached translation exists for that page.",
-    "The TLB caches both frame and permissions, and a hit bypasses page tables. Region checks can hide a stale permission bug, so the permission example deliberately leaves the region writable. Matching-tag invalidation preserves a different page occupying the same direct-mapped slot.",
+    "Why do unmapping, freeing, or changing a page's permissions require updating the TLB as well as the page tables? Describe what a stale cached frame or permission could let a guest do.",
+    "- A TLB hit uses a cached frame and permissions without walking the page table. Invalidate the affected translation when its mapping disappears or permissions change.\n"
+    "- A stale frame could send an access to storage that has been released and reused for something else.\n"
+    "- A stale writable permission could allow a write that the updated leaf denies, if the guest's region check still permits it.",
+    "Tasks IV-V invalidate affected entries during unmap, free, and protection changes. Cache coherence means a valid cached translation agrees with the current mapping and permissions. Merely editing the leaf does not force a later hit to reread it; direct PTE edits likewise require a flush.",
     "Machine model: TLB; Tasks III-V; Task VII: TLB hit")
 
-_pages(10, "TLB operations and conflicts",
-    "Resident pages at 0x1000 and 0x9000 are read alternately through resolve, starting with an empty TLB. Explain the hits/misses and the roles of TLB lookup, insert, invalidate, and flush. What would enough ways in a set-associative TLB change?",
-    "- Their VPNs are 1 and 9, so both use slot 1 (VPN modulo 8). Every alternating access misses, but residency means these misses need no page fault.\n"
-    "- Lookup requires a valid slot with the matching VPN tag; it returns the cached entry on a hit and leaves its output unchanged on a miss. Lookup does not modify the cache.\n"
-    "- Insert replaces the indexed slot with the new page's tag, frame, and permissions. Invalidate clears only the matching page: invalidating 0x1000 while 0x9000 occupies slot 1 leaves 0x9000 cached. Flush invalidates all entries.\n"
-    "- With at least two ways in their set, both translations could remain cached, giving hits after filling them if nothing else evicts them.\n"
-    "- These TLB functions neither read the page table nor update stats; resolve handles those responsibilities.",
-    "The Machine model fixes 4 KiB pages and eight direct-mapped slots. A 32 KiB separation changes the VPN by eight, preserving the slot but changing the tag. Associativity permits multiple tags in a set; it changes cache conflicts rather than physical residency or page permissions.",
-    "Machine model: TLB; Task III: Translation lookaside buffer; Task VII; Testing: Check your understanding")
+_pages(10, "Translation cache",
+    "What does the TLB contribute to the simulator, and how do lookup, insertion, invalidation, and flushing support that role? Why do resident pages 32 KiB apart compete in this homework's TLB, and what could set associativity change?",
+    "- The TLB caches a virtual page's data frame and permissions so repeated accesses can avoid a page-table walk. Lookup checks for the requested page; insertion caches a translation; invalidation removes one page's cached translation; flushing removes all of them.\n"
+    "- The homework has eight direct-mapped entries and 4 KiB pages. A separation of eight pages selects the same slot, so those translations evict each other despite both pages remaining resident.\n"
+    "- Enough ways in their set could hold both translations, reducing these conflicts. It would not change the page mappings or physical residency.",
+    "Task III implements a cache, not another allocator or fault handler. The VPN tag distinguishes different pages sharing a slot. A conflict miss requires another lookup of the resident mapping, not allocation of another data page.",
+    "Machine model: TLB; Task III: Translation lookaside buffer; Testing: Check your understanding")
 
 _pages(11, "Testing and blind spots",
-    "A test writes a value through sf_vm_write_word and reads it back through sf_vm_read_word. Give one bug this test could detect, one address bug it could miss, and checks that expose that missed bug and simulated frame leaks after cleanup.",
-    "- It can detect a missing or incorrect word store when the read returns a different value.\n"
-    "- It can miss read and write using the same wrong physical address: both operations agree on the misplaced value.\n"
-    "- Independently inspect the mapping and expected physical frame/offset, check that the value landed there, and verify neighboring locations were unchanged.\n"
-    "- After cleanup, check allocated-frame counts and remaining table/mapping counts against the expected survivors; an isolated fully freed VM should have none. Correct readback alone does not detect leaked table frames.",
-    "Task VII explicitly warns that round trips can hide shared address bugs. Testing supplies an inspector that reads tables without using the student's walk, reducing the chance of repeating its bug. Frame maps still depend on allocator ownership metadata, so they are not an independent proof of allocator correctness. Host Valgrind does not see leaks inside the simulated frame pool.",
-    "Task VII: Hint; Testing: Starter tests, Unit tests first, Systems tests with the trace driver")
+    "Why is successfully writing a value and reading it back insufficient to establish that the simulator works? Give a bug this test can miss and a complementary check for it.",
+    "- Read and write can share the same wrong-address bug, so the value comes back correctly from the wrong physical location. Independently inspect the mapping and expected destination, and check neighboring data.\n"
+    "- Correct values also do not establish resource cleanup or cache coherence. Check frame ownership and surviving mappings after failure/free, and check that cached translations agree with the page table.",
+    "The README calls for layer-level and whole-system tests because one successful user-visible result can hide structural errors. The supplied inspector reads tables without using the student's walk, providing a separate way to check the mapping rather than repeating the same potentially faulty path.",
+    "Overview; Task VII: Hint; Testing: Starter tests, Unit tests first, Systems tests with the trace driver")
 
-_pages(12, "Region and leaf permissions",
-    "Compare a guest write denied by a read-only region with one denied by a read-only resident leaf inside a writable region. Then describe successful sf_vm_protect(id, rw) for a region containing both resident and nonresident pages, and the result if a resident entry is malformed.",
-    "- Read-only region: the guest returns SF_VM_PROTECTION_FAULT before resolve, with no access-stat changes.\n"
-    "- Writable region but read-only leaf: the guest reaches resolve, which denies the write using the cached or looked-up leaf permissions. A cache miss does not authorize the handler to widen a resident leaf.\n"
-    "- Successful region protect to rw: update the region record and every resident leaf to rw, invalidate affected resident translations, preserve frames/bytes, and allocate no frames or faults. Later demand-paged pages receive rw from the updated record.\n"
-    "- Malformed resident entry: return SF_VM_INVALID_ADDRESS with the record, leaves, and TLB unchanged.",
-    "Tasks V-VII enforce both authorization layers. Region protect changes the reservation and its existing mappings together, including widening a more restrictive raw leaf inside the region. Its all-or-nothing rule prevents part of the region changing before a bad entry is discovered.",
-    "Task V: sf_vm_protect; Task VI: Demand-page fault handler; Task VII: Resolve and guest word access")
+_pages(12, "Memory protection",
+    "What are region permissions and page-table permissions protecting, and how should changing a region's permissions affect resident pages and pages first touched later?",
+    "- Region permissions authorize accesses to a reservation; resident leaf permissions control accesses through its mapping. A guest access must satisfy both.\n"
+    "- Region protect changes the reservation and its resident leaves together, invalidating affected cached translations while preserving data.\n"
+    "- Pages first touched later receive the region's updated permissions. Changing protection does not require allocating frames for untouched pages.",
+    "Tasks V-VII keep authorization, mappings, and cached permissions consistent. Making a page resident is not permission to widen access: the fault handler uses the region's permissions and does not rewrite an existing restrictive leaf merely to allow an access.",
+    "Task V: sf_vm_protect; Task VI; Task VII: guest access conditions")
 
-_pages(13, "Virtual-region operations",
-    "Describe how alloc, find_region, range_available, protect, and free manage a huge sparse virtual region when a raw mapping splits an otherwise free gap. Explain placement, overlap checks, traversal, and failure guarantees.",
-    "- alloc chooses the leftmost contiguous virtual range that fits, excluding reservations AND raw mappings; it records a region without allocating physical frames. Physical frames need not be contiguous.\n"
-    "- find_region returns the reservation containing the requested byte address, or NULL.\n"
-    "- range_available checks the entire aligned, nonempty, in-range interval for reservations and mappings. Adjacent ranges do not overlap; partial overlap and either range containing the other do. Malformed overlapping table state makes availability false.\n"
-    "- Sparse search uses next_mapped_page and skips absent table subtrees rather than scanning each virtual page.\n"
-    "- protect updates the record and resident leaves; free removes the record, unmaps resident pages, frees their data frames, and prunes empty tables. Neither allocates frames for untouched pages.\n"
-    "- Malformed resident state makes free/protect fail without partial changes. Free also rejects aliased data frames instead of freeing one twice; failed alloc changes no reservations, output, or ID counter.",
-    "Task V separates contiguous virtual placement from physical frame allocation. Task IV's traversal skips whole absent 1 GiB or 2 MiB spans, making large nonresident reservations practical. Fixed region records describe reservations, while only resident pages require leaves and data frames.",
+_pages(13, "Virtual-region manager",
+    "What problem does the virtual-region manager solve that the frame allocator and page table do not? Explain how it chooses a reservation, finds the region containing an address, and releases or protects a large sparsely used region.",
+    "- It manages ownership and permissions of virtual ranges, including pages that have no physical backing yet. The frame allocator instead tracks physical storage, and the page table tracks resident mappings.\n"
+    "- It chooses the leftmost contiguous virtual gap large enough, avoiding existing reservations and mappings. Region lookup finds the reservation containing an address.\n"
+    "- Free removes the reservation and releases its resident pages and unnecessary tables. Protect changes reservation and resident-page permissions.\n"
+    "- Sparse traversal visits resident mappings and skips absent branches rather than allocating or scanning every untouched page. Failed free/protect must not leave a partially changed region.",
+    "Task V makes large virtual reservations practical using a region record rather than per-page backing. Contiguous virtual addresses need not use contiguous physical frames. Task IV's mapping traversal lets region operations work on the pages actually present.",
     "Task V: Virtual regions; Task IV: sf_vm_next_mapped_page; Machine model: Reservations vs. mappings")
 
-_pages(14, "Resolve stats and fast paths",
-    "Starting with an empty TLB in each case, give the result and changes to hits, misses, and faults for: (a) a permitted guest write to a nonresident page whose handler runs out of frames; (b) resolve of a malformed present path; (c) two guest writes to a read-only leaf inside a writable region; (d) a guest write denied by its region. Who updates these counters, and what work does a TLB hit skip?",
-    "- (a) SF_VM_OUT_OF_MEMORY: 0 hits, 1 miss, 1 fault; no TLB entry inserted.\n"
-    "- (b) SF_VM_INVALID_ADDRESS: 0 hits, 1 miss, 0 faults, for an in-range address and valid access kind; no handler call or TLB insertion.\n"
-    "- (c) Both return SF_VM_PROTECTION_FAULT: totals 1 hit, 1 miss, 0 faults. The first lookup caches the valid read-only leaf even though the write is denied; the second denial uses that entry.\n"
-    "- (d) SF_VM_PROTECTION_FAULT: 0 hits, 0 misses, 0 faults; rejected before resolve.\n"
-    "- Resolve updates the counters. The TLB module and handler do not. A hit checks cached permissions and forms the physical address without reading page tables, calling the handler, or rewriting the entry.",
-    "Task VII counts one hit or miss for every resolve reaching the cache, and a fault only when a miss's lookup reports absence. The fault count records the attempt even when handling fails. Successful lookup fills the cache before the final leaf-permission decision, while guest region rejection happens before the MMU. No disk accesses occur in this simulator.",
-    "Task VII: sf_vm_resolve, guest access conditions; Task III; Task VI")
+_pages(14, "Resolve and guest interface",
+    "Why does the simulator separate guest read/write operations from resolve? Explain what resolve does on a TLB hit, a miss with a resident page, and a miss with a nonresident page, and what the hit/miss/fault statistics distinguish.",
+    "- The guest interface validates a word access against its reservation and transfers the word only after obtaining an allowed physical address. Resolve supplies that translation and enforces mapping permissions.\n"
+    "- TLB hit: use the cached frame and permissions.\n"
+    "- Miss with a resident page: walk the page table and cache the translation; no demand allocation is needed.\n"
+    "- Miss with a permitted nonresident page: invoke the handler, then check and cache the repaired mapping.\n"
+    "- Hits/misses describe use of the translation cache; faults describe absent physical backing. Resolve records these events; a TLB miss alone is not a page fault.",
+    "Task VII centralizes translation and demand paging so reads and writes use the same resolution machinery. The guest receives the requested word behavior while the stats expose which internal path ran. Failed authorization does not trigger allocation, and enough frames are needed for a fault to be repaired.",
+    "The call layers; Task VII: Resolve and guest word access; Task VI")
 
-_pages(15, "Zero-fill and resident data",
-    "A freed physical frame still contains an earlier region's data. Describe the required treatment when it becomes a demand-paged data frame, a new table, or a caller-supplied frame passed to map_page. What should a direct handler call do to an already-resident page that permits the access?",
-    "- Demand-paged data: the handler zeros the frame before mapping it, so untouched bytes of the new page do not expose old data.\n"
-    "- New table: the creating walk zeros it before exposing it through the root or parent link, so old bytes do not become apparent entries.\n"
-    "- Caller-supplied frame: map_page preserves its bytes; the allocator also does not clear them. Its contents remain the caller's responsibility.\n"
-    "- Already-resident permitted page: the handler returns SF_VM_OK without allocating, replacing, or zeroing it, preserving the existing data.",
-    "The Machine model's ownership rules and Tasks I, II, IV, VI put initialization at the layer creating each kind of object. Allocation changes ownership, not guest bytes. Zeroing every handler invocation would destroy live data; omitting first-use zeroing would expose stale bytes or corrupt the table structure.",
-    "Machine model: Ownership; Task I; Task II: allocate == true; Task IV: sf_vm_map_page; Task VI")
+_pages(15, "Initialization and data lifetime",
+    "Why does the simulator zero new page tables and demand-paged data frames before exposing them? Explain why allocating a frame and mapping an existing page's data are different from initializing a new page.",
+    "- New tables need empty entries; leftover bytes could otherwise be interpreted as mappings or links.\n"
+    "- A demand-paged page starts with zeros so a new allocation does not expose an earlier owner's bytes.\n"
+    "- Frame allocation changes ownership but does not clear bytes. The layer creating the new table or demand-paged page performs initialization.\n"
+    "- Mapping caller-supplied data preserves that data. A fault-handler call for an already-resident permitted page must also preserve it rather than zeroing or replacing it.",
+    "The Machine model separates ownership, initialization, and mapping. Reused storage can hold old bytes, while live storage can hold valuable current data; treating both as a new page either exposes stale data or destroys valid contents.",
+    "Machine model: Ownership; Tasks I, II, IV and VI")
 
-_pages(16, "PTE helpers and address fields",
-    "For Task 0, describe the address fields and results obtained by the VPN, page-offset, page-base, level-span, and PTE-address helpers. Then explain what PTE packing/extraction, presence, permission validation, and access-permission helpers produce, and what state these helpers modify.",
-    "- sf_va_vpn extracts the selected 9-bit index: L2 bits 38-30, L1 bits 29-21, L0 bits 20-12. sf_va_page_offset returns bits 11-0; sf_va_page_base clears those bits.\n"
-    "- sf_va_level_span gives the span of one entry: L0 4 KiB, L1 2 MiB, L2 1 GiB. sf_pte_address gives the physical byte offset table_frame * 4096 + index * 8, not a frame ID or guest VA.\n"
-    "- sf_pte_make packs a frame and flags; frame/flags extraction recovers those components. sf_pte_permissions extracts only R/W/X, excluding V.\n"
-    "- sf_pte_is_present tests V; leftover bits without V do not make an entry present. sf_permissions_valid accepts a nonempty subset of R/W/X with W requiring R and no other bits.\n"
-    "- sf_access_permission maps an access kind to its required permission bit; an invalid kind maps to 0.\n"
-    "- These are pure bit/address calculations: they modify neither vm->data nor frame-allocator state.",
-    "Task 0 supplies the representation operations used by later layers. A table has 512 eight-byte entries in one 4096-byte frame, so locating a PTE requires both frame-to-byte and entry-to-byte conversion. Presence and permissions answer different questions; validating permission bits alone does not validate the whole page-table path or frame ownership.",
-    "Task 0: PTE helper functions; Machine model: Virtual addresses, Page tables; Task VI: access validation")
+_pages(16, "PTE representation helpers",
+    "What is Task 0's role in making a page-table simulator work? Explain how virtual-address fields and a page-table entry represent a translation, and why the other tasks use shared helpers for those representations.",
+    "- Address helpers separate the virtual page indices used to choose table entries from the byte offset within the page.\n"
+    "- A PTE identifies a frame and records whether the entry is present and what accesses a leaf permits. Helpers construct and extract those fields and locate entries within table frames.\n"
+    "- Translation follows the indices to a data frame and preserves the original page offset when forming the physical address.\n"
+    "- Shared helpers give every layer the same representation and permission rules. They perform bit/address calculations rather than allocating frames or reading/writing guest memory.",
+    "Task 0 supplies the representation foundation; later tasks provide ownership, traversal, residency, and access behavior. Presence is distinct from permissions, and a frame number is distinct from a physical byte address. The conceptual role does not require reciting every helper or memorizing exact bit positions.",
+    "Task 0: PTE helper functions; Machine model: Virtual addresses, Page tables")
 
-_pages(17, "Page-table operation roles",
-    "Compare map_page, lookup_page, translate, protect_page, unmap_page, and next_mapped_page: what does each produce or change, and how does that differ from walk returning a PTE slot? Identify their relationship to reservations and the TLB.",
-    "- map_page installs a leaf for a page-aligned VA and already-allocated frame, creating missing tables. It preserves data and rejects an already-present leaf rather than replacing it.\n"
-    "- lookup_page returns the resident data frame and R/W/X without allocation; missing tables/leaves give SF_VM_PAGE_FAULT, malformed present state gives SF_VM_INVALID_ADDRESS.\n"
-    "- translate adds an access check and returns frame * page_size + offset, or SF_VM_PROTECTION_FAULT when leaf permissions deny access. It does not handle faults.\n"
-    "- protect_page updates one resident leaf's permissions and invalidates its cache entry, preserving frame/data.\n"
-    "- unmap_page removes the leaf, invalidates its cache entry, prunes empty tables, and returns the data frame still allocated.\n"
-    "- next_mapped_page returns the lowest well-formed mapped VA in [start, end), skipping absent subtrees. No mapping gives SF_VM_PAGE_FAULT; malformed encountered state gives SF_VM_INVALID_ADDRESS. It modifies nothing.\n"
-    "- Walk returns a leaf-slot physical offset, which can succeed without a present leaf. These low-level operations do not require a reservation or consult the TLB for translation; protect_page/unmap_page invalidate it. Guest access authorization and cached resolution belong to other layers.",
-    "Task IV separates installing, inspecting, translating, modifying, removing, and finding mappings. Its operations support region management and demand paging without duplicating the guest interface. A slot, a frame number, and a final physical byte address are different results. The higher-level free releases managed data frames, and region protect keeps reservation permissions in agreement with leaves.",
-    "Task IV: Map, look up, translate, protect, unmap, traverse; Task II: Result; Tasks V and VII")
+_pages(17, "Page-table operations",
+    "Once the simulator can walk to an entry, what work do Task IV's mapping, lookup/translation, protection, unmapping, and traversal operations add? Why do the region manager and fault handler need these operations?",
+    "- Mapping installs a connection from a virtual page to an allocated data frame; a walk alone only locates the entry slot.\n"
+    "- Lookup reads an existing mapping; translation checks its permissions and combines the mapped frame with the original byte offset.\n"
+    "- Protection changes allowed accesses while retaining data. Unmapping removes the connection and reclaims empty table structures, without itself releasing the returned data frame.\n"
+    "- Traversal finds resident pages while skipping absent branches.\n"
+    "- The fault handler uses mapping to install backing for a newly touched page. The region manager uses these operations to find occupied space and free or protect resident pages without reimplementing the tree mechanics.",
+    "Task IV turns a navigable tree into usable mapping operations. It separates locating a slot, owning a frame, installing a mapping, and authorizing a guest access. Changes that remove a mapping or alter permissions also invalidate affected cached translations.",
+    "Task IV: Map, look up, translate, protect, unmap, traverse; Task II: Result; Tasks V-VII")
 
 
 def _vm(number, kind, prompt, answer, explanation, slides, review=None, fault_rule=False):
@@ -904,16 +882,15 @@ _shell(8, "Pipeline design",
     "Behavioral requirements, Pipes leader-PID and foreground-completion bullets")
 
 _shell(9, "Parsing",
-    "What parsing work did the homework require adding beyond parseline's handling of a trailing &? Explain what that added parsing tells the shell to do and how operators must be separated from other tokens.",
+    "What parsing work did the homework require adding beyond parseline's handling of a trailing &? Explain what that added parsing tells the shell to do.",
     "- Recognize | and split the line into pipeline stages.\n"
     "- Recognize <, >, and >> and associate filenames with each stage's input or output.\n"
-    "- Operators are separate whitespace-delimited tokens, as in command >> file rather than command>>file.\n"
     "This turns command tokens into launch instructions: which programs to run, which pipe connections to create, and which files to use.",
-    "The supplied parseline handles background selection but not pipes or redirection. The assignment places that additional evaluation work in eval.",
+    "The supplied parseline handles background selection but not pipes or redirection. The assignment places that additional evaluation work in eval. Its syntax uses whitespace-separated operators, such as command >> file.",
     "What you implement, eval; File redirection whitespace-token bullet; paragraph after Behavioral requirements describing parseline")
 
 _shell(10, "Parsing",
-    "For /bin/echo hello > out.txt &, list the arguments passed to execve and the separate setup information used by the shell. Why separate them?",
+    "For /bin/echo hello > out.txt &, what belongs in the program's argv, and what is separate shell setup? Why separate them?",
     "- argv contains /bin/echo and hello, followed by NULL.\n"
     "- The shell records output redirection to out.txt in create/truncate mode and background execution.\n"
     "The operators and redirection filename configure execution; they are not arguments for echo to print.",
@@ -927,101 +904,60 @@ _shell(11, "Redirection",
     "Behavioral requirements, File redirection input and child-setup bullets")
 
 _shell(12, "Redirection design",
-    "Compare command > log.txt with command >> log.txt. Explain the purpose of each mode and the open flags that implement their different behavior.",
-    "- > replaces the file's previous contents with new output; use O_WRONLY | O_CREAT | O_TRUNC.\n"
-    "- >> preserves existing contents and appends new output; use O_WRONLY | O_CREAT | O_APPEND.\n"
+    "Compare command > log.txt with command >> log.txt. What happens to existing contents, and what happens if the file does not exist?",
+    "- > clears the file's previous contents and directs new output to it.\n"
+    "- >> preserves existing contents and appends new output.\n"
     "Both create log.txt if it does not exist.",
     "Both forms redirect standard output to a file. Truncation supports replacing a result, while append supports accumulating output without discarding earlier contents.",
     "Behavioral requirements, File redirection output, append, and flags bullets")
 
 _shell(13, "Redirection",
-    "Describe the input, output, and prompt behavior of command < in.txt >> out.txt &. How would placing >> out.txt before < in.txt change those connections? Why are redirection and background execution separate choices?",
-    "- Standard input reads in.txt; standard output appends to out.txt, creating it if needed.\n"
-    "- The shell does not wait for this background job before accepting another command.\n"
-    "- Reversing these input/output redirection clauses leaves the connections unchanged.\n"
-    "Redirection selects data sources and destinations; background execution selects whether the shell waits.",
-    "The assignment allows combined input/output redirection in either order and requires it to work for background jobs. File connections do not depend on foreground waiting.",
+    "What different choices do file redirection and background execution make about a command? Explain why a redirected command can run in either the foreground or background.",
+    "- Redirection chooses where the command reads input or writes output.\n"
+    "- Background execution chooses whether the shell waits for the job before accepting another command.\n"
+    "The file connections can be the same in either case; adding & changes foreground waiting, not those connections.",
+    "The assignment requires redirection for both foreground and background external commands. File I/O setup and job scheduling serve separate purposes.",
     "Behavioral requirements, File redirection combination/background bullets; Overview foreground/background support")
 
-_shell(14, "Redirection",
-    "Which file receives the command's standard output, and in which mode, for each line? State the homework rule used to resolve the competing output redirections.\n\n"
-    "1. command > first.txt >> last.txt\n"
-    "2. command >> first.txt > last.txt",
-    "- Line 1: last.txt in append mode.\n"
-    "- Line 2: last.txt in create/truncate mode.\n"
-    "The last output redirection determines the final output destination and mode.",
-    "The README explicitly specifies last-one-wins when > and >> occur on the same command. The question concerns the final output connection, not side effects on earlier filenames.",
-    "Behavioral requirements, File redirection last-one-wins and output-mode bullets")
 
 _shell(15, "Redirection design",
-    "What different jobs do open and dup2 perform in file redirection? Where should redirection occur relative to fork, setpgid, and execve, and why does that placement matter for the shell?",
-    "- open obtains a descriptor for the chosen file.\n"
-    "- dup2 connects that file to the command's standard-input or standard-output descriptor.\n"
-    "- Do this in the child after fork and setpgid, before execve. The command inherits the connection while the parent shell keeps its own standard input and output.",
-    "Opening a file alone does not replace a standard descriptor. Child-side descriptor setup directs the new program's I/O without redirecting later shell prompts or commands.",
+    "Why does the shell set up an external command's redirection in the child before executing the program? What would redirecting the parent shell's standard input or output affect?",
+    "- Child-side setup gives the executed program the requested file connections while preserving the parent shell's own standard input and output.\n"
+    "- Redirecting the parent could send later shell prompts to a file or make the shell read later commands from the redirected input.",
+    "The child inherits its descriptor connections across exec. Opening the file and connecting it to standard input/output in the child isolates command I/O from the interpreter's ongoing session.",
     "Behavioral requirements, File redirection child open/dup2 placement bullet",
     "SHELL_HW/src/tsh.c, redirect_file, duplicate_fd, and eval child branch")
 
 _shell(16, "Failure handling",
-    "What should the shell report and keep running in each case? Explain the design reason for containing these failures.\n\n"
+    "What should happen to the affected command and the parent shell in each case? Explain why these failures are contained.\n\n"
     "1. An external command's input redirection names a missing file.\n"
     "2. One stage of a pipeline cannot be exec'd.",
-    "- Missing input: report filename: No such file or directory and exit the child without running its requested program. The shell continues.\n"
-    "- Failed stage exec: report Command not found for that stage. The shell continues managing its jobs.\n"
+    "- Missing input: report the file-open error and exit the child without running its requested program. The shell continues.\n"
+    "- Failed stage exec: report the launch failure and terminate that child. The shell continues managing its jobs.\n"
     "A failed command or stage should not terminate the interpreter needed to run later commands.",
     "The README explicitly requires shell survival for both file-open and stage-exec failures. It does not require every other pipeline stage to fail or stop in the same way.",
     "Behavioral requirements, File redirection open-failure bullet and Pipes exec-failure bullet")
 
 _shell(17, "Pipeline design",
-    "For producer | filter | consumer, describe the pipe connections and identify how many connecting pipes are needed. Why use these connections to compose the three programs?",
+    "For producer < in.txt | filter | consumer >> out.txt, describe the file endpoints and pipe connections. How many pipes connect the stages, and why compose programs this way?",
+    "- producer reads in.txt.\n"
     "- producer's standard output feeds filter's standard input.\n"
     "- filter's standard output feeds consumer's standard input.\n"
+    "- consumer appends its output to out.txt, creating the file if needed.\n"
     "- Two connecting pipes are needed.\n"
     "Each program can use standard input/output while the shell arranges for one stage's output to become the next stage's input.",
-    "A pipeline connects adjacent stages, with one process per stage. The pipe data connections serve a different purpose from the process group used to control the job.",
-    "Behavioral requirements, Pipes first two bullets; parseline paragraph naming pipe")
+    "A pipeline connects adjacent stages, with one process per stage. File redirection binds to the stage where it appears, providing endpoints around the internal pipe connections. Dataflow serves a different purpose from the process group used to control the job.",
+    "Behavioral requirements, Pipes first two bullets and per-stage redirection; File redirection append bullet; parseline paragraph naming pipe")
 
-_shell(18, "Pipeline redirection",
-    "For producer < in.txt | filter | consumer >> out.txt, identify each stage's input and output. Explain how stage-local redirection and pipes work together.",
-    "- producer reads in.txt and writes to the first pipe.\n"
-    "- filter reads the first pipe and writes to the second.\n"
-    "- consumer reads the second pipe and appends to out.txt, creating it if needed.\n"
-    "A file redirection changes the specified stage's stream; the other pipe connections remain in place.",
-    "The README binds redirection to the stage where it appears. Redirecting the first input and last output supplies file endpoints around the pipeline's internal dataflow.",
-    "Behavioral requirements, Pipes per-stage redirection bullet and File redirection append bullet")
 
-_shell(19, "Pipeline redirection",
-    "For each line, identify the pipe connection overridden by redirection and what consumer reads. Explain the common rule.\n\n"
-    "1. producer > saved.txt | consumer\n"
-    "2. producer | consumer < replacement.txt",
-    "- Line 1: producer's standard output goes to saved.txt in create/truncate mode instead of the pipe. consumer sees EOF on the pipe.\n"
-    "- Line 2: consumer's standard input reads replacement.txt instead of the pipe.\n"
-    "A stage's explicit file redirection overrides that stage's corresponding pipe connection.",
-    "The first line is the README's explicit EOF example. The same stage-local rule applies to an input redirection. Unused pipe ends must be closed so leftover descriptors do not defeat the intended dataflow.",
-    "Behavioral requirements, Pipes per-stage override rule and example cmd1 > file | cmd2",
-    "SHELL_HW/src/tsh.c, eval pipe-end closure and child redirection setup")
 
 _shell(20, "Pipeline validation",
-    "What should the shell do with cmd |, | cmd, and cmd | | cmd? Why should it validate the whole pipeline before launching a stage?",
-    "Each line has an empty stage. Print Invalid pipeline and run nothing. Whole-line validation prevents part of a rejected command line from executing before the shell discovers the malformed pipeline.",
+    "Why should the shell validate that every pipeline stage contains a command before launching any stage? What should happen if a stage is empty?",
+    "- Validation prevents part of a rejected command line from executing before the shell discovers an empty stage.\n"
+    "- Report the invalid pipeline and run no stages; the shell remains available for another command.",
     "The requirement is rejection with no stages run, not merely reporting an error after some commands have started.",
     "Behavioral requirements, Pipes empty-stage rejection bullet")
 
-_shell(21, "Feature boundaries",
-    "For each line, identify whether its feature is required by the Shell homework or outside the required feature set. Explain the boundary used.\n\n"
-    "- /bin/cat < in.txt | /usr/bin/wc > out.txt\n"
-    "- /bin/echo hello >> out.txt &\n"
-    "- jobs > out.txt\n"
-    "- jobs | /usr/bin/wc\n"
-    "- /bin/echo hello 2> errors.txt",
-    "- External pipeline with input/output redirection: required.\n"
-    "- Background external command with append redirection: required.\n"
-    "- Built-in redirection: not required.\n"
-    "- Pipeline of built-ins: not required.\n"
-    "- Stderr redirection with 2>: not required.\n"
-    "The required redirection and pipeline features apply to external commands; built-ins are recognized only on single-stage lines.",
-    "These boundaries distinguish the assigned shell from a full Unix shell. An unsupported form has no assignment-mandated output behavior to predict.",
-    "Behavioral requirements, File redirection external-only heading and Pipes final bullet")
 
 _shell(22, "Pipeline design",
     "Why must the parent shell close its unused pipe write ends after launching a pipeline? Relate your answer to a consumer that reads until EOF.",
