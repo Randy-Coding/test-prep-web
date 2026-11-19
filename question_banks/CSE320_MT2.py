@@ -988,12 +988,6 @@ def _heap(number, kind, prompt, answer, explanation, slides, *, entry=None,
           transcript=None, star=False, changes=None):
     sources = [f"9.1 (The) Heap.pptx, slides {slides}"]
     if kind == "Bad memory usage code":
-        instruction = (
-            "Name each error using the heap slides' terminology, explain why it occurs, "
-            "and show a correction. For multiple options, identify any error-free options too."
-        )
-        setup, separator, code = prompt.partition("\n\n")
-        prompt = setup + " " + instruction + separator + code
         answer = "Slide error name(s): " + _HEAP_ERROR_NAMES[number] + ".\n\n" + answer
         sources.append("9.1 (The) Heap.pptx, slide 52, memory-related error names")
     if entry is not None:
@@ -1187,77 +1181,77 @@ _heap(24, "General",
 
 
 _heap(25, "Bad memory usage code",
-    'What is wrong with this code? Explain the error and show a correction.\n\n```c\nint val;\nscanf("%d", val);\n```',
+    'What is wrong with this code? Explain the error and how to fix it.\n\n```c\nint val;\nscanf("%d", val);\n```',
     "scanf needs an int pointer identifying where to store the input, but val supplies an integer value. Use scanf(\"%d\", &val).",
     "The %d conversion writes to the destination address passed by the caller. Reading val as an address does not designate the local variable and can cause an invalid access; val is also uninitialized here.",
     "53", entry=62, transcript="line 79", star=True,
     changes="omitted ellipsis; normalized typographic quotes")
 
 _heap(26, "Bad memory usage code",
-    'What is wrong with this code? Explain the error and show a correction.\n\n```c\nchar s[8];\nint i;\ngets(s);  /* reads "123456789" from stdin */\n```',
+    'What is wrong with this code? Explain the error and how to fix it.\n\n```c\nchar s[8];\nint i;\ngets(s);  /* reads "123456789" from stdin */\n```',
     "The nine characters plus the terminating null byte need 10 bytes, but s has only 8. Replace gets with a bounded read, such as fgets(s, sizeof s, stdin), and handle any remaining input as needed.",
     "gets has no buffer-size argument and can write beyond s. A bounded read preserves space for the terminator; it may read only part of a longer input rather than overflowing the array. The exact overwritten object or crash is not determined by this snippet.",
     "53", entry=63, star=True)
 
 _heap(27, "Bad memory usage code",
-    'This function should compute y = Ax. What is wrong with this code? Explain the error and show a correction.\n\n```c\nint *matvec(int **A, int *x) {\n   int *y = malloc(N*sizeof(int));\n   int i, j;\n   for (i=0; i<N; i++)\n      for (j=0; j<N; j++)\n         y[i] += A[i][j]*x[j];\n   return y;\n}\n```',
+    'This function should compute y = Ax. What is wrong with this code? Explain the error and how to fix it.\n\n```c\nint *matvec(int **A, int *x) {\n   int *y = malloc(N*sizeof(int));\n   int i, j;\n   for (i=0; i<N; i++)\n      for (j=0; j<N; j++)\n         y[i] += A[i][j]*x[j];\n   return y;\n}\n```',
     "y[i] is read by += before being initialized. Set each y[i] to zero before its inner loop, or allocate y with calloc(N, sizeof *y). Check allocation success before using the result.",
     "malloc does not zero the returned storage. Accumulation requires a known starting value; otherwise the computation reads indeterminate data rather than starting each dot product at zero.",
     "54", entry=64, transcript="line 85", star=True,
     changes="omitted the source's return-y=Ax comment, retained in prompt")
 
 _heap(28, "Bad memory usage code",
-    'What is wrong with this code? Explain the error and show a correction.\n\n```c\nint N = 3, M = 4;\nint i;\nint **p;\np = malloc(N*sizeof(int));\nfor (i=0; i<N; i++)\n   p[i] = malloc(M*sizeof(int));\n```',
+    'What is wrong with this code? Explain the error and how to fix it.\n\n```c\nint N = 3, M = 4;\nint i;\nint **p;\np = malloc(N*sizeof(int));\nfor (i=0; i<N; i++)\n   p[i] = malloc(M*sizeof(int));\n```',
     "The outer array contains int pointers, but its allocation reserves N int-sized elements. Use p = malloc(N * sizeof *p), equivalently N * sizeof(int *). The inner allocations correctly reserve storage for M ints each.",
     "The required outer element size is the size of p[i], not the size of an int stored in a row. Where pointers are larger than ints, the original allocation is too small and writes to p can overrun it; equality of sizes on another platform does not make the size expression appropriate.",
     "55", entry=65, transcript="line 85", star=True)
 
 _heap(29, "Bad memory usage code",
-    'What is wrong with this code? Explain the error and show a correction.\n\n```c\nint N = 3, M = 4;\nint i;\nint **p;\np = malloc(N*sizeof(int *));\nfor (i=0; i<=N; i++)\n   p[i] = malloc(M*sizeof(int));\n```',
+    'What is wrong with this code? Explain the error and how to fix it.\n\n```c\nint N = 3, M = 4;\nint i;\nint **p;\np = malloc(N*sizeof(int *));\nfor (i=0; i<=N; i++)\n   p[i] = malloc(M*sizeof(int));\n```',
     "The last iteration writes p[N], beyond the N-element pointer array. Use i < N so the valid indices are 0 through N-1.",
     "Allocating N elements does not provide an element at index N. The extra row allocation does not enlarge the outer pointer array that receives its address.",
     "55", entry=66, transcript="line 85", star=True)
 
 _heap(30, "Bad memory usage code",
-    'This function should inspect consecutive ints until it finds val or zero. What is wrong with this code? Explain the error and show a correction.\n\n```c\nint *search(int *p, int val) {\n   while (*p && *p != val)\n      p += sizeof(int);\n   return p;\n}\n```',
+    'This function should inspect consecutive ints until it finds val or zero. What is wrong with this code? Explain the error and how to fix it.\n\n```c\nint *search(int *p, int val) {\n   while (*p && *p != val)\n      p += sizeof(int);\n   return p;\n}\n```',
     "Pointer arithmetic already scales by the pointed-to type. p += sizeof(int) skips sizeof(int) elements, rather than one. Use p++ or p += 1.",
     "For a four-byte int, adding four to an int pointer advances 16 bytes. The original loop can skip the match or sentinel and read outside the intended sequence.",
     "55", entry=67, transcript="line 85", star=True)
 
 _heap(31, "Bad memory usage code",
-    'What is wrong with this code? Explain the error and show a correction.\n\n```c\nint *BinheapDelete(int **binheap, int *size) {\n   int *packet;\n   packet = binheap[0];\n   binheap[0] = binheap[*size - 1];\n   *size--;\n   Heapify(binheap, *size, 0);\n   return(packet);\n}\n```',
+    'What is wrong with this code? Explain the error and how to fix it.\n\n```c\nint *BinheapDelete(int **binheap, int *size) {\n   int *packet;\n   packet = binheap[0];\n   binheap[0] = binheap[*size - 1];\n   *size--;\n   Heapify(binheap, *size, 0);\n   return(packet);\n}\n```',
     "*size-- is parsed as *(size--): it decrements the local pointer, not the caller's count. Replace it with (*size)--. Heapify then receives the updated integer count through *size.",
     "Postfix -- binds more tightly than unary *. In the original, the count is not decreased and the following *size uses the moved pointer. Parentheses select the pointed-to integer as the object to decrement.",
     "56", entry=68, star=True)
 
 _heap(32, "Bad memory usage code",
-    'What is wrong with this code? Explain the error and show a correction.\n\n```c\nint *foo () {\n   int val;\n   return &val;\n}\n```',
+    'What is wrong with this code? Explain the error and how to fix it.\n\n```c\nint *foo () {\n   int val;\n   return &val;\n}\n```',
     "val's lifetime ends when foo returns, so the returned pointer does not designate a live local variable. To return an integer result, give val a value and return that value with an int return type. If a pointer result is needed, use storage whose lifetime extends past the call, with clear ownership.",
     "Returning an address does not extend the storage lifetime. Initializing val alone would not repair the dangling pointer; the returned result must have an appropriate lifetime.",
     "57", entry=69, transcript="line 89", star=True)
 
 _heap(33, "Bad memory usage code",
-    'What is wrong with this code? Explain the error and show a correction.\n\n```c\nx = malloc(N*sizeof(int));\n        <manipulate x>\nfree(x);\ny = malloc(M*sizeof(int));\n        <manipulate y>\nfree(x);\n```',
+    'What is wrong with this code? Explain the error and how to fix it.\n\n```c\nx = malloc(N*sizeof(int));\n        <manipulate x>\nfree(x);\ny = malloc(M*sizeof(int));\n        <manipulate y>\nfree(x);\n```',
     "The final release uses x again instead of releasing the allocation owned through y. Change the final statement to free(y), after y's last use.",
     "The pointer for each live allocation must identify its release. The first x allocation has already been released. A later allocation might reuse an address, so do not use an observed crash or lack of one as proof that the ownership sequence is correct.",
     "58", entry=70, transcript="line 89", star=True)
 
 _heap(34, 'Bad memory usage code',
-    'Which snippet contains an error? Explain it and show a correction. Each option starts with distinct malloc allocations x and y, each holding M zero-initialized ints, with M > 0.\n\nA.\n```c\nfree(x);\nfor (i = 0; i < M; i++)\n    y[i] = x[i]++;\n```\n\nB.\n```c\nfor (i = 0; i < M; i++)\n    y[i] = x[i]++;\nfree(x);\n```\n\nC.\n```c\nfree(x);\nfor (i = 0; i < M; i++)\n    y[i]++;\n```',
+    'What is wrong with this code? Explain the error and how to fix it. Each option starts with distinct malloc allocations x and y, each holding M zero-initialized ints, with M > 0.\n\nA.\n```c\nfree(x);\nfor (i = 0; i < M; i++)\n    y[i] = x[i]++;\n```\n\nB.\n```c\nfor (i = 0; i < M; i++)\n    y[i] = x[i]++;\nfree(x);\n```\n\nC.\n```c\nfree(x);\nfor (i = 0; i < M; i++)\n    y[i]++;\n```',
     'A. x[i]++ reads and writes storage after free(x). Keep x allocated through the loop and free it after its last access. Old bytes may still appear unchanged, but that does not preserve valid access to the released allocation.',
     "In A, free ends the allocation's lifetime before the loop uses it. B finishes using x before releasing it. C accesses only the separate, still-live y allocation after releasing x. The supplied sizes and initial values isolate the lifetime error from bounds or initialization errors. An observed successful run does not justify accessing freed storage.",
     '58',
     entry=71, transcript='line 89', star=True, changes='converted to error-to-code selection; supplied distinct initialized allocations as shared setup, retained the source free-before-copy loop as A, moved free after the loop for B, and removed x accesses for C')
 
 _heap(35, 'Bad memory usage code',
-    'For each function body, identify any error, explain it, and show a correction. Each body starts with x as its only pointer to one live malloc-allocated int; no pointer to that allocation escapes the function.\n\nA.\n```c\nfree(x);\nfree(x);\nreturn;\n```\n\nB.\n```c\n*x = 7;\nx = NULL;\nreturn;\n```\n\nC.\n```c\nfree(x);\n*x = 7;\nreturn;\n```',
+    'What is wrong with this code? Explain the error and how to fix it. Each body starts with x as its only pointer to one live malloc-allocated int; no pointer to that allocation escapes the function.\n\nA.\n```c\nfree(x);\nfree(x);\nreturn;\n```\n\nB.\n```c\n*x = 7;\nx = NULL;\nreturn;\n```\n\nC.\n```c\nfree(x);\n*x = 7;\nreturn;\n```',
     'A. Calls free(x) twice on the same allocation. Remove the second free(x).\n\nB. Loses the only pointer to a live allocation without freeing it. Call free(x) after its last use and before discarding the pointer.\n\nC. Writes through x after freeing its allocation. Move *x = 7 before free(x), or remove the write if it is unnecessary.',
     'The local pointer and its heap allocation have separate lifetimes. B abandons a live allocation without releasing it. A attempts to release the same allocation twice, while C writes through a pointer after releasing its allocation. Those are double-free and use-after-free errors, respectively.',
     '42, 58',
     entry=72, transcript='line 89', star=True, changes='converted to error-to-code selection; supplied the allocation as shared setup, made sole-pointer loss explicit in B, and added double-free and use-after-free alternatives from the neighboring slide examples')
 
 _heap(36, "Bad memory usage code",
-    'The omitted work adds several separately allocated nodes after head. What is wrong with this code? Explain the error and show a correction.\n\n```c\nstruct list {\n   int val;\n   struct list *next;\n};\nfoo() {\n   struct list *head = malloc(sizeof(struct list));\n   head->val = 0;\n   head->next = NULL;\n   <create and manipulate the rest of the list>\n    ...\n   free(head);\n   return;\n}\n```',
+    'The omitted work adds several separately allocated nodes after head. What is wrong with this code? Explain the error and how to fix it.\n\n```c\nstruct list {\n   int val;\n   struct list *next;\n};\nfoo() {\n   struct list *head = malloc(sizeof(struct list));\n   head->val = 0;\n   head->next = NULL;\n   <create and manipulate the rest of the list>\n    ...\n   free(head);\n   return;\n}\n```',
     "free(head) releases only the first node, leaving the remaining nodes allocated and unreachable if head was the only way to reach them. Traverse and release every node, preserving the next pointer before freeing the current node; alternatively, recursively release the tail before the current node.",
     "free does not follow pointer fields. Cleanup must retain a way to reach unfreed nodes and must not read next from a node after freeing it. The extra nodes in the prompt are essential: freeing the original one-node list alone would be sufficient.",
     "59", entry=73, transcript="line 89", star=True,
